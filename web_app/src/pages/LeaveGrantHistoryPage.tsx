@@ -44,6 +44,7 @@ const LeaveGrantHistoryPage: React.FC = () => {
         pending: 0,
         managerGranted: 0,
         approved: 0,
+        rejected: 0,
     });
 
     const fetchHistory = useCallback(async () => {
@@ -61,6 +62,7 @@ const LeaveGrantHistoryPage: React.FC = () => {
                 pending: data.filter((item: any) => item.status === 'REQUESTED').length,
                 managerGranted: data.filter((item: any) => item.isManager === 1).length,
                 approved: data.filter((item: any) => item.status === 'APPROVED').length,
+                rejected: data.filter((item: any) => item.status === 'REJECTED').length,
             });
         } catch (error) {
             console.error('Failed to fetch history:', error);
@@ -151,17 +153,20 @@ const LeaveGrantHistoryPage: React.FC = () => {
             <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
                 <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
                     <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid xs={6} sm={3}>
+                        <Grid xs={6} sm={4} md={2.4}>
                             <StatCard title="전체 내역" count={stats.total} color="#667EEA" icon={AssignmentIcon} />
                         </Grid>
-                        <Grid xs={6} sm={3}>
+                        <Grid xs={6} sm={4} md={2.4}>
                             <StatCard title="승인 대기" count={stats.pending} color="#2196F3" icon={PendingIcon} />
                         </Grid>
-                        <Grid xs={6} sm={3}>
+                        <Grid xs={6} sm={4} md={2.4}>
                             <StatCard title="관리자 부여" count={stats.managerGranted} color="#7C3AED" icon={CheckCircleIcon} />
                         </Grid>
-                        <Grid xs={6} sm={3}>
+                        <Grid xs={6} sm={4} md={2.4}>
                             <StatCard title="최종 승인" count={stats.approved} color="#4CAF50" icon={CheckCircleIcon} />
+                        </Grid>
+                        <Grid xs={12} sm={4} md={2.4}>
+                            <StatCard title="반려됨" count={stats.rejected} color="#F44336" icon={CancelIcon} />
                         </Grid>
                     </Grid>
 
