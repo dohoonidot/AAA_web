@@ -12,6 +12,13 @@
 export const IS_PRODUCTION = true;
 
 // ============================================
+// 🔐 웹 전용 로그인(로그인/리프레시/로그아웃) 8080 적용 여부
+// - true: 8080으로 호출 (구현 완료)
+// - false: 8060으로 호출 (8080 구현되면 true로 변경 예정)
+// ============================================
+export const WEB_AUTH_8080_READY = false;
+
+// ============================================
 // 📋 전자결재 결재종류 제한 설정
 // true: '휴가 부여 상신'만 표시 (배포용)
 // false: 모든 결재종류 표시 (개발용)
@@ -23,10 +30,17 @@ export const API_BASE_URL = IS_PRODUCTION
   ? 'https://ai2great.com:8080'  // 배포용
   : 'https://ai2great.com:8060'; // 개발용
 
+// 웹 전용 로그인 API URL (8080 구현 완료 여부에 따라 분기)
+export const WEB_AUTH_API_BASE_URL = WEB_AUTH_8080_READY
+  ? 'https://ai2great.com:8080'  // 배포용
+  : 'https://ai2great.com:8060'; // 개발용
+
 // 환경 정보
 export const ENV_CONFIG = {
   IS_PRODUCTION,
   API_BASE_URL,
+  WEB_AUTH_8080_READY,
+  WEB_AUTH_API_BASE_URL,
   APP_NAME: 'ASPN AI Agent',
   APP_VERSION: '1.3.0',
 } as const;

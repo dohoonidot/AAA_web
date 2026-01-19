@@ -8,11 +8,21 @@
  * 환경 변경: web_app/src/config/env.config.ts에서 IS_PRODUCTION 값만 변경하면 됩니다.
  */
 
-import { API_BASE_URL, IS_PRODUCTION } from '../config/env.config';
+import {
+  API_BASE_URL,
+  IS_PRODUCTION,
+  WEB_AUTH_API_BASE_URL,
+  WEB_AUTH_8080_READY,
+} from '../config/env.config';
 import { logger } from './logger';
 
 // API 기본 URL을 다시 export (env.config.ts에서 가져옴)
-export { API_BASE_URL, IS_PRODUCTION };
+export {
+  API_BASE_URL,
+  IS_PRODUCTION,
+  WEB_AUTH_API_BASE_URL,
+  WEB_AUTH_8080_READY,
+};
 
 // WebSocket URL (API URL과 동일한 포트 사용)
 export const WS_BASE_URL = API_BASE_URL.replace('https://', 'wss://');

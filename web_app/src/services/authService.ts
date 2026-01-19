@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../utils/apiConfig';
+import { API_BASE_URL, WEB_AUTH_API_BASE_URL } from '../utils/apiConfig';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('AuthService');
@@ -51,7 +51,7 @@ class AuthService {
    */
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/web/login`, {
+      const response = await fetch(`${WEB_AUTH_API_BASE_URL}/api/web/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ class AuthService {
    */
   async refresh(): Promise<RefreshResponse | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/web/refresh`, {
+      const response = await fetch(`${WEB_AUTH_API_BASE_URL}/api/web/refresh`, {
         method: 'POST',
         credentials: 'include', // 쿠키의 refresh_token 자동 전송
       });
@@ -145,7 +145,7 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
-      await fetch(`${API_BASE_URL}/api/web/logout`, {
+      await fetch(`${WEB_AUTH_API_BASE_URL}/api/web/logout`, {
         method: 'POST',
         credentials: 'include', // 쿠키 포함
       });

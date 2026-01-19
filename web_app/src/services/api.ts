@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../utils/apiConfig';
+import { API_BASE_URL, WEB_AUTH_API_BASE_URL } from '../utils/apiConfig';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('API');
@@ -75,7 +75,7 @@ api.interceptors.response.use(
       logger.warn('인증 만료 - refresh 시도');
       try {
         // refresh API 호출 (authService import 필요하지만 순환 참조 방지를 위해 직접 호출)
-        const refreshResponse = await fetch(`${API_BASE_URL}/api/web/refresh`, {
+        const refreshResponse = await fetch(`${WEB_AUTH_API_BASE_URL}/api/web/refresh`, {
           method: 'POST',
           credentials: 'include',
         });
