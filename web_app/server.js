@@ -54,7 +54,8 @@ app.use(cors({
 }));
 
 // Preflight 요청 처리
-app.options('*', cors());
+// Express 5 (path-to-regexp v6) 호환: '*' 대신 정규식 사용
+app.options(/.*/, cors());
 
 // JSON 요청 본문 파싱
 app.use(express.json({ limit: '10mb' }));
@@ -129,7 +130,8 @@ app.get('/api/server-info', (req, res) => {
 // ============================================
 
 // 모든 라우트를 index.html로 리다이렉트 (React Router 지원)
-app.get('*', (req, res) => {
+// Express 5 (path-to-regexp v6) 호환: '*' 대신 정규식 사용
+app.get(/.*/, (req, res) => {
   const indexPath = join(distPath, 'index.html');
 
   // index.html 파일 존재 확인
