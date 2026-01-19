@@ -41,3 +41,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Flutter generated files
+linux/flutter/generated_plugin_registrant.*
+linux/flutter/generated_plugins.cmake
+
+windows/flutter/generated_plugin_registrant.*
+windows/flutter/generated_plugins.cmake
+
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Flutter lock file (app project)
+pubspec.lock
