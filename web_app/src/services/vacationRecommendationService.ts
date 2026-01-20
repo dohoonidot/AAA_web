@@ -355,6 +355,7 @@ export async function* fetchVacationRecommendation(
             holidayAdjacentDays,
             totalLeaveDays,
             isAfterAnalysisMarker: true,
+            markdownBuffer,
         };
 
         // 최종 데이터 전체 로그 출력
