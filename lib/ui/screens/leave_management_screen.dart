@@ -17,6 +17,7 @@ import 'package:ASPN_AI_AGENT/shared/services/api_service.dart';
 import 'package:ASPN_AI_AGENT/features/leave/widgets/vacation_recommendation_popup.dart';
 import 'package:ASPN_AI_AGENT/features/leave/providers/vacation_recommendation_provider.dart';
 import 'package:ASPN_AI_AGENT/shared/utils/common_ui_utils.dart';
+import 'package:ASPN_AI_AGENT/ui/screens/chat_home_page_v5.dart';
 
 // Main Screen
 class LeaveManagementScreen extends ConsumerStatefulWidget {
@@ -147,6 +148,274 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen>
     super.dispose();
   }
 
+  void _showManualDialog() {
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 520),
+          decoration: BoxDecoration(
+            color: isDarkTheme ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 헤더
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isDarkTheme
+                      ? const Color(0xFF2D2D2D)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(16)),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isDarkTheme
+                          ? const Color(0xFF3D3D3D)
+                          : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.help_outline_rounded,
+                        color: Color(0xFF3B82F6),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '휴가관리 사용 가이드',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: isDarkTheme
+                                  ? Colors.white
+                                  : const Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '각 기능에 대한 설명입니다',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDarkTheme
+                                  ? Colors.grey[400]
+                                  : const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: isDarkTheme
+                            ? Colors.grey[400]
+                            : const Color(0xFF94A3B8),
+                      ),
+                      splashRadius: 20,
+                    ),
+                  ],
+                ),
+              ),
+
+              // 본문
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildManualItem(
+                        icon: Icons.edit_calendar_rounded,
+                        iconColor: const Color(0xFF10B981),
+                        title: '휴가 신청',
+                        description: '상단의 "휴가 신청" 버튼을 클릭하여 새로운 휴가를 신청할 수 있습니다. '
+                            '휴가 종류, 시작일/종료일, 사유를 입력하고 결재자를 선택한 후 제출하세요.',
+                        isDarkTheme: isDarkTheme,
+                      ),
+                      const SizedBox(height: 14),
+                      _buildManualItem(
+                        icon: Icons.calendar_month_rounded,
+                        iconColor: const Color(0xFF8B5CF6),
+                        title: '휴가 캘린더',
+                        description: '월별 휴가 현황과 공휴일을 한눈에 확인할 수 있습니다. '
+                            '날짜를 클릭하면 해당 날짜의 휴가 상세 정보가 표시됩니다. '
+                            '좌우 화살표로 월을 이동하세요. 넓게보기 버튼을 누르면 '
+                            '넓은 달력이 표시됩니다.',
+                        isDarkTheme: isDarkTheme,
+                      ),
+                      const SizedBox(height: 14),
+                      _buildManualItem(
+                        icon: Icons.table_chart_rounded,
+                        iconColor: const Color(0xFFF59E0B),
+                        title: '휴가 관리 대장',
+                        description: '올해 연차 발생일수, 사용일수, 잔여일수를 확인할 수 있습니다. '
+                            '하단 테이블에서 휴가 사용 내역을 상세히 조회하고, '
+                            '행을 클릭하면 해당 휴가의 결재 상태를 확인할 수 있습니다.',
+                        isDarkTheme: isDarkTheme,
+                      ),
+                      const SizedBox(height: 14),
+                      _buildManualItem(
+                        icon: Icons.approval_rounded,
+                        iconColor: const Color(0xFF3B82F6),
+                        title: '결재 현황',
+                        description:
+                            '상단에서 결재 진행 상태(대기/승인/반려)를 실시간으로 확인할 수 있습니다. '
+                            '각 상태를 클릭하면 해당 상태의 휴가 목록만 필터링하여 볼 수 있습니다.',
+                        isDarkTheme: isDarkTheme,
+                      ),
+                      const SizedBox(height: 14),
+                      _buildManualItem(
+                        icon: Icons.menu_rounded,
+                        iconColor: const Color(0xFFEC4899),
+                        title: '사이드바 메뉴',
+                        description: '왼쪽 사이드바에서 휴가 신청, AI 휴가 추천, 연차 부여 내역, '
+                            '연차 촉진 안내문 등 다양한 기능에 빠르게 접근할 수 있습니다. '
+                            '달력이 있고, 휴가관리자(경영관리실)에 예비군/민방위, 결혼, '
+                            '경조사 연차 부여 요청 내역을 볼 수 있습니다. '
+                            '핀 아이콘을 클릭하면 사이드바를 고정할 수 있습니다.',
+                        isDarkTheme: isDarkTheme,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 푸터
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: isDarkTheme
+                      ? const Color(0xFF2D2D2D)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(16)),
+                  border: Border(
+                    top: BorderSide(
+                      color: isDarkTheme
+                          ? const Color(0xFF3D3D3D)
+                          : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        backgroundColor: const Color(0xFF3B82F6),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        '확인',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManualItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String description,
+    required bool isDarkTheme,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDarkTheme ? const Color(0xFF262626) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color:
+              isDarkTheme ? const Color(0xFF3D3D3D) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDarkTheme ? Colors.white : const Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.5,
+                    color: isDarkTheme
+                        ? Colors.grey[400]
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // 반응형 폰트 크기 계산 함수
   double _getResponsiveFontSize(BuildContext context, double baseSize) {
     final width = MediaQuery.of(context).size.width;
@@ -159,144 +428,151 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen>
   Widget build(BuildContext context) {
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor:
-            isDarkTheme ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5),
-        foregroundColor: isDarkTheme ? Colors.white : const Color(0xFF374151),
-        elevation: 0,
-        title: Text(
-          '휴가관리',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: _getResponsiveFontSize(context, 18),
+    return WillPopScope(
+      onWillPop: () async {
+        _exitToChatHome();
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor:
+              isDarkTheme ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5),
+          foregroundColor: isDarkTheme ? Colors.white : const Color(0xFF374151),
+          elevation: 0,
+          title: Text(
+            '휴가관리',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: _getResponsiveFontSize(context, 18),
+            ),
           ),
+          actions: [
+            _buildToolbarButtons(),
+          ],
         ),
-        actions: [
-          _buildToolbarButtons(),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Main content with dynamic padding for sidebar
-          AnimatedPadding(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            padding: EdgeInsets.only(
-              left: _isSidebarExpanded ? 285 : 50,
-            ),
-            child: _buildMainContent(),
-          ),
-
-          // Dynamic sidebar positioned on the left
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: LeaveRequestSidebar(
-              isExpanded: _isSidebarExpanded,
-              isPinned: _isSidebarPinned,
-              selectedDate: _selectedDate,
-              onDateSelected: (date) {
-                setState(() {
-                  _selectedDate = date;
-                  _updateSelectedDateDetails();
-                });
-              },
-              onHover: () {
-                setState(() {
-                  _isSidebarExpanded = true;
-                });
-              },
-              onExit: () {
-                if (!_isSidebarPinned) {
-                  setState(() {
-                    _isSidebarExpanded = false;
-                  });
-                }
-              },
-              onPinToggle: () {
-                setState(() {
-                  _isSidebarPinned = !_isSidebarPinned;
-                  if (_isSidebarPinned) {
-                    _isSidebarExpanded = true;
-                  }
-                });
-              },
-            ),
-          ),
-
-          // 패널 외부 클릭 감지 (패널이 열려있을 때만) - 달력 영역 제외
-          if (_isDetailPanelVisible)
-            Positioned.fill(
-              child: Stack(
-                children: [
-                  // 왼쪽 영역 (개인별 휴가내역)
-                  Positioned(
-                    left: _isSidebarExpanded ? 285 : 50,
-                    top: 0,
-                    bottom: 0,
-                    width: MediaQuery.of(context).size.width * 0.5 -
-                        (_isSidebarExpanded ? 285 : 50) -
-                        24,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _isDetailPanelVisible = false;
-                        });
-                      },
-                      child: Container(
-                        color: Colors.transparent,
-                      ),
-                    ),
-                  ),
-                  // 오른쪽 상단 영역 (결재진행현황)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    height: 118, // 헤더 높이
-                    width: MediaQuery.of(context).size.width * 0.5 - 24,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _isDetailPanelVisible = false;
-                        });
-                      },
-                      child: Container(
-                        color: Colors.transparent,
-                      ),
-                    ),
-                  ),
-                ],
+        body: Stack(
+          children: [
+            // Main content with dynamic padding for sidebar
+            AnimatedPadding(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              padding: EdgeInsets.only(
+                left: _isSidebarExpanded ? 285 : 50,
               ),
+              child: _buildMainContent(),
             ),
 
-          // 휴가 상세내역 모달
-          if (_isLeaveDetailModalVisible)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () {
+            // Dynamic sidebar positioned on the left
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: LeaveRequestSidebar(
+                isExpanded: _isSidebarExpanded,
+                isPinned: _isSidebarPinned,
+                selectedDate: _selectedDate,
+                onManualTap: _showManualDialog,
+                onDateSelected: (date) {
                   setState(() {
-                    _isLeaveDetailModalVisible = false;
+                    _selectedDate = date;
+                    _updateSelectedDateDetails();
                   });
                 },
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.3),
-                ),
+                onHover: () {
+                  setState(() {
+                    _isSidebarExpanded = true;
+                  });
+                },
+                onExit: () {
+                  if (!_isSidebarPinned) {
+                    setState(() {
+                      _isSidebarExpanded = false;
+                    });
+                  }
+                },
+                onPinToggle: () {
+                  setState(() {
+                    _isSidebarPinned = !_isSidebarPinned;
+                    if (_isSidebarPinned) {
+                      _isSidebarExpanded = true;
+                    }
+                  });
+                },
               ),
             ),
 
-          // 슬라이드 인 모달
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            top: 0,
-            bottom: 0,
-            right: _isLeaveDetailModalVisible ? 0 : -500,
-            width: 500,
-            child: _buildLeaveDetailModal(),
-          ),
-        ],
+            // 패널 외부 클릭 감지 (패널이 열려있을 때만) - 달력 영역 제외
+            if (_isDetailPanelVisible)
+              Positioned.fill(
+                child: Stack(
+                  children: [
+                    // 왼쪽 영역 (개인별 휴가내역)
+                    Positioned(
+                      left: _isSidebarExpanded ? 285 : 50,
+                      top: 0,
+                      bottom: 0,
+                      width: MediaQuery.of(context).size.width * 0.5 -
+                          (_isSidebarExpanded ? 285 : 50) -
+                          24,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isDetailPanelVisible = false;
+                          });
+                        },
+                        child: Container(
+                          color: Colors.transparent,
+                        ),
+                      ),
+                    ),
+                    // 오른쪽 상단 영역 (결재진행현황)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      height: 118, // 헤더 높이
+                      width: MediaQuery.of(context).size.width * 0.5 - 24,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isDetailPanelVisible = false;
+                          });
+                        },
+                        child: Container(
+                          color: Colors.transparent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // 휴가 상세내역 모달
+            if (_isLeaveDetailModalVisible)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isLeaveDetailModalVisible = false;
+                    });
+                  },
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+
+            // 슬라이드 인 모달
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              top: 0,
+              bottom: 0,
+              right: _isLeaveDetailModalVisible ? 0 : -500,
+              width: 500,
+              child: _buildLeaveDetailModal(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -511,11 +787,18 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen>
 
   // 관리자 화면으로 이동
   void _navigateToAdminScreen() {
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
           builder: (context) =>
               const admin_leave_approval_screen.AdminLeaveApprovalScreen()),
+    );
+  }
+
+  void _exitToChatHome() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const ChatHomePage()),
+      (route) => false,
     );
   }
 
@@ -531,6 +814,14 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen>
     showDialog(
       context: context,
       builder: (context) => LeaveRequestManualModal(),
+    );
+  }
+
+  /// 휴가 AI 작성 메뉴얼 모달 표시
+  void _showLeaveAIManualModal() {
+    showDialog(
+      context: context,
+      builder: (context) => _buildLeaveAIManualDialog(),
     );
   }
 
@@ -638,6 +929,27 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen>
           ),
         ),
         const SizedBox(width: 8),
+        // 휴가 AI 작성 메뉴얼 버튼
+        ElevatedButton.icon(
+          onPressed: _showLeaveAIManualModal,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF10B981),
+            foregroundColor: Colors.white,
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          icon: const Icon(Icons.help_outline, size: 18),
+          label: Text(
+            '휴가 AI 작성 메뉴얼',
+            style: TextStyle(
+              fontSize: _getResponsiveFontSize(context, 12),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
       ],
     );
   }
@@ -701,8 +1013,8 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen>
                                       children: [
                                         const SizedBox(height: 20), // 상단 여백
                                         Expanded(
-                                            child:
-                                                _buildLeaveManagementTable()),
+                                          child: _buildLeaveManagementTable(),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -4666,5 +4978,177 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen>
         builder: (context) => VacationRecommendationPopup(year: _selectedYear),
       );
     }
+  }
+
+  /// 휴가 AI 작성 메뉴얼 다이얼로그 위젯
+  Widget _buildLeaveAIManualDialog() {
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        width: 700,
+        height: 600,
+        decoration: BoxDecoration(
+          color: isDarkTheme ? const Color(0xFF1A1D1F) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            // 헤더
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDarkTheme
+                        ? const Color(0xFF2D3748)
+                        : const Color(0xFFE9ECEF),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4A6CF7).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.smart_toy_outlined,
+                      color: Color(0xFF4A6CF7),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      '휴가 AI 작성 메뉴얼',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: isDarkTheme
+                            ? Colors.white
+                            : const Color(0xFF1A1D1F),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.close,
+                      color: Color(0xFF8B95A1),
+                    ),
+                    tooltip: '닫기',
+                  ),
+                ],
+              ),
+            ),
+            // 내용
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. 휴가상신
+                    _buildManualSection(
+                      title: '1. 휴가상신',
+                      icon: Icons.edit_note,
+                      content:
+                          '사내업무에서 "날짜, 연차종류, 반차여부, 사유(미작성시 개인사유) 입력하여 휴가 상신 요청"\n\n'
+                          '예시:\n'
+                          '• "내일 휴가써줘"\n'
+                          '• "3월4일 휴가써줘 반차로"\n'
+                          '• "다음주 화요일 오후반차써줘"\n\n'
+                          'AI 말고 직접 작성시에는 사이드바의 휴가관리 → "휴가 작성"을 통해 하시면 됩니다.',
+                      isDarkTheme: isDarkTheme,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 2. 휴가 부여 상신
+                    _buildManualSection(
+                      title: '2. 휴가 부여 상신',
+                      icon: Icons.assignment_turned_in,
+                      content:
+                          '사내업무에서 예비군부여의 경우 예비군 관련 서류 첨부하여 채팅으로 "예비군 휴가 부여좀 해줘" 요청시\n\n'
+                          '"휴가 부여 상신 전자결재 폼 자동 작성 → 관리자(경영관리실) 승인 → AAA 해당 예비군 연차 상신 폼 자동 작성 → 상신(수정 필요할시 수정후 상신)"\n\n'
+                          '마찬가지로, 처음부터 직접 작성하고 싶을경우 채팅방 상단 메뉴중 "전자결재 상신 초안" 클릭하여 작성하면 됩니다.',
+                      isDarkTheme: isDarkTheme,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 3. 전자결재 승인자/참조자 저장
+                    _buildManualSection(
+                      title: '3. 전자결재 승인자/참조자 저장',
+                      icon: Icons.people_outline,
+                      content: '전자결재의 경우 승인자, 참조자를 저장 할수있습니다.\n\n'
+                          '휴가 상신시와 다르게 저장됩니다. 서로 연관없음.',
+                      isDarkTheme: isDarkTheme,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 메뉴얼 섹션 위젯 헬퍼
+  Widget _buildManualSection({
+    required String title,
+    required IconData icon,
+    required String content,
+    required bool isDarkTheme,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkTheme ? const Color(0xFF2D3748) : const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color:
+              isDarkTheme ? const Color(0xFF4A5568) : const Color(0xFFE9ECEF),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                color: const Color(0xFF4A6CF7),
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkTheme ? Colors.white : const Color(0xFF1A1D1F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.6,
+              color: isDarkTheme ? Colors.grey[300] : const Color(0xFF4B5563),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

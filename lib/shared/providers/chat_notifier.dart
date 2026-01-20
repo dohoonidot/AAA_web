@@ -1077,12 +1077,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
               print('- 크기: ${(file.size / 1024).toStringAsFixed(2)} KB');
               print('- 확장자: ${file.extension}');
 
-              // 개별 파일 크기 제한 (20MB)
-              if (file.size > 20 * 1024 * 1024) {
-                throw Exception(
-                  '파일 크기가 너무 큽니다: ${file.name} (${(file.size / 1024 / 1024).toStringAsFixed(2)}MB)',
-                );
-              }
+              // // 개별 파일 크기 제한 (20MB) - 사내업무 제한 해제
+              // if (file.size > 20 * 1024 * 1024) {
+              //   throw Exception(
+              //     '파일 크기가 너무 큽니다: ${file.name} (${(file.size / 1024 / 1024).toStringAsFixed(2)}MB)',
+              //   );
+              // }
             }
 
             // 전체 파일 크기 제한 없음

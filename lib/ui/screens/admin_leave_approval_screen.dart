@@ -10,6 +10,7 @@ import 'package:ASPN_AI_AGENT/shared/services/leave_api_service.dart';
 import 'package:ASPN_AI_AGENT/shared/services/api_service.dart';
 import 'package:ASPN_AI_AGENT/models/leave_management_models.dart';
 import 'package:ASPN_AI_AGENT/ui/screens/leave_management_screen.dart'; // 일반사용자 휴가관리 화면 추가
+import 'package:ASPN_AI_AGENT/ui/screens/chat_home_page_v5.dart';
 
 // PageController dispose를 위한 mixin
 mixin PageControllerDisposeMixin {
@@ -209,101 +210,115 @@ class _AdminLeaveApprovalScreenState
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor:
-            isDarkTheme ? const Color(0xFF2D2D2D) : const Color(0xFF9C88D4),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '관리자 - 휴가 결재 관리',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
-        actions: [
-          _buildFilterButtons(),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Main content with dynamic padding for sidebar
-          AnimatedPadding(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            padding: EdgeInsets.only(
-              left: _isSidebarExpanded ? 285 : 50,
+    return WillPopScope(
+      onWillPop: () async {
+        _exitToChatHome();
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor:
+              isDarkTheme ? const Color(0xFF2D2D2D) : const Color(0xFF9C88D4),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text(
+            '관리자 - 휴가 결재 관리',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
             ),
-            child: Container(
-              color: isDarkTheme
-                  ? const Color(0xFF1A1A1A)
-                  : const Color(0xFFF8F9FA),
-              child: Column(
-                children: [
-                  // 상단 통계 카드
-                  _buildStatsHeader(),
-                  // 메인 컨텐츠 영역 (50:50 분할)
-                  Expanded(
-                    child: Row(
-                      children: [
-                        // 왼쪽: 결재 목록 (50%)
-                        Expanded(
-                          flex: 1,
-                          child: Container(
-                            margin: const EdgeInsets.only(left: 16, bottom: 16),
-                            child: _buildApprovalList(),
+          ),
+          actions: [
+            _buildFilterButtons(),
+          ],
+        ),
+        body: Stack(
+          children: [
+            // Main content with dynamic padding for sidebar
+            AnimatedPadding(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              padding: EdgeInsets.only(
+                left: _isSidebarExpanded ? 285 : 50,
+              ),
+              child: Container(
+                color: isDarkTheme
+                    ? const Color(0xFF1A1A1A)
+                    : const Color(0xFFF8F9FA),
+                child: Column(
+                  children: [
+                    // 상단 통계 카드
+                    _buildStatsHeader(),
+                    // 메인 컨텐츠 영역 (50:50 분할)
+                    Expanded(
+                      child: Row(
+                        children: [
+                          // 왼쪽: 결재 목록 (50%)
+                          Expanded(
+                            flex: 1,
+                            child: Container(
+                              margin:
+                                  const EdgeInsets.only(left: 16, bottom: 16),
+                              child: _buildApprovalList(),
+                            ),
                           ),
-                        ),
-                        // 오른쪽: 달력 영역 (50%)
-                        Expanded(
-                          flex: 1,
-                          child: Container(
-                            margin: const EdgeInsets.only(
-                                left: 8, right: 16, bottom: 16),
-                            child: _buildCalendarSection(),
+                          // 오른쪽: 달력 영역 (50%)
+                          Expanded(
+                            flex: 1,
+                            child: Container(
+                              margin: const EdgeInsets.only(
+                                  left: 8, right: 16, bottom: 16),
+                              child: _buildCalendarSection(),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Dynamic sidebar positioned on the left
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: AdminCalendarSidebar(
-              isExpanded: _isSidebarExpanded,
-              isPinned: _isSidebarPinned,
-              onHover: () {
-                setState(() {
-                  _isSidebarExpanded = true;
-                });
-              },
-              onExit: () {
-                if (!_isSidebarPinned) {
+            // Dynamic sidebar positioned on the left
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: AdminCalendarSidebar(
+                isExpanded: _isSidebarExpanded,
+                isPinned: _isSidebarPinned,
+                onHover: () {
                   setState(() {
-                    _isSidebarExpanded = false;
-                  });
-                }
-              },
-              onPinToggle: () {
-                setState(() {
-                  _isSidebarPinned = !_isSidebarPinned;
-                  if (_isSidebarPinned) {
                     _isSidebarExpanded = true;
+                  });
+                },
+                onExit: () {
+                  if (!_isSidebarPinned) {
+                    setState(() {
+                      _isSidebarExpanded = false;
+                    });
                   }
-                });
-              },
+                },
+                onPinToggle: () {
+                  setState(() {
+                    _isSidebarPinned = !_isSidebarPinned;
+                    if (_isSidebarPinned) {
+                      _isSidebarExpanded = true;
+                    }
+                  });
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  void _exitToChatHome() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const ChatHomePage()),
+      (route) => false,
     );
   }
 
@@ -317,7 +332,7 @@ class _AdminLeaveApprovalScreenState
           // 휴가관리 버튼 (일반사용자 화면으로 이동)
           ElevatedButton.icon(
             onPressed: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const LeaveManagementScreen(),

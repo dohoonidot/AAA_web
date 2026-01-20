@@ -122,14 +122,14 @@ class FileAttachmentUtils {
       }
     }
 
-    // 파일 크기 검증 (20MB 제한)
-    for (final file in files) {
-      final bytes = await file.readAsBytes();
-      if (bytes.length > 20 * 1024 * 1024) {
-        _showErrorMessage(context, '파일 크기가 20MB를 초과할 수 없습니다.');
-        return;
-      }
-    }
+    // // 파일 크기 검증 (20MB 제한) - 사내업무 제한 해제
+    // for (final file in files) {
+    //   final bytes = await file.readAsBytes();
+    //   if (bytes.length > 20 * 1024 * 1024) {
+    //     _showErrorMessage(context, '파일 크기가 20MB를 초과할 수 없습니다.');
+    //     return;
+    //   }
+    // }
 
     // 첨부 파일 처리
     try {

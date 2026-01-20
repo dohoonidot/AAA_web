@@ -190,10 +190,10 @@ class ClipboardImageService {
   /// 이미지 데이터를 임시 파일로 저장하고 CustomPlatformFile 생성
   static Future<CustomPlatformFile> _createPlatformFile(
       Uint8List imageData, String format) async {
-    // 파일 크기 확인
-    if (imageData.length > maxFileSize) {
-      throw Exception('이미지 크기가 너무 큽니다. (최대 ${maxFileSize ~/ (1024 * 1024)}MB)');
-    }
+    // // 파일 크기 확인 - 사내업무 제한 해제
+    // if (imageData.length > maxFileSize) {
+    //   throw Exception('이미지 크기가 너무 큽니다. (최대 ${maxFileSize ~/ (1024 * 1024)}MB)');
+    // }
 
     // 임시 디렉토리 가져오기
     final tempDir = await getTemporaryDirectory();

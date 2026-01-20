@@ -31,9 +31,7 @@ class StreamService {
       // 모든 요청을 multipart/form-data로 통일
       print('🔄 Multipart 방식 사용 (통일)');
       var request = http.MultipartRequest('POST', url);
-      request.headers.addAll({
-        'Content-Type': 'multipart/form-data',
-      });
+      // MultipartRequest가 boundary 포함 Content-Type을 자동 설정함
 
       // 텍스트 필드 추가
       request.fields['category'] = category;
@@ -583,20 +581,14 @@ class StreamService {
         print('- 확장자: ${file.extension}');
         print('- MIME 타입: ${file.mimeType}');
 
-        // 개별 파일 크기 제한 (20MB)
-        if (file.size > 20 * 1024 * 1024) {
-          throw Exception(
-              '파일 크기가 너무 큽니다: ${file.name} (${(file.size / 1024 / 1024).toStringAsFixed(2)}MB)');
-        }
+        // 개별 파일 크기 제한 제거 (서버 제한에 따름)
       }
 
       // 전체 파일 크기 제한 없음
 
       // multipart request 생성
       var request = http.MultipartRequest('POST', url);
-      request.headers.addAll({
-        'Content-Type': 'multipart/form-data',
-      });
+      // MultipartRequest가 boundary 포함 Content-Type을 자동 설정함
 
       // 텍스트 필드 추가
       request.fields['category'] = category;
@@ -866,18 +858,12 @@ class StreamService {
         // 파일 타입 제한 제거: 이미지 + PDF 허용
         // final extension = file.extension?.toLowerCase() ?? '';
 
-        // 개별 파일 크기 제한 (20MB)
-        if (file.size > 20 * 1024 * 1024) {
-          throw Exception(
-              '파일 크기가 너무 큽니다: ${file.name} (${(file.size / 1024 / 1024).toStringAsFixed(2)}MB)');
-        }
+        // 개별 파일 크기 제한 제거 (서버 제한에 따름)
       }
 
       // multipart request 생성
       var request = http.MultipartRequest('POST', url);
-      request.headers.addAll({
-        'Content-Type': 'multipart/form-data',
-      });
+      // MultipartRequest가 boundary 포함 Content-Type을 자동 설정함
 
       // 필수 필드 추가
       request.fields['archive_id'] = archiveId;
