@@ -13,6 +13,7 @@
 import express from 'express';
 import cors from 'cors';
 import https from 'https';
+import http from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
@@ -158,6 +159,38 @@ app.use((err, req, res, next) => {
 });
 
 // ============================================
+// 6-1. HTTP 서버 (포트 80) - HTTPS로 리다이렉트
+// ============================================
+const HTTP_PORT = 80;
+
+const httpApp = express();
+
+// 모든 HTTP 요청을 HTTPS로 리다이렉트
+httpApp.use((req, res) => {
+  const host = req.get('host');
+  const httpsUrl = `https://${host}${req.url}`;
+  res.redirect(301, httpsUrl);
+});
+
+const httpServer = http.createServer(httpApp);
+
+httpServer.listen(HTTP_PORT, HOST, () => {
+  console.log(`🔄 HTTP Server (redirect to HTTPS): http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${HTTP_PORT}`);
+});
+
+httpServer.on('error', (error) => {
+  if (error.code === 'EACCES') {
+    console.warn(`⚠️  HTTP Server (port ${HTTP_PORT}) requires elevated privileges - skipping HTTP redirect`);
+    console.warn('   Consider using Nginx or Apache for HTTP to HTTPS redirect');
+  } else if (error.code === 'EADDRINUSE') {
+    console.warn(`⚠️  HTTP Server (port ${HTTP_PORT}) is already in use - skipping HTTP redirect`);
+    console.warn('   Another service may be handling HTTP to HTTPS redirect');
+  } else {
+    console.warn(`⚠️  HTTP Server error: ${error.message}`);
+  }
+});
+
+// ============================================
 // 7. HTTPS 서버 시작
 // ============================================
 
@@ -226,6 +259,14 @@ server.on('error', (error) => {
 const gracefulShutdown = (signal) => {
   console.log(`\n⚠️  ${signal} received, closing server gracefully...`);
 
+  // HTTP 서버 종료
+  if (httpServer.listening) {
+    httpServer.close(() => {
+      console.log('✅ HTTP server closed');
+    });
+  }
+
+  // HTTPS 서버 종료
   server.close(() => {
     console.log('✅ HTTPS server closed');
     console.log('👋 Goodbye!\n');
