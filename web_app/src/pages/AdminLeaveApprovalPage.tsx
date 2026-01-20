@@ -1291,7 +1291,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                           </Box>
 
                           {/* 신청자 정보 */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2, p: 1.5, bgcolor: '#F8F9FA', borderRadius: '12px' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2, p: 1.5, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '12px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                             <Box
                               sx={{
                                 width: 40,
@@ -1482,7 +1482,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
             <Card sx={{ borderRadius: '16px', mt: 2, bgcolor: colorScheme.surfaceColor }}>
               <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                 {/* 달력 헤더 */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, pb: 0.5, borderBottom: '1px solid #F1F3F5' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, pb: 0.5, borderBottom: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Box
                       sx={{
@@ -2915,6 +2915,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
           sx: {
             borderRadius: isMobile ? 0 : '16px',
             maxHeight: isMobile ? '100%' : '90vh',
+            bgcolor: colorScheme.surfaceColor,
           },
         }}
       >
@@ -2946,15 +2947,15 @@ const AdminLeaveApprovalPage: React.FC = () => {
             width: '8px',
           },
           '&::-webkit-scrollbar-track': {
-            background: '#f1f1f1',
+            background: isDark ? colorScheme.surfaceColor : '#f1f1f1',
             borderRadius: '10px',
           },
           '&::-webkit-scrollbar-thumb': {
-            background: '#9C88D4',
+            background: isDark ? '#6B7280' : '#9C88D4',
             borderRadius: '10px',
           },
           '&::-webkit-scrollbar-thumb:hover': {
-            background: '#8A72C8',
+            background: isDark ? '#9CA3AF' : '#8A72C8',
           },
         }}>
           {selectedDetailLeave && (
@@ -3017,7 +3018,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                 <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
                   신청자 정보
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: '#F8F9FA', borderRadius: '12px' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '12px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                   <Box
                     sx={{
                       width: 56,
@@ -3047,7 +3048,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                 <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
                   휴가 기간
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: 2, bgcolor: '#F8F9FA', borderRadius: '12px' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: 2, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '12px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <CalendarTodayIcon sx={{ color: '#9C88D4', fontSize: 20 }} />
                     <Typography variant="body1" fontWeight={600}>
@@ -3069,7 +3070,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                   <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
                     사유
                   </Typography>
-                  <Box sx={{ p: 2, bgcolor: '#F8F9FA', borderRadius: '12px' }}>
+                  <Box sx={{ p: 2, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '12px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                     <RenderReasonWithCancelHighlight reason={selectedDetailLeave.reason} />
                   </Box>
                 </Box>
@@ -3081,7 +3082,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                   <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
                     반려 사유
                   </Typography>
-                  <Box sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.03)', borderRadius: '12px', border: '1px solid rgba(0, 0, 0, 0.12)' }}>
+                  <Box sx={{ p: 2, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', borderRadius: '12px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                     <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'text.primary' }}>
                       {selectedDetailLeave.reject_message || selectedDetailLeave.rejection_reason}
                     </Typography>
@@ -3095,7 +3096,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                   추가 정보
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                  <Box sx={{ p: 1.5, bgcolor: '#F8F9FA', borderRadius: '8px' }}>
+                  <Box sx={{ p: 1.5, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '8px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                       상태
                     </Typography>
@@ -3103,7 +3104,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                       {getStatusLabel(selectedDetailLeave)}
                     </Typography>
                   </Box>
-                  <Box sx={{ p: 1.5, bgcolor: '#F8F9FA', borderRadius: '8px' }}>
+                  <Box sx={{ p: 1.5, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '8px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                       휴가 일수
                     </Typography>
@@ -3112,7 +3113,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                     </Typography>
                   </Box>
                   {selectedDetailLeave.isCancel === 1 && (
-                    <Box sx={{ p: 1.5, bgcolor: '#FFF3E0', borderRadius: '8px', border: '1px solid #FFE0B2' }}>
+                    <Box sx={{ p: 1.5, bgcolor: isDark ? 'rgba(255, 140, 0, 0.15)' : '#FFF3E0', borderRadius: '8px', border: isDark ? `1px solid rgba(255, 140, 0, 0.3)` : '1px solid #FFE0B2' }}>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                         취소 상신 여부
                       </Typography>
@@ -3121,7 +3122,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                       </Typography>
                     </Box>
                   )}
-                  <Box sx={{ p: 1.5, bgcolor: '#F8F9FA', borderRadius: '8px' }}>
+                  <Box sx={{ p: 1.5, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '8px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                       총 휴가일
                     </Typography>
@@ -3129,7 +3130,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                       {selectedDetailLeave.total_days || 0}일
                     </Typography>
                   </Box>
-                  <Box sx={{ p: 1.5, bgcolor: '#F8F9FA', borderRadius: '8px' }}>
+                  <Box sx={{ p: 1.5, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '8px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                       잔여일
                     </Typography>
@@ -3138,7 +3139,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                     </Typography>
                   </Box>
                   {selectedDetailLeave.half_day_slot && (
-                    <Box sx={{ p: 1.5, bgcolor: '#F8F9FA', borderRadius: '8px' }}>
+                    <Box sx={{ p: 1.5, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '8px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                         반차 시간
                       </Typography>
@@ -3148,7 +3149,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                     </Box>
                   )}
                   {selectedDetailLeave.join_date && (
-                    <Box sx={{ p: 1.5, bgcolor: '#F8F9FA', borderRadius: '8px' }}>
+                    <Box sx={{ p: 1.5, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '8px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                         입사일
                       </Typography>
@@ -3158,7 +3159,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                     </Box>
                   )}
                   {selectedDetailLeave.is_canceled === 1 && (
-                    <Box sx={{ p: 1.5, bgcolor: '#FFF3E0', borderRadius: '8px', border: '1px solid #FFE0B2' }}>
+                    <Box sx={{ p: 1.5, bgcolor: isDark ? 'rgba(255, 140, 0, 0.15)' : '#FFF3E0', borderRadius: '8px', border: isDark ? `1px solid rgba(255, 140, 0, 0.3)` : '1px solid #FFE0B2' }}>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                         취소 상신 여부
                       </Typography>
@@ -3172,7 +3173,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, borderTop: '1px solid #E0E0E0' }}>
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${colorScheme.textFieldBorderColor}` }}>
           {selectedDetailLeave && selectedDetailLeave.status?.toUpperCase().includes('REQUESTED') && (
             <Box sx={{ display: 'flex', gap: 1.5, width: '100%' }}>
               {/* 취소 상신: 취소 승인 버튼만 */}
