@@ -1,106 +1,102 @@
 import React from 'react';
 import {
-    PieChart,
-    Pie,
-    Cell,
-    ResponsiveContainer,
-    Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
 } from 'recharts';
 import { Box, Typography } from '@mui/material';
 
 interface HolidayAdjacentUsageChartProps {
-    usageRate: number; // 0.0 ~ 1.0
-    isDarkTheme: boolean;
+  usageRate: number; // 0.0 ~ 1.0
+  isDarkTheme: boolean;
 }
 
 const HolidayAdjacentUsageChart: React.FC<HolidayAdjacentUsageChartProps> = ({
-    usageRate,
-    isDarkTheme,
+  usageRate,
+  isDarkTheme,
 }) => {
-    const percentage = Math.round(usageRate * 100);
+  const percentage = (usageRate * 100).toFixed(2);
 
-    const data = [
-        { name: '공휴일 인접 사용', value: percentage },
-        { name: '기타 사용', value: 100 - percentage },
-    ];
+  const data = [
+    { name: '공휴일 인접 사용', value: usageRate * 100 },
+    { name: '기타 사용', value: (1 - usageRate) * 100 },
+  ];
 
-    const COLORS = ['#667EEA', isDarkTheme ? '#3A3A3A' : '#F3F4F6'];
+  const colors = ['#4A90E2', isDarkTheme ? '#6B7280' : '#D1D5DB'];
 
-    return (
-        <Box
-            sx={{
-                width: '100%',
-                height: 180,
-                minHeight: 180,
-                minWidth: 0,
-                position: 'relative',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-            }}
-        >
-            <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                    <Pie
-                        data={data}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                        animationDuration={1500}
-                        startAngle={90}
-                        endAngle={-270}
-                    >
-                        {data.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
-                        ))}
-                    </Pie>
-                    <Tooltip
-                        contentStyle={{
-                            backgroundColor: isDarkTheme ? '#2D2D2D' : 'white',
-                            border: `1px solid ${isDarkTheme ? '#444' : '#E5E7EB'}`,
-                            borderRadius: '8px',
-                            color: isDarkTheme ? 'white' : 'black'
-                        }}
-                    />
-                </PieChart>
-            </ResponsiveContainer>
-
-            {/* 중앙 텍스트 */}
-            <Box
-                sx={{
-                    position: 'absolute',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
-                <Typography
-                    variant="h4"
-                    sx={{
-                        fontWeight: 800,
-                        color: '#667EEA',
-                        lineHeight: 1,
-                    }}
-                >
+  return (
+    <Box
+      sx={{
+        width: '100%',
+        height: '180px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+      }}
+    >
+      <Box sx={{ width: 100, height: 100 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              innerRadius={25}
+              outerRadius={40}
+              paddingAngle={2}
+              startAngle={90}
+              endAngle={-270}
+              labelLine={false}
+              label={({ index, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                if (index !== 0) return null;
+                const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+                const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+                return (
+                  <text
+                    x={x}
+                    y={y}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="#FFFFFF"
+                    style={{ fontSize: 11, fontWeight: 700 }}
+                  >
                     {`${percentage}%`}
-                </Typography>
-                <Typography
-                    variant="caption"
-                    sx={{
-                        color: isDarkTheme ? '#9CA3AF' : '#6B7280',
-                        fontWeight: 500,
-                        mt: 0.5,
-                    }}
-                >
-                    인접 사용률
-                </Typography>
-            </Box>
-        </Box>
-    );
+                  </text>
+                );
+              }}
+            >
+              {data.map((entry, index) => (
+                <Cell key={entry.name} fill={colors[index % colors.length]} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+      </Box>
+      <Box sx={{ flex: 1 }}>
+        <Typography
+          sx={{
+            fontSize: '12px',
+            fontWeight: 700,
+            color: isDarkTheme ? '#FFFFFF' : '#1A1D29',
+          }}
+        >
+          공휴일 인접 사용률
+        </Typography>
+        <Typography
+          sx={{
+            fontSize: '10px',
+            color: isDarkTheme ? '#9CA3AF' : '#6B7280',
+            lineHeight: 1.3,
+            mt: 0.5,
+          }}
+        >
+          전체 연차 중 공휴일과 인접한 날짜에 사용한 비율입니다
+        </Typography>
+      </Box>
+    </Box>
+  );
 };
 
 export default HolidayAdjacentUsageChart;
