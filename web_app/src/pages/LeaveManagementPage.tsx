@@ -40,6 +40,8 @@ import {
   AutoAwesome as AutoAwesomeIcon,
   MoreVert as MoreVertIcon,
   Assignment as AssignmentIcon,
+  HelpOutline as HelpOutlineIcon,
+  SmartToy as SmartToyIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import MobileMainLayout from '../components/layout/MobileMainLayout';
@@ -49,6 +51,8 @@ import LeaveRequestModal from '../components/leave/LeaveRequestModal';
 import VacationRecommendationModal from '../components/leave/VacationRecommendationModal';
 import leaveService from '../services/leaveService';
 import authService from '../services/authService';
+import LeaveManualModal from '../components/leave/LeaveManualModal';
+import LeaveAIManualModal from '../components/leave/LeaveAIManualModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useThemeStore } from '../store/themeStore';
 import { createLogger } from '../utils/logger';
@@ -108,6 +112,8 @@ export default function LeaveManagementPage() {
   const [cancelReason, setCancelReason] = useState(''); // 취소 사유
   const [recommendationOpen, setRecommendationOpen] = useState(false);
   const [hideCanceled, setHideCanceled] = useState(false);
+  const [leaveManualOpen, setLeaveManualOpen] = useState(false);
+  const [leaveAIManualOpen, setLeaveAIManualOpen] = useState(false);
 
   // 모바일 드롭다운 메뉴 상태
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
@@ -494,6 +500,28 @@ export default function LeaveManagementPage() {
                   </ListItemIcon>
                   <ListItemText primary="휴가 부여 내역" />
                 </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    handleMenuClose();
+                    setLeaveManualOpen(true);
+                  }}
+                >
+                  <ListItemIcon>
+                    <HelpOutlineIcon sx={{ color: '#3B82F6' }} />
+                  </ListItemIcon>
+                  <ListItemText primary="사용 가이드" />
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    handleMenuClose();
+                    setLeaveAIManualOpen(true);
+                  }}
+                >
+                  <ListItemIcon>
+                    <SmartToyIcon sx={{ color: '#4A6CF7' }} />
+                  </ListItemIcon>
+                  <ListItemText primary="AI 메뉴얼" />
+                </MenuItem>
                 {/* 승인자인 경우에만 관리자 휴가관리 메뉴 표시 */}
                 {isApprover && (
                   <MenuItem
@@ -787,6 +815,18 @@ export default function LeaveManagementPage() {
           onClose={() => setRecommendationOpen(false)}
           userId={user?.userId || ''}
           year={new Date().getFullYear()}
+        />
+
+        {/* 휴가관리 사용 가이드 모달 */}
+        <LeaveManualModal
+          open={leaveManualOpen}
+          onClose={() => setLeaveManualOpen(false)}
+        />
+
+        {/* 휴가 AI 작성 메뉴얼 모달 */}
+        <LeaveAIManualModal
+          open={leaveAIManualOpen}
+          onClose={() => setLeaveAIManualOpen(false)}
         />
 
         {/* 휴가 취소 사유 입력 다이얼로그 */}

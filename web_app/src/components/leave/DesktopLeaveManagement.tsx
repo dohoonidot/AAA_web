@@ -45,6 +45,8 @@ import {
   Menu as MenuIcon,
   ChevronLeft as ChevronLeftIcon,
   AutoAwesome as AutoAwesomeIcon,
+  HelpOutline as HelpOutlineIcon,
+  SmartToy as SmartToyIcon,
 } from '@mui/icons-material';
 import LeaveCancelRequestDialog from './LeaveCancelRequestDialog';
 
@@ -64,6 +66,8 @@ import ApproverSelectionModal from './ApproverSelectionModal';
 import ReferenceSelectionModal from './ReferenceSelectionModal';
 import LeaveRequestModal from './LeaveRequestModal';
 import VacationRecommendationModal from './VacationRecommendationModal'; // Added VacationRecommendationModal
+import LeaveManualModal from './LeaveManualModal';
+import LeaveAIManualModal from './LeaveAIManualModal';
 import { useThemeStore } from '../../store/themeStore';
 
 interface DesktopLeaveManagementProps {
@@ -114,6 +118,8 @@ export default function DesktopLeaveManagement({
 
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false); // Added aiModalOpen state
+  const [leaveManualOpen, setLeaveManualOpen] = useState(false);
+  const [leaveAIManualOpen, setLeaveAIManualOpen] = useState(false);
   const [hideCanceled, setHideCanceled] = useState(false);
   const [selectedYear, setSelectedYear] = useState(dayjs().year()); // Changed to dayjs().year()
   const [totalCalendarOpen, setTotalCalendarOpen] = useState(false);
@@ -701,6 +707,33 @@ export default function DesktopLeaveManagement({
 
             {/* Toolbar Buttons - Flutter 스타일 */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {/* 휴가관리 사용 가이드 버튼 */}
+              <Button
+                variant="text"
+                startIcon={<HelpOutlineIcon sx={{ fontSize: 18 }} />}
+                onClick={() => setLeaveManualOpen(true)}
+                sx={{
+                  color: colorScheme.textColor,
+                  fontSize: '13px',
+                  textTransform: 'none',
+                }}
+              >
+                사용 가이드
+              </Button>
+
+              {/* 휴가 AI 작성 메뉴얼 버튼 */}
+              <Button
+                variant="text"
+                startIcon={<SmartToyIcon sx={{ fontSize: 18 }} />}
+                onClick={() => setLeaveAIManualOpen(true)}
+                sx={{
+                  color: colorScheme.textColor,
+                  fontSize: '13px',
+                  textTransform: 'none',
+                }}
+              >
+                AI 메뉴얼
+              </Button>
 
               {/* 관리자용 결재 버튼 - 승인자인 경우에만 표시 */}
               {isApprover && (
@@ -1850,6 +1883,18 @@ export default function DesktopLeaveManagement({
         onClose={() => setAiModalOpen(false)}
         userId={authService.getCurrentUser()?.userId || ''}
         year={selectedYear}
+      />
+
+      {/* 휴가관리 사용 가이드 모달 */}
+      <LeaveManualModal
+        open={leaveManualOpen}
+        onClose={() => setLeaveManualOpen(false)}
+      />
+
+      {/* 휴가 AI 작성 메뉴얼 모달 */}
+      <LeaveAIManualModal
+        open={leaveAIManualOpen}
+        onClose={() => setLeaveAIManualOpen(false)}
       />
     </Box>
 
