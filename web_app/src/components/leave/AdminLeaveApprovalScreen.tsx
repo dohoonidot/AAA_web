@@ -42,6 +42,7 @@ import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import leaveService from '../../services/leaveService';
 import authService from '../../services/authService';
+import { useThemeStore } from '../../store/themeStore';
 import type {
   AdminWaitingLeave,
   AdminManagementApiResponse,
@@ -51,6 +52,8 @@ export default function AdminLeaveApprovalScreen() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
+  const { colorScheme } = useThemeStore();
+  const isDark = colorScheme.name === 'Dark';
 
   // 상태 관리
   const [selectedTab, setSelectedTab] = useState<'pending' | 'all'>('pending');
@@ -220,7 +223,8 @@ export default function AdminLeaveApprovalScreen() {
           sx={{
             flex: 1,
             cursor: 'pointer',
-            border: statusFilter === 'REQUESTED' ? '2px solid #FF8C00' : '1px solid #E0E0E0',
+            bgcolor: colorScheme.surfaceColor,
+            border: statusFilter === 'REQUESTED' ? '2px solid #FF8C00' : `1px solid ${colorScheme.textFieldBorderColor}`,
           }}
           onClick={() => {
             setSelectedTab('pending');
@@ -243,7 +247,8 @@ export default function AdminLeaveApprovalScreen() {
           sx={{
             flex: 1,
             cursor: 'pointer',
-            border: statusFilter === 'APPROVED' ? '2px solid #20C997' : '1px solid #E0E0E0',
+            bgcolor: colorScheme.surfaceColor,
+            border: statusFilter === 'APPROVED' ? '2px solid #20C997' : `1px solid ${colorScheme.textFieldBorderColor}`,
           }}
           onClick={() => {
             setSelectedTab('all');
@@ -266,7 +271,8 @@ export default function AdminLeaveApprovalScreen() {
           sx={{
             flex: 1,
             cursor: 'pointer',
-            border: statusFilter === 'REJECTED' ? '2px solid #DC3545' : '1px solid #E0E0E0',
+            bgcolor: colorScheme.surfaceColor,
+            border: statusFilter === 'REJECTED' ? '2px solid #DC3545' : `1px solid ${colorScheme.textFieldBorderColor}`,
           }}
           onClick={() => {
             setSelectedTab('all');
@@ -362,11 +368,11 @@ export default function AdminLeaveApprovalScreen() {
   }
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5F5F5' }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.backgroundColor }}>
       {/* AppBar */}
       <Box
         sx={{
-          bgcolor: '#9C88D4',
+          bgcolor: isDark ? '#4C1D95' : '#9C88D4',
           color: 'white',
           px: 2,
           py: 1.5,
@@ -437,7 +443,7 @@ export default function AdminLeaveApprovalScreen() {
         {renderStatsCards()}
 
         {/* 결재 목록 */}
-        <Card sx={{ borderRadius: '16px' }}>
+        <Card sx={{ borderRadius: '16px', bgcolor: colorScheme.surfaceColor }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -468,7 +474,7 @@ export default function AdminLeaveApprovalScreen() {
             <TableContainer
               component={Paper}
               variant="outlined"
-              sx={{ maxHeight: 500, overflow: 'auto' }}
+              sx={{ maxHeight: 500, overflow: 'auto', bgcolor: colorScheme.surfaceColor }}
             >
               <Table size={isMobile ? 'small' : 'medium'} stickyHeader>
                 <TableHead>
@@ -603,7 +609,7 @@ export default function AdminLeaveApprovalScreen() {
         <DialogContent>
           {selectedLeave && (
             <Box sx={{ pt: 2 }}>
-              <Box sx={{ mb: 2, p: 2, bgcolor: '#F5F5F5', borderRadius: '8px' }}>
+              <Box sx={{ mb: 2, p: 2, bgcolor: colorScheme.surfaceColor, borderRadius: '8px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   신청자
                 </Typography>

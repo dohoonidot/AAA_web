@@ -53,6 +53,7 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import authService from '../services/authService';
 import leaveService from '../services/leaveService';
+import { useThemeStore } from '../store/themeStore';
 import type { AdminManagementApiResponse } from '../types/leave';
 import { AdminCalendarSidebar } from '../components/admin/AdminCalendarSidebar';
 import { DepartmentLeaveStatusModal } from '../components/admin/DepartmentLeaveStatusModal';
@@ -183,7 +184,8 @@ const AdminLeaveApprovalPage: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isDark = theme.palette.mode === 'dark';
+  const { colorScheme } = useThemeStore();
+  const isDark = colorScheme.name === 'Dark';
 
   // 상태 관리
   const [currentTab, setCurrentTab] = useState<'pending' | 'all'>('pending');
@@ -812,7 +814,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
   const stats = getStats();
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5F5F5', position: 'relative' }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.backgroundColor, position: 'relative' }}>
       {/* 데스크톱 사이드바 */}
       {!isMobile && (
         <AdminCalendarSidebar
@@ -1038,7 +1040,8 @@ const AdminLeaveApprovalPage: React.FC = () => {
             sx={{
               flex: 1,
               cursor: 'pointer',
-              border: statusFilter === 'REQUESTED' ? '2px solid #FF8C00' : '1px solid #E0E0E0',
+              bgcolor: colorScheme.surfaceColor,
+              border: statusFilter === 'REQUESTED' ? '2px solid #FF8C00' : `1px solid ${colorScheme.textFieldBorderColor}`,
             }}
             onClick={() => handleStatusCardClick('REQUESTED')}
           >
@@ -1058,7 +1061,8 @@ const AdminLeaveApprovalPage: React.FC = () => {
             sx={{
               flex: 1,
               cursor: 'pointer',
-              border: statusFilter === 'APPROVED' ? '2px solid #20C997' : '1px solid #E0E0E0',
+              bgcolor: colorScheme.surfaceColor,
+              border: statusFilter === 'APPROVED' ? '2px solid #20C997' : `1px solid ${colorScheme.textFieldBorderColor}`,
             }}
             onClick={() => handleStatusCardClick('APPROVED')}
           >
@@ -1078,7 +1082,8 @@ const AdminLeaveApprovalPage: React.FC = () => {
             sx={{
               flex: 1,
               cursor: 'pointer',
-              border: statusFilter === 'REJECTED' ? '2px solid #DC3545' : '1px solid #E0E0E0',
+              bgcolor: colorScheme.surfaceColor,
+              border: statusFilter === 'REJECTED' ? '2px solid #DC3545' : `1px solid ${colorScheme.textFieldBorderColor}`,
             }}
             onClick={() => handleStatusCardClick('REJECTED')}
           >
@@ -1106,18 +1111,18 @@ const AdminLeaveApprovalPage: React.FC = () => {
               width: '8px',
             },
             '&::-webkit-scrollbar-track': {
-              background: '#f1f1f1',
+              background: isDark ? colorScheme.surfaceColor : '#f1f1f1',
               borderRadius: '10px',
             },
             '&::-webkit-scrollbar-thumb': {
-              background: '#9C88D4',
+              background: isDark ? '#6B7280' : '#9C88D4',
               borderRadius: '10px',
             },
             '&::-webkit-scrollbar-thumb:hover': {
-              background: '#8A72C8',
+              background: isDark ? '#9CA3AF' : '#8A72C8',
             },
           }}>
-            <Card sx={{ borderRadius: '16px', mt: 2 }}>
+            <Card sx={{ borderRadius: '16px', mt: 2, bgcolor: colorScheme.surfaceColor }}>
               <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1206,9 +1211,10 @@ const AdminLeaveApprovalPage: React.FC = () => {
                         }}
                         sx={{
                           borderRadius: '8px',
+                          bgcolor: colorScheme.surfaceColor,
                           border: leave.status?.includes('REQUESTED')
                             ? (leave.isCancel === 1 ? '2px solid #E53E3E' : '2px solid #FF8C00')
-                            : '1px solid #E0E0E0',
+                            : `1px solid ${colorScheme.textFieldBorderColor}`,
                           cursor: isBatchMode ? 'default' : 'pointer',
                           flexShrink: 0, // 요소 크기 고정 - 압축 방지
                           minHeight: 'fit-content', // 최소 높이를 내용에 맞게
@@ -1367,7 +1373,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
 
                           {/* 반려 사유 (있는 경우) */}
                           {leave.reject_message && (
-                            <Box sx={{ mb: 1.5, p: 1, bgcolor: 'rgba(0, 0, 0, 0.03)', borderRadius: '8px', border: '1px solid rgba(0, 0, 0, 0.12)' }}>
+                            <Box sx={{ mb: 1.5, p: 1, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', borderRadius: '8px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                               <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 600, color: 'text.secondary' }}>
                                 반려 사유:
                               </Typography>
@@ -1473,7 +1479,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
             </Card>
 
             {/* 모바일: 달력 영역 */}
-            <Card sx={{ borderRadius: '16px', mt: 2 }}>
+            <Card sx={{ borderRadius: '16px', mt: 2, bgcolor: colorScheme.surfaceColor }}>
               <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                 {/* 달력 헤더 */}
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, pb: 0.5, borderBottom: '1px solid #F1F3F5' }}>
@@ -1518,7 +1524,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                     mb: 0.5,
                     px: 0.75,
                     py: 0.25,
-                    bgcolor: '#F8F9FA',
+                    bgcolor: colorScheme.surfaceColor,
                     borderRadius: '6px',
                     border: '1px solid #E9ECEF',
                   }}
@@ -1645,7 +1651,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                           sx={{
                             p: 1,
                             borderRadius: '6px',
-                            bgcolor: '#F8F9FA',
+                            bgcolor: colorScheme.surfaceColor,
                             border: '1px solid #E9ECEF',
                           }}
                         >
@@ -1668,7 +1674,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
           <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 280px)' }}>
             {/* 왼쪽: 결재 목록 (50%) */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Card sx={{ borderRadius: '16px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <Card sx={{ borderRadius: '16px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: colorScheme.surfaceColor }}>
                 <CardContent sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexShrink: 0 }}>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -1738,7 +1744,8 @@ const AdminLeaveApprovalPage: React.FC = () => {
                           }}
                           sx={{
                             borderRadius: '8px',
-                            border: leave.status?.includes('REQUESTED') ? '1px solid #FF8C00' : '1px solid #E0E0E0',
+                            bgcolor: colorScheme.surfaceColor,
+                            border: leave.status?.includes('REQUESTED') ? '1px solid #FF8C00' : `1px solid ${colorScheme.textFieldBorderColor}`,
                             cursor: 'pointer',
                             p: 0,
                             flexShrink: 0, // 요소 크기 고정 - 압축 방지
@@ -1999,7 +2006,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%' }}>
               {/* 달력 (60%) - 높이 조정 */}
               <Box sx={{ flex: 6, minHeight: 0, display: 'flex' }}>
-                <Card sx={{ borderRadius: '16px', width: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Card sx={{ borderRadius: '16px', width: '100%', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.surfaceColor }}>
                   <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     {/* 달력 헤더 */}
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, pb: 0.5, borderBottom: '1px solid #F1F3F5', flexShrink: 0 }}>
@@ -2044,7 +2051,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                         mb: 0.5,
                         px: 0.75,
                         py: 0.25,
-                        bgcolor: '#F8F9FA',
+                        bgcolor: colorScheme.surfaceColor,
                         borderRadius: '6px',
                         border: '1px solid #E9ECEF',
                         flexShrink: 0,
@@ -2165,7 +2172,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
 
               {/* 선택된 날짜 상세 (40%) - 높이 조정 */}
               <Box sx={{ flex: 4, minHeight: 0, display: 'flex' }}>
-                <Card sx={{ borderRadius: '16px', width: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Card sx={{ borderRadius: '16px', width: '100%', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.surfaceColor }}>
                   <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, fontSize: '14px', flexShrink: 0 }}>
                       {dayjs(selectedDate).format('YYYY.MM.DD')} 휴가 내역
@@ -2181,11 +2188,11 @@ const AdminLeaveApprovalPage: React.FC = () => {
                       ) : (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                           {getSelectedDateDetails().map((leave: any, index: number) => (
-                            <Card
+                            <Card sx={{ bgcolor: colorScheme.surfaceColor }}
                               key={index}
                               sx={{
                                 p: 1,
-                                bgcolor: '#F8F9FA',
+                                bgcolor: colorScheme.surfaceColor,
                                 border: '1px solid #E9ECEF',
                                 borderRadius: '6px',
                               }}
@@ -2684,8 +2691,9 @@ const AdminLeaveApprovalPage: React.FC = () => {
                         key={leave.id || index}
                         sx={{
                           borderRadius: '12px',
+                          bgcolor: colorScheme.surfaceColor,
                           border: '1px solid',
-                          borderColor: theme.palette.mode === 'dark' ? '#404040' : '#E9ECEF',
+                          borderColor: isDark ? colorScheme.textFieldBorderColor : '#E9ECEF',
                         }}
                       >
                         <CardContent sx={{ p: 2 }}>
