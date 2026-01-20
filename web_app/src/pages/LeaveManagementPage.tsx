@@ -49,6 +49,9 @@ import LeaveRequestModal from '../components/leave/LeaveRequestModal';
 import VacationRecommendationModal from '../components/leave/VacationRecommendationModal';
 import leaveService from '../services/leaveService';
 import authService from '../services/authService';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('LeaveManagementPage');
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useThemeStore } from '../store/themeStore';
 import type {
@@ -127,7 +130,7 @@ export default function LeaveManagementPage() {
   // 승인자인 경우 관리자 휴가관리 화면으로 리다이렉트 (관리자 화면에서 온 경우 제외)
   useEffect(() => {
     if (isApprover && !fromAdmin) {
-      console.log('🔄 [LeaveManagementPage] 승인자이므로 관리자 화면으로 리다이렉트');
+      logger.dev('승인자이므로 관리자 화면으로 리다이렉트');
       navigate('/admin-leave', { replace: true });
     }
   }, [isApprover, fromAdmin, navigate]);

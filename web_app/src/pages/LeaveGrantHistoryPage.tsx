@@ -28,8 +28,11 @@ import dayjs from 'dayjs';
 
 import leaveService from '../services/leaveService';
 import authService from '../services/authService';
+import { createLogger } from '../utils/logger';
 import type { LeaveGrantRequestItem } from '../types/leave';
 import { useThemeStore } from '../store/themeStore';
+
+const logger = createLogger('LeaveGrantHistoryPage');
 
 const LeaveGrantHistoryPage: React.FC = () => {
     const navigate = useNavigate();
@@ -65,7 +68,7 @@ const LeaveGrantHistoryPage: React.FC = () => {
                 rejected: data.filter((item: any) => item.status === 'REJECTED').length,
             });
         } catch (error) {
-            console.error('Failed to fetch history:', error);
+            logger.error('Failed to fetch history:', error);
         } finally {
             setLoading(false);
         }

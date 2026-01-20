@@ -39,6 +39,9 @@ import MobileMainLayout from '../components/layout/MobileMainLayout';
 import authService from '../services/authService';
 import settingsService from '../services/settingsService';
 import { useThemeStore, AppThemeMode } from '../store/themeStore';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('SettingsPage');
 import { useNavigate } from 'react-router-dom';
 
 // 테마 타입 정의
@@ -108,7 +111,7 @@ export default function SettingsPage() {
         setUserInfo(user);
       }
     } catch (err) {
-      console.error('사용자 정보 로드 실패:', err);
+      logger.error('사용자 정보 로드 실패:', err);
     }
   };
 
@@ -117,14 +120,14 @@ export default function SettingsPage() {
       const user = authService.getCurrentUser();
       if (!user) return;
 
-      console.log('개인정보 동의 상태 확인:', user.userId);
+      logger.dev('개인정보 동의 상태 확인:', user.userId);
       const response = await settingsService.checkPrivacyAgreement(user.userId);
 
-      console.log('개인정보 동의 상태 응답:', response);
+      logger.dev('개인정보 동의 상태 응답:', response);
       setPrivacyAgreed(response.is_agreed === 1);
     } catch (err: any) {
-      console.error('개인정보 동의 상태 로드 실패:', err);
-      console.error('에러 상세:', err.response?.data);
+      logger.error('개인정보 동의 상태 로드 실패:', err);
+      logger.error('에러 상세:', err.response?.data);
     }
   };
 
@@ -139,10 +142,10 @@ export default function SettingsPage() {
         return;
       }
 
-      console.log('개인정보 동의 상태 업데이트:', { userId: user.userId, isAgreed });
+      logger.dev('개인정보 동의 상태 업데이트:', { userId: user.userId, isAgreed });
       const response = await settingsService.updatePrivacyAgreement(user.userId, isAgreed);
 
-      console.log('개인정보 동의 상태 업데이트 응답:', response);
+      logger.dev('개인정보 동의 상태 업데이트 응답:', response);
 
       if (response.success) {
         setPrivacyAgreed(isAgreed);
@@ -152,7 +155,7 @@ export default function SettingsPage() {
         setError(response.error || '개인정보 동의 상태 업데이트에 실패했습니다.');
       }
     } catch (err: any) {
-      console.error('개인정보 동의 상태 업데이트 실패:', err);
+      logger.error('개인정보 동의 상태 업데이트 실패:', err);
       setError(err.response?.data?.message || err.message || '개인정보 동의 상태 업데이트 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -176,13 +179,13 @@ export default function SettingsPage() {
 
     setThemeMode(appThemeMode);
     settingsService.updateThemeSettings(newTheme);
-    console.log('테마 변경:', newTheme);
+    logger.dev('테마 변경:', newTheme);
   };
 
   const handleNotificationChange = (enabled: boolean) => {
     setNotifications(enabled);
     // TODO: 실제 알림 설정 로직 구현
-    console.log('알림 설정 변경:', enabled);
+    logger.dev('알림 설정 변경:', enabled);
   };
 
   const PrivacySection = ({ title, content }: { title: string; content: string }) => (

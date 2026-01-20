@@ -274,7 +274,7 @@ export function extractNotificationDetails(payload: any, type: string) {
           });
         }
       } catch (e) {
-        console.warn('휴가 시작일 파싱 실패:', p.start_date);
+        logger.warn('휴가 시작일 파싱 실패:', p.start_date);
       }
     }
 
@@ -290,7 +290,7 @@ export function extractNotificationDetails(payload: any, type: string) {
           });
         }
       } catch (e) {
-        console.warn('휴가 종료일 파싱 실패:', p.end_date);
+        logger.warn('휴가 종료일 파싱 실패:', p.end_date);
       }
     }
 
@@ -650,13 +650,13 @@ export const useNotificationStore = create<NotificationState>()((set, get) => ({
 
       // SSE 활성화/비활성화
       setSseEnabled: (enabled) => {
-        console.log('[NotificationStore] SSE 활성화:', enabled);
+        logger.dev('[NotificationStore] SSE 활성화:', enabled);
         set({ sseEnabled: enabled });
       },
 
       // SSE 연결 상태 업데이트
       setConnectionState: (state) => {
-        console.log('[NotificationStore] SSE 연결 상태:', state);
+        logger.dev('[NotificationStore] SSE 연결 상태:', state);
         set({ connectionState: state });
       },
 
@@ -712,7 +712,7 @@ export const useNotificationStore = create<NotificationState>()((set, get) => ({
           );
 
           if (hasChanges) {
-            console.log('🔄 [NotificationStore] 기존 알림 메시지 재생성 완료');
+            logger.dev('🔄 [NotificationStore] 기존 알림 메시지 재생성 완료');
             return {
               ...state,
               notifications: updatedNotifications,

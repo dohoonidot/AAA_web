@@ -43,10 +43,13 @@ import { useNavigate } from 'react-router-dom';
 import leaveService from '../../services/leaveService';
 import authService from '../../services/authService';
 import { useThemeStore } from '../../store/themeStore';
+import { createLogger } from '../../utils/logger';
 import type {
   AdminWaitingLeave,
   AdminManagementApiResponse,
 } from '../../types/leave';
+
+const logger = createLogger('AdminLeaveApprovalScreen');
 
 export default function AdminLeaveApprovalScreen() {
   const theme = useTheme();
@@ -108,7 +111,7 @@ export default function AdminLeaveApprovalScreen() {
         setAdminData(transformedData);
       }
     } catch (err: any) {
-      console.error('관리자 데이터 로드 실패:', err);
+      logger.error('관리자 데이터 로드 실패:', err);
       setError('데이터를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -147,7 +150,7 @@ export default function AdminLeaveApprovalScreen() {
       setSelectedLeave(null);
       loadData(); // 데이터 새로고침
     } catch (err: any) {
-      console.error('승인 처리 실패:', err);
+      logger.error('승인 처리 실패:', err);
       setError('승인 처리에 실패했습니다.');
     } finally {
       setActionLoading(false);
@@ -192,7 +195,7 @@ export default function AdminLeaveApprovalScreen() {
       setRejectMessage('');
       loadData(); // 데이터 새로고침
     } catch (err: any) {
-      console.error('반려 처리 실패:', err);
+      logger.error('반려 처리 실패:', err);
       setError('반려 처리에 실패했습니다.');
     } finally {
       setActionLoading(false);

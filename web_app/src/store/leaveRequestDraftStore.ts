@@ -4,12 +4,15 @@
  */
 
 import { create } from 'zustand';
+import { createLogger } from '../utils/logger';
 import type {
   VacationRequestData,
   ApprovalLineData,
   CcPersonData,
   LeaveStatusData,
 } from '../types/leaveRequest';
+
+const logger = createLogger('LeaveRequestDraftStore');
 
 interface LeaveRequestDraftState {
   // 패널 표시 상태
@@ -60,7 +63,7 @@ export const useLeaveRequestDraftStore = create<LeaveRequestDraftState>((set, ge
   isSequentialApproval: false,
 
   openPanel: (data) => {
-    console.log('[Leave Draft Store] 패널 열기:', data);
+    logger.dev('[Leave Draft Store] 패널 열기:', data);
     set({
       isOpen: true,
       isLoading: true, // Flutter처럼 처음엔 로딩 상태
@@ -77,7 +80,7 @@ export const useLeaveRequestDraftStore = create<LeaveRequestDraftState>((set, ge
   },
 
   closePanel: () => {
-    console.log('[Leave Draft Store] 패널 닫기');
+    logger.dev('[Leave Draft Store] 패널 닫기');
     set({
       isOpen: false,
       isLoading: false,

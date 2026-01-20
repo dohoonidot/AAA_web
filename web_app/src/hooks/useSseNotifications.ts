@@ -19,6 +19,9 @@ import {
   SSE_EVENT_NAMES,
   type NotificationEnvelope,
 } from '../types/notification';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useSseNotifications');
 
 /**
  * SSE 알림 Hook 옵션
@@ -106,7 +109,7 @@ export function useSseNotifications(options: UseSseNotificationsOptions) {
         onConnectionStateChangeRef.current?.(state);
       },
       onError: (error) => {
-        console.error('[useSseNotifications] SSE 에러:', error);
+        logger.error('SSE 에러:', error);
       },
     });
 
@@ -120,14 +123,14 @@ export function useSseNotifications(options: UseSseNotificationsOptions) {
         const envelope = JSON.parse(e.data) as NotificationEnvelope;
 
         // 디버깅 로그 - 전체 envelope와 payload 출력
-        console.log('[useSseNotifications] SSE 수신 전체:', envelope);
-        console.log('[useSseNotifications] payload:', JSON.stringify(envelope.payload, null, 2));
-        console.log('[useSseNotifications] payload_text:', envelope.payload_text);
+        logger.dev('SSE 수신 전체:', envelope);
+        logger.dev('payload:', JSON.stringify(envelope.payload, null, 2));
+        logger.dev('payload_text:', envelope.payload_text);
 
         // 콜백 호출
         onNotificationRef.current(envelope);
       } catch (error) {
-        console.error('[useSseNotifications] 메시지 파싱 실패:', error, e.data);
+        logger.error('메시지 파싱 실패:', error, e.data);
       }
     };
 

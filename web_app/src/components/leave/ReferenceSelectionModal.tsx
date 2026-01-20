@@ -30,7 +30,10 @@ import {
   Business as BusinessIcon,
 } from '@mui/icons-material';
 import departmentService from '../../services/departmentService';
+import { createLogger } from '../../utils/logger';
 import type { CcPerson } from '../../types/leave';
+
+const logger = createLogger('ReferenceSelectionModal');
 
 interface ReferenceSelectionModalProps {
   open: boolean;
@@ -73,7 +76,7 @@ export default function ReferenceSelectionModal({
         await loadDepartmentMembers(department);
       }
     } catch (err: any) {
-      console.error('부서 목록 로드 실패:', err);
+      logger.error('부서 목록 로드 실패:', err);
       setError('부서 목록을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -95,7 +98,7 @@ export default function ReferenceSelectionModal({
         return newMap;
       });
     } catch (err: any) {
-      console.error(`부서 멤버 로드 실패 (${department}):`, err);
+      logger.error(`부서 멤버 로드 실패 (${department}):`, err);
       setDepartmentMembers((prev) => {
         const newMap = new Map(prev);
         newMap.set(department, []);

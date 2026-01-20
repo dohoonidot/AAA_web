@@ -4,6 +4,8 @@
  * 알림 아이콘, 제목, 시간 포맷팅 등 유틸리티 함수 제공
  */
 
+import { logger } from './logger';
+
 /**
  * 큐 이름에 따른 아이콘 반환
  * @param queueName 큐 이름 (birthday, gift, alert, event 등)
@@ -103,7 +105,7 @@ export const formatDateTime = (dateTimeString: string): string => {
 
     return `${month}월 ${day}일 ${hours}:${minutes}`;
   } catch (error) {
-    console.error('날짜 포맷팅 오류:', error);
+    logger.error('날짜 포맷팅 오류:', error);
     return dateTimeString;
   }
 };
@@ -124,7 +126,7 @@ export const formatAbsoluteDateTime = (dateTimeString: string): string => {
 
     return `${year}년 ${month}월 ${day}일 ${hours}:${minutes}`;
   } catch (error) {
-    console.error('날짜 포맷팅 오류:', error);
+    logger.error('날짜 포맷팅 오류:', error);
     return dateTimeString;
   }
 };

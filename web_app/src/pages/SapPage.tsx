@@ -18,7 +18,10 @@ import ChatArea from '../components/chat/ChatArea';
 import chatService from '../services/chatService';
 import authService from '../services/authService';
 import { useChatStore } from '../store/chatStore';
+import { createLogger } from '../utils/logger';
 import type { Archive } from '../services/chatService';
+
+const logger = createLogger('SapPage');
 
 export default function SapPage() {
   const [currentArchive, setCurrentArchive] = useState<Archive | null>(null);
@@ -45,11 +48,11 @@ export default function SapPage() {
         return;
       }
 
-      console.log('SAP 아카이브 로드 시작:', user.userId);
+      logger.dev('SAP 아카이브 로드 시작:', user.userId);
 
       // 기존 아카이브 목록 조회
       const archiveList = await chatService.getArchiveList(user.userId);
-      console.log('로드된 아카이브 목록:', archiveList);
+      logger.dev('로드된 아카이브 목록:', archiveList);
 
       // SAP 관련 아카이브 찾기
       let sapArchive = archiveList.find(archive =>
@@ -59,13 +62,13 @@ export default function SapPage() {
 
       // SAP 아카이브가 없으면 생성
       if (!sapArchive) {
-        console.log('SAP 아카이브가 없어서 생성합니다.');
+        logger.dev('SAP 아카이브가 없어서 생성합니다.');
         sapArchive = await chatService.createArchive(
           user.userId,
           'SAP 어시스턴트',
           'sap'
         );
-        console.log('생성된 SAP 아카이브:', sapArchive);
+        logger.dev('생성된 SAP 아카이브:', sapArchive);
       }
 
       setArchives(archiveList);
@@ -74,7 +77,7 @@ export default function SapPage() {
       setGlobalCurrentArchive(sapArchive);
 
     } catch (err: any) {
-      console.error('SAP 아카이브 로드 실패:', err);
+      logger.error('SAP 아카이브 로드 실패:', err);
       setError(err.message || 'SAP 아카이브를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -93,7 +96,7 @@ export default function SapPage() {
         selectedModule || ''
       );
     } catch (err: any) {
-      console.error('메시지 전송 실패:', err);
+      logger.error('메시지 전송 실패:', err);
       setError(err.message || '메시지 전송에 실패했습니다.');
     }
   };

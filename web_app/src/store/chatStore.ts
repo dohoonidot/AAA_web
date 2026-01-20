@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import type { Archive, ChatMessage } from '../types';
 import chatService from '../services/chatService';
 import authService from '../services/authService';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ChatStore');
 
 // 아카이브 타입 정의
 export type ArchiveType = '' | 'code' | 'sap';
@@ -208,14 +211,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Actions
   setArchives: (archives) => set({ archives }),
   setCurrentArchive: (archive) => {
-    console.log('setCurrentArchive 호출:', archive?.archive_name);
+    logger.dev('setCurrentArchive 호출:', archive?.archive_name);
     // SAP 아카이브가 아닌 다른 아카이브로 변경 시 모듈 선택 초기화
     const isSapArchive = archive?.archive_type === 'sap' || archive?.archive_name === ARCHIVE_NAMES.SAP;
     set({
       currentArchive: archive,
       selectedSapModule: isSapArchive ? get().selectedSapModule : '' // SAP가 아니면 초기화
     });
-    console.log('setCurrentArchive 완료');
+    logger.dev('setCurrentArchive 완료');
   },
   setMessages: (messages) => set({ messages }),
   addMessage: (message) => set((state) => ({
@@ -240,7 +243,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       set({ archives: sorted });
     } catch (error) {
-      console.error('Failed to load archives:', error);
+      logger.error('Failed to load archives:', error);
     }
   },
 
@@ -276,7 +279,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // 아카이브 목록 새로고침
       await get().loadArchives();
     } catch (error) {
-      console.error('아카이브 생성 실패:', error);
+      logger.error('아카이브 생성 실패:', error);
       throw error;
     }
   },
@@ -293,7 +296,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set({ currentArchive: state.archives[0] });
       }
     } catch (error) {
-      console.error('아카이브 삭제 실패:', error);
+      logger.error('아카이브 삭제 실패:', error);
       throw error;
     }
   },
@@ -315,7 +318,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
       }
     } catch (error) {
-      console.error('아카이브 이름 변경 실패:', error);
+      logger.error('아카이브 이름 변경 실패:', error);
       throw error;
     }
   },

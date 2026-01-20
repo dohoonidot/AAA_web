@@ -41,7 +41,10 @@ import authService from '../../services/authService';
 import ApproverSelectionModal from './ApproverSelectionModal';
 import ReferenceSelectionModal from './ReferenceSelectionModal';
 import leaveService from '../../services/leaveService';
+import { createLogger } from '../../utils/logger';
 import type { ApprovalLineData, CcPersonData, LeaveStatusData } from '../../types/leaveRequest';
+
+const logger = createLogger('LeaveRequestDraftPanel');
 
 export default function LeaveRequestDraftPanel() {
   const theme = useTheme();
@@ -79,7 +82,7 @@ export default function LeaveRequestDraftPanel() {
 
   useEffect(() => {
     if (isOpen && user && !isDataLoaded) {
-      console.log('[Leave Draft Panel] 패널 열림:', formData);
+      logger.dev('[Leave Draft Panel] 패널 열림:', formData);
       loadInitialData();
     }
   }, [isOpen, user, isDataLoaded]);
@@ -101,13 +104,13 @@ export default function LeaveRequestDraftPanel() {
       if (currentUser?.name) {
         setUserName(currentUser.name);
       } else {
-        console.warn('[Leave Draft Panel] 사용자 정보 없음, userId 사용:', user.userId);
+        logger.warn('[Leave Draft Panel] 사용자 정보 없음, userId 사용:', user.userId);
         setUserName(user.userId);
       }
 
       // 2. 결재라인 설정 (채팅 트리거에서 받은 데이터 우선, 없으면 API 호출)
       if (formData.approvalLine && formData.approvalLine.length > 0) {
-        console.log('[Leave Draft Panel] 채팅 트리거로부터 받은 결재라인 사용:', formData.approvalLine);
+          logger.dev('[Leave Draft Panel] 채팅 트리거로부터 받은 결재라인 사용:', formData.approvalLine);
         setApprovalLine(formData.approvalLine);
       } else {
         // 저장된 결재라인 불러오기 (API 호출)
@@ -116,7 +119,7 @@ export default function LeaveRequestDraftPanel() {
 
           // 승인자 설정
           if (approvalLineData.approvalLine && approvalLineData.approvalLine.length > 0) {
-            console.log('[Leave Draft Panel] 저장된 결재라인 불러옴:', approvalLineData.approvalLine);
+            logger.dev('[Leave Draft Panel] 저장된 결재라인 불러옴:', approvalLineData.approvalLine);
             const approvalLine: ApprovalLineData[] = approvalLineData.approvalLine.map((item) => ({
               approverName: item.approverName,
               approverId: item.approverId,
@@ -125,13 +128,13 @@ export default function LeaveRequestDraftPanel() {
             setApprovalLine(approvalLine);
           }
         } catch (error) {
-          console.log('[Leave Draft Panel] 저장된 결재라인 없음 (사용자가 직접 선택)');
+          logger.dev('[Leave Draft Panel] 저장된 결재라인 없음 (사용자가 직접 선택)');
         }
       }
 
       // 참조자 설정 (채팅 트리거에서 받은 데이터 우선, 없으면 API 호출)
       if (formData.ccList && formData.ccList.length > 0) {
-        console.log('[Leave Draft Panel] 채팅 트리거로부터 받은 참조자 사용:', formData.ccList);
+        logger.dev('[Leave Draft Panel] 채팅 트리거로부터 받은 참조자 사용:', formData.ccList);
         setCcList(formData.ccList);
       } else {
         // 저장된 참조자 불러오기 (API 호출)
@@ -140,7 +143,7 @@ export default function LeaveRequestDraftPanel() {
 
           // 참조자 설정
           if (approvalLineData.ccList && approvalLineData.ccList.length > 0) {
-            console.log('[Leave Draft Panel] 저장된 참조자 불러옴:', approvalLineData.ccList);
+            logger.dev('[Leave Draft Panel] 저장된 참조자 불러옴:', approvalLineData.ccList);
             const ccList: CcPersonData[] = approvalLineData.ccList.map((item) => ({
               name: item.name,
               userId: item.userId,
@@ -149,20 +152,20 @@ export default function LeaveRequestDraftPanel() {
             setCcList(ccList);
           }
         } catch (error) {
-          console.log('[Leave Draft Panel] 저장된 참조자 없음');
+          logger.dev('[Leave Draft Panel] 저장된 참조자 없음');
         }
       }
 
       // 3. 휴가 현황 데이터 설정 (formData에서 우선 확인, 없으면 API 호출)
       if (formData.leaveStatus && formData.leaveStatus.length > 0) {
-        console.log('[Leave Draft Panel] formData에서 받은 휴가 현황 사용:', formData.leaveStatus);
+        logger.dev('[Leave Draft Panel] formData에서 받은 휴가 현황 사용:', formData.leaveStatus);
         setLeaveStatusList(formData.leaveStatus);
       } else {
         // API로부터 내 휴가 현황 조회
         try {
           const leaveManagementData = await leaveService.getLeaveManagement(user.userId);
           if (leaveManagementData.leaveStatus) {
-            console.log('[Leave Draft Panel] API에서 조회한 휴가 현황 사용:', leaveManagementData.leaveStatus);
+            logger.dev('[Leave Draft Panel] API에서 조회한 휴가 현황 사용:', leaveManagementData.leaveStatus);
             const leaveStatusData = leaveManagementData.leaveStatus.map(item => ({
               leaveType: item.leaveType,
               totalDays: item.totalDays,
@@ -172,22 +175,22 @@ export default function LeaveRequestDraftPanel() {
             updateFormData({ leaveStatus: leaveStatusData });
           }
         } catch (error) {
-          console.error('[Leave Draft Panel] 휴가 현황 조회 실패:', error);
+          logger.error('[Leave Draft Panel] 휴가 현황 조회 실패:', error);
         }
       }
 
       // 데이터 로드 완료
       setIsDataLoaded(true);
     } catch (error) {
-      console.error('[Leave Draft Panel] 초기 데이터 로드 실패:', error);
+      logger.error('[Leave Draft Panel] 초기 데이터 로드 실패:', error);
       setIsDataLoaded(true); // 에러가 나도 플래그 설정
     }
   };
 
   // 승인자 선택 핸들러
   const handleApproverConfirm = (selectedApproverIds: string[], selectedApprovers: any[]) => {
-    console.log('[Leave Draft Panel] 선택된 승인자 IDs:', selectedApproverIds);
-    console.log('[Leave Draft Panel] 선택된 승인자 정보:', selectedApprovers);
+    logger.dev('[Leave Draft Panel] 선택된 승인자 IDs:', selectedApproverIds);
+    logger.dev('[Leave Draft Panel] 선택된 승인자 정보:', selectedApprovers);
     // ApprovalLineData 형식으로 변환 (이름 포함)
     const approvalLine: ApprovalLineData[] = selectedApprovers.map((approver, index) => ({
       approverName: approver.approverName,
@@ -200,7 +203,7 @@ export default function LeaveRequestDraftPanel() {
 
   // 참조자 선택 핸들러
   const handleReferenceConfirm = (selectedReferences: any[]) => {
-    console.log('[Leave Draft Panel] 선택된 참조자:', selectedReferences);
+    logger.dev('[Leave Draft Panel] 선택된 참조자:', selectedReferences);
     // CcPerson을 CcPersonData로 변환 (userId 추가)
     const ccList: CcPersonData[] = selectedReferences.map((ref) => ({
       name: ref.name,
@@ -224,7 +227,7 @@ export default function LeaveRequestDraftPanel() {
     }
 
     try {
-      console.log('[Leave Draft Panel] 결재라인 저장 시작:', {
+      logger.dev('[Leave Draft Panel] 결재라인 저장 시작:', {
         approvalLine: formData.approvalLine,
         ccList: formData.ccList,
         isSequentialApproval,
@@ -257,7 +260,7 @@ export default function LeaveRequestDraftPanel() {
         alert('결재라인이 저장되었습니다.');
       }
     } catch (error: any) {
-      console.error('[Leave Draft Panel] 결재라인 저장 실패:', error);
+      logger.error('[Leave Draft Panel] 결재라인 저장 실패:', error);
       alert(`결재라인 저장 중 오류가 발생했습니다: ${error.message}`);
     }
   };
@@ -291,7 +294,7 @@ export default function LeaveRequestDraftPanel() {
     }
 
     try {
-      console.log('[Leave Draft Panel] 휴가 신청 시작:', formData);
+      logger.dev('[Leave Draft Panel] 휴가 신청 시작:', formData);
 
       // 날짜를 ISO 8601 형식으로 변환
       const formatDateForApi = (dateStr: string): string => {
@@ -340,13 +343,13 @@ export default function LeaveRequestDraftPanel() {
         isNextYear: useNextYear ? 1 : 0,
       };
 
-      console.log('[Leave Draft Panel] API 요청 데이터:', request);
+      logger.dev('[Leave Draft Panel] API 요청 데이터:', request);
 
       await leaveService.submitLeaveRequest(request);
       alert('휴가 신청이 완료되었습니다.');
       closePanel();
     } catch (error: any) {
-      console.error('[Leave Draft Panel] 휴가 신청 실패:', error);
+      logger.error('[Leave Draft Panel] 휴가 신청 실패:', error);
       alert(`휴가 신청 중 오류가 발생했습니다: ${error.message}`);
     }
   };
@@ -360,7 +363,7 @@ export default function LeaveRequestDraftPanel() {
       try {
         // 내년 정기휴가 API 호출
         const nextYearData = await leaveService.getNextYearLeaveStatus(user.userId);
-        console.log('[Leave Draft Panel] 내년 정기휴가 조회:', nextYearData);
+        logger.dev('[Leave Draft Panel] 내년 정기휴가 조회:', nextYearData);
 
         // snake_case 응답 처리
         const leaveStatusData = nextYearData.leave_status || nextYearData.leaveStatus;
@@ -371,14 +374,14 @@ export default function LeaveRequestDraftPanel() {
             totalDays: item.total_days || item.totalDays,
             remainDays: item.remain_days || item.remainDays,
           }));
-          console.log('[Leave Draft Panel] 내년 휴가 현황 설정:', statusWithDays);
+          logger.dev('[Leave Draft Panel] 내년 휴가 현황 설정:', statusWithDays);
           setNextYearLeaveStatus(statusWithDays);
 
           const leaveTypes = statusWithDays.map((item) => item.leaveType);
           setNextYearLeaveTypes(leaveTypes);
         }
       } catch (error) {
-        console.error('[Leave Draft Panel] 내년 정기휴가 조회 실패:', error);
+        logger.error('[Leave Draft Panel] 내년 정기휴가 조회 실패:', error);
       }
     } else {
       setNextYearLeaveTypes([]);
@@ -492,7 +495,7 @@ export default function LeaveRequestDraftPanel() {
           <Tooltip title="접어두기">
             <IconButton
               size="small"
-              onClick={() => console.log('접어두기')}
+              onClick={() => logger.dev('접어두기')}
               sx={{ color: colorScheme.hintTextColor }}
             >
               <ChevronRightIcon />

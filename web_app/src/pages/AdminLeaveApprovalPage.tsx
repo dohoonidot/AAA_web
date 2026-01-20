@@ -54,9 +54,12 @@ import dayjs from 'dayjs';
 import authService from '../services/authService';
 import leaveService from '../services/leaveService';
 import { useThemeStore } from '../store/themeStore';
+import { createLogger } from '../utils/logger';
 import type { AdminManagementApiResponse } from '../types/leave';
 import { AdminCalendarSidebar } from '../components/admin/AdminCalendarSidebar';
 import { DepartmentLeaveStatusModal } from '../components/admin/DepartmentLeaveStatusModal';
+
+const logger = createLogger('AdminLeaveApprovalPage');
 
 /**
  * 취소사유가 포함된 reason 파싱하여 UI 표시
@@ -300,7 +303,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
         });
         successCount++;
       } catch (error) {
-        console.error('일괄 승인 실패 (ID: ${itemId}):', error);
+        logger.error(`일괄 승인 실패 (ID: ${itemId}):`, error);
       }
     }
 
@@ -330,7 +333,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
         });
         successCount++;
       } catch (error) {
-        console.error('일괄 반려 실패 (ID: ${itemId}):', error);
+        logger.error(`일괄 반려 실패 (ID: ${itemId}):`, error);
       }
     }
 
@@ -456,9 +459,9 @@ const AdminLeaveApprovalPage: React.FC = () => {
         month: currentMonth,
       });
 
-      console.log('관리자 데이터 응답:', response);
-      console.log('waiting_leaves 샘플:', response.waiting_leaves?.[0]);
-      console.log('monthly_leaves 샘플:', response.monthly_leaves?.[0]);
+      logger.dev('관리자 데이터 응답:', response);
+      logger.dev('waiting_leaves 샘플:', response.waiting_leaves?.[0]);
+      logger.dev('monthly_leaves 샘플:', response.monthly_leaves?.[0]);
 
       setAdminData(response);
 
@@ -467,7 +470,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
         setCalendarLeaves(response.monthly_leaves);
       }
     } catch (err: any) {
-      console.error('관리자 데이터 로드 실패:', err);
+      logger.error('관리자 데이터 로드 실패:', err);
       setError(err.message || '관리자 데이터를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -479,20 +482,20 @@ const AdminLeaveApprovalPage: React.FC = () => {
     try {
       const user = authService.getCurrentUser();
       if (!user) {
-        console.error('사용자 정보가 없습니다.');
+        logger.error('사용자 정보가 없습니다.');
         return;
       }
 
-      console.log('loadYearlyWaitingList 호출됨 - year:', year, 'userId:', user.userId);
+      logger.dev('loadYearlyWaitingList 호출됨 - year:', year, 'userId:', user.userId);
 
       const response = await leaveService.getAdminYearlyLeave({
         approverId: user.userId,
         year: year,
       });
 
-      console.log('연도별 결재 대기 목록 응답:', response);
-      console.log('approval_status:', response.approval_status);
-      console.log('yearly_details 개수:', response.yearly_details?.length || 0);
+      logger.dev('연도별 결재 대기 목록 응답:', response);
+      logger.dev('approval_status:', response.approval_status);
+      logger.dev('yearly_details 개수:', response.yearly_details?.length || 0);
 
       // 기존 adminData를 유지하면서 yearly_details와 approval_status만 업데이트
       setAdminData(prev => ({
@@ -501,11 +504,11 @@ const AdminLeaveApprovalPage: React.FC = () => {
         waiting_leaves: response.yearly_details || [],
       }));
 
-      console.log('adminData 업데이트 완료');
+      logger.dev('adminData 업데이트 완료');
     } catch (err: any) {
-      console.error('연도별 데이터 로드 실패:', err);
-      console.error('에러 상세:', err.response?.data);
-      console.error('에러 상태:', err.response?.status);
+      logger.error('연도별 데이터 로드 실패:', err);
+      logger.error('에러 상세:', err.response?.data);
+      logger.error('에러 상태:', err.response?.status);
       setError(`연도별 데이터를 불러오는데 실패했습니다: ${err.message}`);
     }
   };
@@ -564,7 +567,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
       setSelectedLeave(null);
       loadAdminData();
     } catch (err: any) {
-      console.error('승인 처리 실패:', err);
+      logger.error('승인 처리 실패:', err);
       setError('승인 처리에 실패했습니다.');
     } finally {
       setActionLoading(false);
@@ -596,7 +599,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
       setRejectMessage('');
       loadAdminData();
     } catch (err: any) {
-      console.error('반려 처리 실패:', err);
+      logger.error('반려 처리 실패:', err);
       setError('반려 처리에 실패했습니다.');
     } finally {
       setActionLoading(false);
@@ -769,7 +772,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
         setCalendarLeaves(response.monthlyLeaves);
       }
     } catch (err: any) {
-      console.error('부서별 달력 조회 실패:', err);
+      logger.error('부서별 달력 조회 실패:', err);
     }
   };
 
@@ -2881,7 +2884,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                   setCalendarLeaves(response.monthlyLeaves);
                 }
               } catch (err: any) {
-                console.error('부서별 달력 조회 실패:', err);
+                logger.error('부서별 달력 조회 실패:', err);
               }
               setYearMonthPickerOpen(false);
             }}

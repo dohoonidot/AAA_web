@@ -40,7 +40,10 @@ import authService from '../../services/authService';
 import ApproverSelectionModal from './ApproverSelectionModal';
 import ReferenceSelectionModal from './ReferenceSelectionModal';
 import leaveService from '../../services/leaveService';
+import { createLogger } from '../../utils/logger';
 import type { LeaveStatus } from '../../types/leave';
+
+const logger = createLogger('LeaveRequestModal');
 
 interface LeaveRequestModalProps {
   open: boolean;
@@ -108,7 +111,7 @@ export default function LeaveRequestModal({
 
   useEffect(() => {
     if (open && user && !isDataLoaded) {
-      console.log('[Leave Request Modal] 모달 열림');
+      logger.dev('모달 열림');
       loadInitialData();
     }
   }, [open, user, isDataLoaded]);
@@ -130,7 +133,7 @@ export default function LeaveRequestModal({
       if (currentUser?.name) {
         setUserName(currentUser.name);
       } else {
-        console.warn('[Leave Request Modal] 사용자 정보 없음, userId 사용:', user.userId);
+        logger.warn('사용자 정보 없음, userId 사용:', user.userId);
         setUserName(user.userId);
       }
 
@@ -140,7 +143,7 @@ export default function LeaveRequestModal({
 
         // 승인자 설정
         if (approvalLineData.approvalLine && approvalLineData.approvalLine.length > 0) {
-          console.log('[Leave Request Modal] 저장된 결재라인 불러옴:', approvalLineData.approvalLine);
+          logger.dev('저장된 결재라인 불러옴:', approvalLineData.approvalLine);
           const loadedApprovalLine: ApprovalLineData[] = approvalLineData.approvalLine.map((item) => ({
             approverName: item.approverName,
             approverId: item.approverId,
@@ -151,7 +154,7 @@ export default function LeaveRequestModal({
 
         // 참조자 설정
         if (approvalLineData.ccList && approvalLineData.ccList.length > 0) {
-          console.log('[Leave Request Modal] 저장된 참조자 불러옴:', approvalLineData.ccList);
+          logger.dev('저장된 참조자 불러옴:', approvalLineData.ccList);
           const loadedCcList: CcPersonData[] = approvalLineData.ccList.map((item) => ({
             name: item.name,
             userId: item.userId,
@@ -160,12 +163,12 @@ export default function LeaveRequestModal({
           setCcList(loadedCcList);
         }
       } catch (error) {
-        console.log('[Leave Request Modal] 저장된 결재라인 없음 (사용자가 직접 선택)');
+        logger.dev('저장된 결재라인 없음 (사용자가 직접 선택)');
       }
 
       // 3. 휴가 현황 데이터 설정 (props에서 우선 확인, 없으면 API 호출)
       if (propLeaveStatusList && propLeaveStatusList.length > 0) {
-        console.log('[Leave Request Modal] props에서 받은 휴가 현황 사용:', propLeaveStatusList);
+        logger.dev('props에서 받은 휴가 현황 사용:', propLeaveStatusList);
         const convertedData: LeaveStatusData[] = propLeaveStatusList.map((item: any) => ({
           leaveType: item.leaveType || item.leave_type,
           totalDays: item.totalDays || item.total_days,
@@ -177,7 +180,7 @@ export default function LeaveRequestModal({
         try {
           const leaveManagementData = await leaveService.getLeaveManagement(user.userId);
           if (leaveManagementData.leaveStatus) {
-            console.log('[Leave Request Modal] API에서 조회한 휴가 현황 사용:', leaveManagementData.leaveStatus);
+            logger.dev('API에서 조회한 휴가 현황 사용:', leaveManagementData.leaveStatus);
             const leaveStatusData = leaveManagementData.leaveStatus.map(item => ({
               leaveType: item.leaveType,
               totalDays: item.totalDays,
@@ -186,22 +189,22 @@ export default function LeaveRequestModal({
             setLeaveStatusList(leaveStatusData);
           }
         } catch (error) {
-          console.error('[Leave Request Modal] 휴가 현황 조회 실패:', error);
+          logger.error('휴가 현황 조회 실패:', error);
         }
       }
 
       // 데이터 로드 완료
       setIsDataLoaded(true);
     } catch (error) {
-      console.error('[Leave Request Modal] 초기 데이터 로드 실패:', error);
+      logger.error('초기 데이터 로드 실패:', error);
       setIsDataLoaded(true); // 에러가 나도 플래그 설정
     }
   };
 
   // 승인자 선택 핸들러 (LeaveRequestDraftPanel과 동일)
   const handleApproverConfirm = (selectedApproverIds: string[], selectedApprovers: any[]) => {
-    console.log('[Leave Request Modal] 선택된 승인자 IDs:', selectedApproverIds);
-    console.log('[Leave Request Modal] 선택된 승인자 정보:', selectedApprovers);
+    logger.dev('선택된 승인자 IDs:', selectedApproverIds);
+    logger.dev('선택된 승인자 정보:', selectedApprovers);
     // ApprovalLineData 형식으로 변환 (이름 포함)
     const newApprovalLine: ApprovalLineData[] = selectedApprovers.map((approver, index) => ({
       approverName: approver.approverName,
@@ -214,7 +217,7 @@ export default function LeaveRequestModal({
 
   // 참조자 선택 핸들러 (LeaveRequestDraftPanel과 동일)
   const handleReferenceConfirm = (selectedReferences: any[]) => {
-    console.log('[Leave Request Modal] 선택된 참조자:', selectedReferences);
+    logger.dev('선택된 참조자:', selectedReferences);
     // CcPerson을 CcPersonData로 변환 (userId 추가)
     const newCcList: CcPersonData[] = selectedReferences.map((ref) => ({
       name: ref.name,
@@ -238,7 +241,7 @@ export default function LeaveRequestModal({
     }
 
     try {
-      console.log('[Leave Request Modal] 결재라인 저장 시작:', {
+      logger.dev('결재라인 저장 시작:', {
         approvalLine,
         ccList,
         isSequentialApproval,
@@ -271,7 +274,7 @@ export default function LeaveRequestModal({
         alert('결재라인이 저장되었습니다.');
       }
     } catch (error: any) {
-      console.error('[Leave Request Modal] 결재라인 저장 실패:', error);
+      logger.error('결재라인 저장 실패:', error);
       alert(`결재라인 저장 중 오류가 발생했습니다: ${error.message}`);
     }
   };
@@ -284,7 +287,7 @@ export default function LeaveRequestModal({
       try {
         // 내년 정기휴가 API 호출
         const nextYearData = await leaveService.getNextYearLeaveStatus(user.userId);
-        console.log('[Leave Request Modal] 내년 정기휴가 조회:', nextYearData);
+        logger.dev('내년 정기휴가 조회:', nextYearData);
 
         // snake_case 응답 처리
         const leaveStatusData = nextYearData.leave_status || nextYearData.leaveStatus;
@@ -295,14 +298,14 @@ export default function LeaveRequestModal({
             totalDays: item.total_days || item.totalDays,
             remainDays: item.remain_days || item.remainDays,
           }));
-          console.log('[Leave Request Modal] 내년 휴가 현황 설정:', statusWithDays);
+          logger.dev('내년 휴가 현황 설정:', statusWithDays);
           setNextYearLeaveStatus(statusWithDays);
 
           const leaveTypes = statusWithDays.map((item) => item.leaveType);
           setNextYearLeaveTypes(leaveTypes);
         }
       } catch (error) {
-        console.error('[Leave Request Modal] 내년 정기휴가 조회 실패:', error);
+        logger.error('내년 정기휴가 조회 실패:', error);
       }
     } else {
       setNextYearLeaveTypes([]);
@@ -393,7 +396,7 @@ export default function LeaveRequestModal({
       handleClose();
       onSubmit();
     } catch (error: any) {
-      console.error('[Leave Request Modal] 휴가 신청 실패:', error);
+      logger.error('휴가 신청 실패:', error);
       alert(`휴가 신청 중 오류가 발생했습니다: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -523,7 +526,7 @@ export default function LeaveRequestModal({
           <Tooltip title="접어두기">
             <IconButton
               size="small"
-              onClick={() => console.log('접어두기')}
+              onClick={() => logger.dev('접어두기')}
               sx={{ color: colorScheme.hintTextColor }}
             >
               <ChevronRightIcon />

@@ -57,7 +57,7 @@ class IndexedDBService {
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('IndexedDB 초기화 성공');
+        logger.dev('IndexedDB 초기화 성공');
         resolve();
       };
 

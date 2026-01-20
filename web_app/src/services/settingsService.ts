@@ -64,7 +64,7 @@ class SettingsService {
       logger.dev('사용자 프로필 조회 응답:', response.data);
       return response.data;
     } catch (error) {
-      console.warn('사용자 프로필 조회 실패:', error);
+      logger.warn('사용자 프로필 조회 실패:', error);
       return null;
     }
   }
@@ -88,7 +88,7 @@ class SettingsService {
       logger.dev('알림 설정 업데이트 응답:', response.data);
       return response.data;
     } catch (error) {
-      console.warn('알림 설정 업데이트 실패:', error);
+      logger.warn('알림 설정 업데이트 실패:', error);
       return null;
     }
   }

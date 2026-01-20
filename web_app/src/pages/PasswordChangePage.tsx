@@ -20,6 +20,9 @@ import { useNavigate } from 'react-router-dom';
 import { useThemeStore } from '../store/themeStore';
 import { API_BASE_URL } from '../utils/apiConfig';
 import authService from '../services/authService';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('PasswordChangePage');
 
 export default function PasswordChangePage() {
   const { colorScheme } = useThemeStore();
@@ -133,7 +136,7 @@ export default function PasswordChangePage() {
         navigate('/login');
       }, 2000);
     } catch (err: any) {
-      console.error('Password change error:', err);
+      logger.error('Password change error:', err);
       setError(err.message || '비밀번호 변경 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);

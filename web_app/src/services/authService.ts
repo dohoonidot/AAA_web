@@ -66,8 +66,8 @@ class AuthService {
       const data: LoginResponse = await response.json();
 
       // 디버깅: 로그인 응답값 전체 출력
-      console.log('🔐 [AuthService] 로그인 응답 전체:', data);
-      console.log('🔐 [AuthService] is_approver 원본값:', data.is_approver, '타입:', typeof data.is_approver);
+      logger.dev('🔐 [AuthService] 로그인 응답 전체:', data);
+      logger.dev('🔐 [AuthService] is_approver 원본값:', data.is_approver, '타입:', typeof data.is_approver);
 
       // 로그인 성공 시 메모리에 사용자 정보 저장
       if (data.status_code === 200) {
@@ -80,8 +80,8 @@ class AuthService {
           isApprover: data.is_approver === 1,
           permission: data.permission,
         };
-        console.log('🔐 [AuthService] 저장된 userInfo:', this.userInfo);
-        console.log('🔐 [AuthService] isApprover 저장값:', this.userInfo.isApprover);
+        logger.dev('🔐 [AuthService] 저장된 userInfo:', this.userInfo);
+        logger.dev('🔐 [AuthService] isApprover 저장값:', this.userInfo.isApprover);
         logger.dev('로그인 성공 - 사용자 정보 메모리에 저장 완료');
       }
 

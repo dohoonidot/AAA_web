@@ -493,13 +493,13 @@ await notificationService.connect({
 
 // 이벤트 핸들러 등록
 notificationService.onNotification(NotificationEventType.LEAVE_APPROVAL, (message) => {
-  console.log('휴가 승인 알림:', message);
+  logger.dev('휴가 승인 알림:', message);
   // UI 업데이트 로직
 });
 
 // 연결 상태 모니터링
 notificationService.onConnectionStateChange((state, error) => {
-  console.log('연결 상태:', state);
+  logger.dev('연결 상태:', state);
   if (error) logger.error('연결 에러:', error);
 });
 
