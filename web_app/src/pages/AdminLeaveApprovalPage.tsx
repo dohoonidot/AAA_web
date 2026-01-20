@@ -2188,12 +2188,12 @@ const AdminLeaveApprovalPage: React.FC = () => {
                       ) : (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                           {getSelectedDateDetails().map((leave: any, index: number) => (
-                            <Card sx={{ bgcolor: colorScheme.surfaceColor }}
+                            <Card
                               key={index}
                               sx={{
                                 p: 1,
                                 bgcolor: colorScheme.surfaceColor,
-                                border: '1px solid #E9ECEF',
+                                border: `1px solid ${colorScheme.textFieldBorderColor}`,
                                 borderRadius: '6px',
                               }}
                             >
