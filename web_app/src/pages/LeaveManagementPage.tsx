@@ -49,17 +49,14 @@ import LeaveRequestModal from '../components/leave/LeaveRequestModal';
 import VacationRecommendationModal from '../components/leave/VacationRecommendationModal';
 import leaveService from '../services/leaveService';
 import authService from '../services/authService';
-import { createLogger } from '../utils/logger';
-
-const logger = createLogger('LeaveManagementPage');
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useThemeStore } from '../store/themeStore';
+import { createLogger } from '../utils/logger';
 import type {
   LeaveManagementData,
   LeaveCancelRequest,
   ApprovalStatus,
 } from '../types/leave';
-import { createLogger } from '../utils/logger';
 
 const logger = createLogger('LeaveManagementPage');
 
