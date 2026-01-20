@@ -448,7 +448,7 @@ ${year}-02-19, ${year}-02-20, ${year}-03-03, ${year}-05-04, ${year}-05-26, ${yea
       print('  - 월별 분포: $monthlyDist');
       print('  - 연속 휴가: ${periods.length}개');
 
-      yield VacationRecommendationResponse(
+      final finalResponse = VacationRecommendationResponse(
         reasoningContents: reasoningBuffer,
         finalResponseContents: markdownBuffer,
         leavesData: leavesData,
@@ -464,6 +464,36 @@ ${year}-02-19, ${year}-02-20, ${year}-03-03, ${year}-05-04, ${year}-05-26, ${yea
         isComplete: true,
         streamingProgress: 1.0,
       );
+
+      // 최종 데이터 전체 로그 출력
+      print('🎉 [VacationService] ========== AI휴가추천 최종 응답 데이터 ==========');
+      print('📦 [VacationService] 최종 응답 전체 데이터:');
+      print(jsonEncode({
+        'reasoningContents': finalResponse.reasoningContents,
+        'finalResponseContents': finalResponse.finalResponseContents,
+        'recommendedDates': finalResponse.recommendedDates,
+        'monthlyDistribution': finalResponse.monthlyDistribution,
+        'consecutivePeriods': finalResponse.consecutivePeriods.map((p) => {
+          return {
+            'startDate': p.startDate,
+            'endDate': p.endDate,
+            'days': p.days,
+            'description': p.description,
+          };
+        }).toList(),
+        'isComplete': finalResponse.isComplete,
+        'streamingProgress': finalResponse.streamingProgress,
+        'leavesData': finalResponse.leavesData?.monthlyUsage,
+        'weekdayCountsData': finalResponse.weekdayCountsData?.counts,
+        'holidayAdjacentUsageRate': finalResponse.holidayAdjacentUsageRate,
+        'holidayAdjacentDays': finalResponse.holidayAdjacentDays,
+        'totalLeaveDays': finalResponse.totalLeaveDays,
+        'isAfterAnalysisMarker': finalResponse.isAfterAnalysisMarker,
+        'markdownBuffer': finalResponse.markdownBuffer,
+      }));
+      print('🎉 [VacationService] ================================================');
+
+      yield finalResponse;
     } on SocketException catch (e) {
       print('❌ [VacationService] 네트워크 오류: $e');
       throw Exception('네트워크 연결을 확인해주세요.');

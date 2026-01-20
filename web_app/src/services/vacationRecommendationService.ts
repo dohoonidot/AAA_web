@@ -168,6 +168,9 @@ export async function* fetchVacationRecommendation(
     let reasoningBuffer = '';
     let markdownBuffer = '';
     let isAfterMarker = false;
+    // 서버가 📊 이후 내용을 reasoning 과 final 로 모두 보내는 케이스가 있어
+    // final 시작 시 markdownBuffer를 리셋하고, 이후 reasoning(📊 이후)은 무시하여 중복 누적 방지
+    let finalEventStarted = false;
 
     let leavesData: LeavesData | undefined;
         let weekdayCountsData: WeekdayCountsData | undefined;
@@ -197,6 +200,10 @@ export async function* fetchVacationRecommendation(
 
                 if (line.startsWith('event: ')) {
                     currentEventType = line.substring(7).trim();
+                    if (currentEventType === 'final' && !finalEventStarted) {
+                        finalEventStarted = true;
+                        markdownBuffer = '';
+                    }
                     continue;
                 }
 
@@ -205,6 +212,9 @@ export async function* fetchVacationRecommendation(
                     if (!data) continue;
 
             if (currentEventType === 'reasoning') {
+                if (finalEventStarted) {
+                    continue;
+                }
                 if (data.includes('📊')) {
                     isAfterMarker = true;
                 }
@@ -257,20 +267,22 @@ export async function* fetchVacationRecommendation(
                             };
 
                         } else {
-                            markdownBuffer += data;
-                            yield {
-                                reasoningContents: reasoningBuffer,
-                                finalResponseContents: '',
-                                recommendedDates: [],
-                                monthlyDistribution: {},
-                                consecutivePeriods: [],
-                                isComplete: false,
-                                streamingProgress: 0.7,
-                                leavesData,
-                                weekdayCountsData,
-                                isAfterAnalysisMarker: true,
-                                markdownBuffer: markdownBuffer,
-                            };
+                            if (!finalEventStarted) {
+                                markdownBuffer += data;
+                                yield {
+                                    reasoningContents: reasoningBuffer,
+                                    finalResponseContents: '',
+                                    recommendedDates: [],
+                                    monthlyDistribution: {},
+                                    consecutivePeriods: [],
+                                    isComplete: false,
+                                    streamingProgress: 0.7,
+                                    leavesData,
+                                    weekdayCountsData,
+                                    isAfterAnalysisMarker: true,
+                                    markdownBuffer: markdownBuffer,
+                                };
+                            }
                         }
                     } else if (currentEventType === 'final') {
                         markdownBuffer += data;
@@ -329,7 +341,7 @@ export async function* fetchVacationRecommendation(
             }
         }
 
-        yield {
+        const finalResponse: VacationRecommendationResponse = {
             reasoningContents: reasoningBuffer,
             finalResponseContents: markdownBuffer,
             recommendedDates,
@@ -343,8 +355,16 @@ export async function* fetchVacationRecommendation(
             holidayAdjacentDays,
             totalLeaveDays,
             isAfterAnalysisMarker: true,
-            markdownBuffer,
         };
+
+        // 최종 데이터 전체 로그 출력
+        logger.dev('🎉 ========== AI휴가추천 최종 응답 데이터 ==========');
+        logger.dev('📦 최종 응답 전체 데이터:', finalResponse);
+        console.log('🎉 [VacationRecommendationService] ========== AI휴가추천 최종 응답 데이터 ==========');
+        console.log('📦 [VacationRecommendationService] 최종 응답 전체 데이터:', JSON.stringify(finalResponse, null, 2));
+        console.log('🎉 [VacationRecommendationService] ================================================');
+
+        yield finalResponse;
 
     } catch (error: any) {
         logger.error('AI 휴가 추천 스트리밍 에러:', error);

@@ -30,7 +30,7 @@ export const LIMIT_APPROVAL_TYPE = true;
 // true: 로그 출력 안 함 (배포용)
 // false: 로그 출력 (개발용)
 // ============================================
-export const IS_LOGGER_READY = true;
+export const IS_LOGGER_READY = false
 
 // API URL (자동 결정)
 export const API_BASE_URL = IS_PRODUCTION
