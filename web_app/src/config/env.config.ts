@@ -25,6 +25,13 @@ export const WEB_AUTH_8080_READY = false;
 // ============================================
 export const LIMIT_APPROVAL_TYPE = true;
 
+// ============================================
+// 📝 로그 출력 제어 설정
+// true: 로그 출력 안 함 (배포용)
+// false: 로그 출력 (개발용)
+// ============================================
+export const IS_LOGGER_READY = false;
+
 // API URL (자동 결정)
 export const API_BASE_URL = IS_PRODUCTION
   ? 'https://ai2great.com:8080'  // 배포용
@@ -41,6 +48,7 @@ export const ENV_CONFIG = {
   API_BASE_URL,
   WEB_AUTH_8080_READY,
   WEB_AUTH_API_BASE_URL,
+  IS_LOGGER_READY,
   APP_NAME: 'ASPN AI Agent',
   APP_VERSION: '1.3.0',
 } as const;

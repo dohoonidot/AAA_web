@@ -1,4 +1,4 @@
-import { IS_PRODUCTION } from '../config/env.config';
+import { IS_LOGGER_READY } from '../config/env.config';
 
 /**
  * 민감 정보 마스킹 (배포용에서만 사용)
@@ -38,58 +38,47 @@ class Logger {
   constructor(private module: string) {}
 
   /**
-   * 개발용 로그 (배포 시 출력 안 됨)
+   * 개발용 로그 (IS_LOGGER_READY가 false일 때만 출력)
    * 개발 모드에서는 민감 정보 포함 모든 데이터를 그대로 출력
    */
   dev(message: string, ...args: any[]): void {
-    if (!IS_PRODUCTION) {
+    if (!IS_LOGGER_READY) {
       console.log(`[${this.module}] ${message}`, ...args);
     }
   }
 
   /**
-   * 에러 로그 (배포/개발 모두 출력)
-   * 배포 모드에서만 민감정보 마스킹, 개발 모드에서는 모든 데이터 출력
+   * 에러 로그 (IS_LOGGER_READY가 false일 때만 출력)
    */
   error(message: string, error?: any): void {
-    if (IS_PRODUCTION) {
-      // 배포용: 민감 정보 마스킹
-      const maskedError = error ? maskSensitiveData(error) : undefined;
-      console.error(`[${this.module}] ERROR: ${message}`, maskedError);
-    } else {
-      // 개발용: 모든 정보 출력 (마스킹 없음)
+    if (!IS_LOGGER_READY) {
       console.error(`[${this.module}] ERROR: ${message}`, error);
     }
   }
 
   /**
-   * 경고 로그 (배포/개발 모두 출력)
-   * 배포 모드에서만 민감정보 마스킹
+   * 경고 로그 (IS_LOGGER_READY가 false일 때만 출력)
    */
   warn(message: string, ...args: any[]): void {
-    if (IS_PRODUCTION) {
-      const masked = args.map(maskSensitiveData);
-      console.warn(`[${this.module}] WARN: ${message}`, ...masked);
-    } else {
-      // 개발용: 모든 정보 출력 (마스킹 없음)
+    if (!IS_LOGGER_READY) {
       console.warn(`[${this.module}] WARN: ${message}`, ...args);
     }
   }
 
   /**
-   * API 요청 로그 (개발용만, 민감 정보 포함 모든 데이터 출력)
+   * API 요청 로그 (IS_LOGGER_READY가 false일 때만 출력)
    */
   apiRequest(method: string, url: string, data?: any): void {
-    if (!IS_PRODUCTION) {
+    if (!IS_LOGGER_READY) {
       console.log(`[${this.module}] 📤 ${method} ${url}`, data || '');
     }
   }
 
   /**
-   * API 응답 로그 (개발용만, 민감 정보 포함 모든 데이터 출력)
+   * API 응답 로그 (IS_LOGGER_READY가 false일 때만 출력)
    */
   apiResponse(method: string, url: string, status: number, data?: any): void {
-    if (!IS_PRODUCTION) {
+    if (!IS_LOGGER_READY) {
       console.log(`[${this.module}] 📥 ${method} ${url} ${status}`, data || '');
     }
   }
@@ -107,34 +96,28 @@ export function createLogger(module: string): Logger {
  */
 export const logger = {
   /**
-   * 개발용 로그 (개발 모드에서만 출력, 모든 데이터 출력)
+   * 개발용 로그 (IS_LOGGER_READY가 false일 때만 출력)
    */
   dev: (message: string, ...args: any[]) => {
-    if (!IS_PRODUCTION) {
+    if (!IS_LOGGER_READY) {
       console.log(message, ...args);
     }
   },
 
   /**
-   * 에러 로그 (항상 출력, 배포 모드에서만 마스킹)
+   * 에러 로그 (IS_LOGGER_READY가 false일 때만 출력)
    */
   error: (message: string, error?: any) => {
-    if (IS_PRODUCTION) {
-      const masked = error ? maskSensitiveData(error) : undefined;
-      console.error(`ERROR: ${message}`, masked);
-    } else {
+    if (!IS_LOGGER_READY) {
       console.error(`ERROR: ${message}`, error);
     }
   },
 
   /**
-   * 경고 로그 (항상 출력, 배포 모드에서만 마스킹)
+   * 경고 로그 (IS_LOGGER_READY가 false일 때만 출력)
    */
   warn: (message: string, ...args: any[]) => {
-    if (IS_PRODUCTION) {
-      const masked = args.map(maskSensitiveData);
-      console.warn(`WARN: ${message}`, ...masked);
-    } else {
+    if (!IS_LOGGER_READY) {
       console.warn(`WARN: ${message}`, ...args);
     }
   },
