@@ -31,8 +31,7 @@ class VacationRecommendationService {
   }
 
   /// Mock 데이터 스트리밍 시뮬레이션
-  static Stream<VacationRecommendationResponse> _getMockDataStream(
-      int year) async* {
+  static Stream<VacationRecommendationResponse> _getMockDataStream(int year) async* {
     // Stage 1: 데이터 수집 시작 (1초 대기)
     await Future.delayed(const Duration(seconds: 1));
     yield VacationRecommendationResponse(
@@ -206,10 +205,8 @@ ${year}-02-19, ${year}-02-20, ${year}-03-03, ${year}-05-04, ${year}-05-26, ${yea
 사용자는 1회 사용 시 1일 이하의 짧은 휴가를 선호하며(평균 1일), 월요일(5회)과 금요일/목요일(각 4회)을 주로 사용하여 주말을 확장하는 패턴을 보입니다.''',
       finalResponseContents: finalContents,
       recommendedDates: recommendedDatesList,
-      monthlyDistribution:
-          VacationContentParser.parseMonthlyDistribution(finalContents),
-      consecutivePeriods:
-          VacationContentParser.parseConsecutivePeriods(finalContents),
+      monthlyDistribution: VacationContentParser.parseMonthlyDistribution(finalContents),
+      consecutivePeriods: VacationContentParser.parseConsecutivePeriods(finalContents),
       isComplete: true,
       streamingProgress: 1.0,
       totalDays: 15.0,
@@ -289,23 +286,21 @@ ${year}-02-19, ${year}-02-20, ${year}-03-03, ${year}-05-04, ${year}-05-26, ${yea
               // 📊 이전: JSON 파싱 시도
               bool isJsonData = false;
               String? jsonString;
-
+              
               // 1. {로 시작하는 경우
               if (data.trim().startsWith('{')) {
                 jsonString = data.trim();
-              }
+              } 
               // 2. {가 포함된 경우 (예: short{"weekday_counts":...})
               else if (data.contains('{') && data.contains('}')) {
                 // JSON 부분 추출 (첫 번째 { 부터 마지막 } 까지)
                 final startIndex = data.indexOf('{');
                 final endIndex = data.lastIndexOf('}');
-                if (startIndex != -1 &&
-                    endIndex != -1 &&
-                    endIndex > startIndex) {
+                if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
                   jsonString = data.substring(startIndex, endIndex + 1);
                 }
               }
-
+              
               // JSON 파싱 시도
               if (jsonString != null) {
                 try {
@@ -314,26 +309,21 @@ ${year}-02-19, ${year}-02-20, ${year}-03-03, ${year}-05-04, ${year}-05-26, ${yea
 
                   if (json.containsKey('leaves')) {
                     leavesData = LeavesData.fromJson(json);
-                    print(
-                        '✅ [VacationService] leaves 데이터 파싱 완료: ${leavesData.monthlyUsage}');
+                    print('✅ [VacationService] leaves 데이터 파싱 완료: ${leavesData.monthlyUsage}');
                     isJsonData = true; // JSON 데이터는 텍스트로 표시하지 않음
                   } else if (json.containsKey('weekday_counts')) {
                     weekdayCountsData = WeekdayCountsData.fromJson(json);
-                    print(
-                        '✅ [VacationService] weekday_counts 데이터 파싱 완료: ${weekdayCountsData.counts}');
+                    print('✅ [VacationService] weekday_counts 데이터 파싱 완료: ${weekdayCountsData.counts}');
                     isJsonData = true; // JSON 데이터는 텍스트로 표시하지 않음
                   }
                   // weekday_counts나 leaves가 포함된 JSON이면 전체 라인 제거
-                  if (isJsonData && data.contains('weekday_counts') ||
-                      data.contains('"leaves"')) {
+                  if (isJsonData && data.contains('weekday_counts') || data.contains('"leaves"')) {
                     // 이미 isJsonData = true로 설정됨
                   }
                 } catch (e) {
                   // JSON 파싱 실패 시에도 weekday_counts나 leaves가 포함되어 있으면 제거
-                  if (data.contains('weekday_counts') ||
-                      data.contains('"leaves"')) {
-                    print(
-                        '⚠️ [VacationService] JSON 파싱 실패했지만 weekday_counts/leaves 포함되어 제거: $e');
+                  if (data.contains('weekday_counts') || data.contains('"leaves"')) {
+                    print('⚠️ [VacationService] JSON 파싱 실패했지만 weekday_counts/leaves 포함되어 제거: $e');
                     isJsonData = true; // 텍스트로 표시하지 않음
                   } else {
                     print('⚠️ [VacationService] JSON 파싱 실패 (일반 텍스트로 처리): $e');
@@ -341,10 +331,8 @@ ${year}-02-19, ${year}-02-20, ${year}-03-03, ${year}-05-04, ${year}-05-26, ${yea
                 }
               } else {
                 // JSON 형식이 아니지만 weekday_counts나 leaves 키워드가 포함된 경우도 제거
-                if (data.contains('weekday_counts') ||
-                    data.contains('"leaves"')) {
-                  print(
-                      '⚠️ [VacationService] JSON 형식이 아니지만 weekday_counts/leaves 포함되어 제거');
+                if (data.contains('weekday_counts') || data.contains('"leaves"')) {
+                  print('⚠️ [VacationService] JSON 형식이 아니지만 weekday_counts/leaves 포함되어 제거');
                   isJsonData = true; // 텍스트로 표시하지 않음
                 }
               }
@@ -352,7 +340,7 @@ ${year}-02-19, ${year}-02-20, ${year}-03-03, ${year}-05-04, ${year}-05-26, ${yea
               // JSON 데이터가 아닌 경우에만 reasoningBuffer에 추가
               if (!isJsonData) {
                 reasoningBuffer += data + '\n';
-
+                
                 // 천천히 표시하기 위한 딜레이 (300-800ms)
                 final delay = 300 + random.nextInt(500);
                 await Future.delayed(Duration(milliseconds: delay));
@@ -426,34 +414,29 @@ ${year}-02-19, ${year}-02-20, ${year}-03-03, ${year}-05-04, ${year}-05-26, ${yea
       double? holidayAdjacentUsageRate;
       double? holidayAdjacentDays;
       double? totalLeaveDays;
-
-      final jsonData =
-          VacationContentParser.parseJsonFromFinalResponse(markdownBuffer);
+      
+      final jsonData = VacationContentParser.parseJsonFromFinalResponse(markdownBuffer);
       if (jsonData != null) {
         print('📊 [VacationService] finalResponseContents에서 JSON 파싱 성공');
-
+        
         // weekday_counts 파싱
         if (jsonData.containsKey('weekday_counts')) {
           finalWeekdayCountsData = WeekdayCountsData.fromJson(jsonData);
-          print(
-              '✅ [VacationService] finalResponseContents weekday_counts 파싱: ${finalWeekdayCountsData.counts}');
+          print('✅ [VacationService] finalResponseContents weekday_counts 파싱: ${finalWeekdayCountsData.counts}');
         }
-
+        
         // holiday_adjacent_usage_rate 파싱
         if (jsonData.containsKey('holiday_adjacent_usage_rate')) {
-          holidayAdjacentUsageRate =
-              (jsonData['holiday_adjacent_usage_rate'] as num).toDouble();
-          print(
-              '✅ [VacationService] 공휴일 인접 사용률: ${(holidayAdjacentUsageRate * 100).toStringAsFixed(2)}%');
+          holidayAdjacentUsageRate = (jsonData['holiday_adjacent_usage_rate'] as num).toDouble();
+          print('✅ [VacationService] 공휴일 인접 사용률: ${(holidayAdjacentUsageRate * 100).toStringAsFixed(2)}%');
         }
-
+        
         // holiday_adjacent_days 파싱
         if (jsonData.containsKey('holiday_adjacent_days')) {
-          holidayAdjacentDays =
-              (jsonData['holiday_adjacent_days'] as num).toDouble();
+          holidayAdjacentDays = (jsonData['holiday_adjacent_days'] as num).toDouble();
           print('✅ [VacationService] 공휴일 인접 사용일: $holidayAdjacentDays일');
         }
-
+        
         // total_leave_days 파싱
         if (jsonData.containsKey('total_leave_days')) {
           totalLeaveDays = (jsonData['total_leave_days'] as num).toDouble();
@@ -465,7 +448,7 @@ ${year}-02-19, ${year}-02-20, ${year}-03-03, ${year}-05-04, ${year}-05-26, ${yea
       print('  - 월별 분포: $monthlyDist');
       print('  - 연속 휴가: ${periods.length}개');
 
-      final finalResponse = VacationRecommendationResponse(
+      yield VacationRecommendationResponse(
         reasoningContents: reasoningBuffer,
         finalResponseContents: markdownBuffer,
         leavesData: leavesData,
@@ -481,37 +464,6 @@ ${year}-02-19, ${year}-02-20, ${year}-03-03, ${year}-05-04, ${year}-05-26, ${yea
         isComplete: true,
         streamingProgress: 1.0,
       );
-
-      // 최종 데이터 전체 로그 출력
-      print('🎉 [VacationService] ========== AI휴가추천 최종 응답 데이터 ==========');
-      print('📦 [VacationService] 최종 응답 전체 데이터:');
-      print(jsonEncode({
-        'reasoningContents': finalResponse.reasoningContents,
-        'finalResponseContents': finalResponse.finalResponseContents,
-        'recommendedDates': finalResponse.recommendedDates,
-        'monthlyDistribution': finalResponse.monthlyDistribution,
-        'consecutivePeriods': finalResponse.consecutivePeriods.map((p) {
-          return {
-            'startDate': p.startDate,
-            'endDate': p.endDate,
-            'days': p.days,
-            'description': p.description,
-          };
-        }).toList(),
-        'isComplete': finalResponse.isComplete,
-        'streamingProgress': finalResponse.streamingProgress,
-        'leavesData': finalResponse.leavesData?.monthlyUsage,
-        'weekdayCountsData': finalResponse.weekdayCountsData?.counts,
-        'holidayAdjacentUsageRate': finalResponse.holidayAdjacentUsageRate,
-        'holidayAdjacentDays': finalResponse.holidayAdjacentDays,
-        'totalLeaveDays': finalResponse.totalLeaveDays,
-        'isAfterAnalysisMarker': finalResponse.isAfterAnalysisMarker,
-        'markdownBuffer': finalResponse.markdownBuffer,
-      }));
-      print(
-          '🎉 [VacationService] ================================================');
-
-      yield finalResponse;
     } on SocketException catch (e) {
       print('❌ [VacationService] 네트워크 오류: $e');
       throw Exception('네트워크 연결을 확인해주세요.');
