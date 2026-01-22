@@ -58,6 +58,7 @@ import { createLogger } from '../utils/logger';
 import type { AdminManagementApiResponse } from '../types/leave';
 import { AdminCalendarSidebar } from '../components/admin/AdminCalendarSidebar';
 import { DepartmentLeaveStatusModal } from '../components/admin/DepartmentLeaveStatusModal';
+import type { Holiday } from '../types/holiday';
 
 const logger = createLogger('AdminLeaveApprovalPage');
 
@@ -235,11 +236,13 @@ const AdminLeaveApprovalPage: React.FC = () => {
   const itemsPerPage = isMobile ? 5 : 10; // 모바일: 5개, 데스크톱: 10개
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const [calendarLeaves, setCalendarLeaves] = useState<any[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
 
   // 전체보기 모달 상태
   const [fullscreenModalOpen, setFullscreenModalOpen] = useState(false);
   const [modalCalendarDate, setModalCalendarDate] = useState(new Date());
   const [modalSelectedDate, setModalSelectedDate] = useState(new Date());
+  const [modalHolidays, setModalHolidays] = useState<Holiday[]>([]);
 
   // 사이드바 상태
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -476,6 +479,31 @@ const AdminLeaveApprovalPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const loadHolidayData = async (date: Date, setter: (value: Holiday[]) => void) => {
+    try {
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const response = await leaveService.getHolidays(year, month);
+      setter(response.holidays || []);
+    } catch (err: any) {
+      console.error('공휴일 데이터 로드 실패:', err);
+      setter([]);
+    }
+  };
+
+  const getHolidayName = (date: Date, list: Holiday[]) => {
+    const holiday = list.find((item) => dayjs(item.locDate).isSame(dayjs(date), 'day'));
+    return holiday?.dateName || null;
+  };
+
+  useEffect(() => {
+    loadHolidayData(currentCalendarDate, setHolidays);
+  }, [currentCalendarDate]);
+
+  useEffect(() => {
+    loadHolidayData(modalCalendarDate, setModalHolidays);
+  }, [modalCalendarDate]);
 
   // 연도별 결재 대기 목록만 로드
   const loadYearlyWaitingList = async (year: number) => {
@@ -815,6 +843,8 @@ const AdminLeaveApprovalPage: React.FC = () => {
   }
 
   const stats = getStats();
+  const selectedHolidayName = getHolidayName(selectedDate, holidays);
+  const modalSelectedHolidayName = getHolidayName(modalSelectedDate, modalHolidays);
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.backgroundColor, position: 'relative' }}>
@@ -1591,6 +1621,8 @@ const AdminLeaveApprovalPage: React.FC = () => {
                         const dayLeaves = getLeavesForDate(date);
                         const hasLeave = dayLeaves.length > 0;
                         const weekday = date.getDay();
+                        const holidayName = getHolidayName(date, holidays);
+                        const isHoliday = !!holidayName;
 
                         return (
                           <Box
@@ -1616,7 +1648,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                               },
                             }}
                           >
-                            <Typography
+                              <Typography
                               variant="caption"
                               sx={{
                                 fontSize: '11px',
@@ -1625,7 +1657,9 @@ const AdminLeaveApprovalPage: React.FC = () => {
                                   ? 'white'
                                   : !isCurrentMonth
                                     ? '#ADB5BD'
-                                    : weekday === 0
+                                    : isHoliday
+                                      ? '#E53E3E'
+                                      : weekday === 0
                                       ? '#E53E3E'
                                       : weekday === 6
                                         ? '#3182CE'
@@ -1634,6 +1668,19 @@ const AdminLeaveApprovalPage: React.FC = () => {
                             >
                               {date.getDate()}
                             </Typography>
+                            {isHoliday && !isSelected && !isToday && isCurrentMonth && (
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  top: 4,
+                                  right: 4,
+                                  width: 4,
+                                  height: 4,
+                                  borderRadius: '50%',
+                                  bgcolor: '#E53E3E',
+                                }}
+                              />
+                            )}
                           </Box>
                         );
                       })}
@@ -1642,11 +1689,40 @@ const AdminLeaveApprovalPage: React.FC = () => {
                 </Box>
 
                 {/* 선택된 날짜의 휴가 내역 */}
-                {getLeavesForDate(selectedDate).length > 0 && (
+                {(selectedHolidayName || getLeavesForDate(selectedDate).length > 0) && (
                   <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #E9ECEF' }}>
                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                       {dayjs(selectedDate).format('M월 D일')} 휴가 내역
                     </Typography>
+                    {selectedHolidayName && (
+                      <Box
+                        sx={{
+                          mb: 1,
+                          p: 1,
+                          borderRadius: '6px',
+                          bgcolor: 'rgba(229, 62, 62, 0.12)',
+                          border: '1px solid rgba(229, 62, 62, 0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.75,
+                        }}
+                      >
+                        <Chip
+                          label="공휴일"
+                          size="small"
+                          sx={{
+                            bgcolor: '#E53E3E',
+                            color: 'white',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            height: 20,
+                          }}
+                        />
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                          {selectedHolidayName}
+                        </Typography>
+                      </Box>
+                    )}
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                       {getLeavesForDate(selectedDate).map((leave: any, index: number) => (
                         <Box
@@ -2119,6 +2195,8 @@ const AdminLeaveApprovalPage: React.FC = () => {
                             const dayLeaves = getLeavesForDate(date);
                             const hasLeave = dayLeaves.length > 0;
                             const weekday = date.getDay();
+                            const holidayName = getHolidayName(date, holidays);
+                            const isHoliday = !!holidayName;
 
                             return (
                               <Box
@@ -2154,7 +2232,9 @@ const AdminLeaveApprovalPage: React.FC = () => {
                                       ? 'white'
                                       : !isCurrentMonth
                                         ? '#ADB5BD'
-                                        : weekday === 0
+                                        : isHoliday
+                                          ? '#E53E3E'
+                                          : weekday === 0
                                           ? '#E53E3E'
                                           : weekday === 6
                                             ? '#3182CE'
@@ -2163,6 +2243,19 @@ const AdminLeaveApprovalPage: React.FC = () => {
                                 >
                                   {date.getDate()}
                                 </Typography>
+                                {isHoliday && !isSelected && !isToday && isCurrentMonth && (
+                                  <Box
+                                    sx={{
+                                      position: 'absolute',
+                                      top: 4,
+                                      right: 4,
+                                      width: 4,
+                                      height: 4,
+                                      borderRadius: '50%',
+                                      bgcolor: '#E53E3E',
+                                    }}
+                                  />
+                                )}
                               </Box>
                             );
                           })}
@@ -2182,6 +2275,35 @@ const AdminLeaveApprovalPage: React.FC = () => {
                     </Typography>
 
                     <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0, pr: 0.5 }}>
+                      {selectedHolidayName && (
+                        <Box
+                          sx={{
+                            mb: 1,
+                            p: 1,
+                            borderRadius: '6px',
+                            bgcolor: 'rgba(229, 62, 62, 0.12)',
+                            border: '1px solid rgba(229, 62, 62, 0.3)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.75,
+                          }}
+                        >
+                          <Chip
+                            label="공휴일"
+                            size="small"
+                            sx={{
+                              bgcolor: '#E53E3E',
+                              color: 'white',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              height: 20,
+                            }}
+                          />
+                          <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                            {selectedHolidayName}
+                          </Typography>
+                        </Box>
+                      )}
                       {getSelectedDateDetails().length === 0 ? (
                         <Box sx={{ textAlign: 'center', py: 4 }}>
                           <Typography variant="body2" color="text.secondary">
@@ -2545,6 +2667,8 @@ const AdminLeaveApprovalPage: React.FC = () => {
                       const dayLeaves = getLeavesForDate(date);
                       const hasLeave = dayLeaves.length > 0;
                       const weekday = date.getDay();
+                      const holidayName = getHolidayName(date, modalHolidays);
+                      const isHoliday = !!holidayName;
 
                       return (
                         <Box
@@ -2579,25 +2703,40 @@ const AdminLeaveApprovalPage: React.FC = () => {
                             },
                           }}
                         >
-                          <Typography
-                            sx={{
-                              fontSize: '16px',
-                              fontWeight: isSelected || isToday ? 700 : 500,
-                              color: !isCurrentMonth
-                                ? '#9E9E9E'
-                                : isSelected || isToday
-                                  ? 'white'
-                                  : weekday === 0
-                                    ? '#E53E3E'
-                                    : weekday === 6
-                                      ? '#3182CE'
-                                      : theme.palette.mode === 'dark'
-                                        ? '#D5D5D5'
-                                        : '#495057',
-                            }}
-                          >
-                            {date.getDate()}
-                          </Typography>
+                            <Typography
+                              sx={{
+                                fontSize: '16px',
+                                fontWeight: isSelected || isToday ? 700 : 500,
+                                color: !isCurrentMonth
+                                  ? '#9E9E9E'
+                                  : isSelected || isToday
+                                    ? 'white'
+                                    : isHoliday
+                                      ? '#E53E3E'
+                                      : weekday === 0
+                                      ? '#E53E3E'
+                                      : weekday === 6
+                                        ? '#3182CE'
+                                        : theme.palette.mode === 'dark'
+                                          ? '#D5D5D5'
+                                          : '#495057',
+                              }}
+                            >
+                              {date.getDate()}
+                            </Typography>
+                            {isHoliday && !isSelected && !isToday && isCurrentMonth && (
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  top: 6,
+                                  right: 6,
+                                  width: 5,
+                                  height: 5,
+                                  borderRadius: '50%',
+                                  bgcolor: '#E53E3E',
+                                }}
+                              />
+                            )}
                           {hasLeave && !isSelected && !isToday && isCurrentMonth && (
                             <Box
                               sx={{
@@ -2651,6 +2790,35 @@ const AdminLeaveApprovalPage: React.FC = () => {
 
             {/* 상세 내용 */}
             <Box sx={{ flex: 1, overflow: 'auto' }}>
+              {modalSelectedHolidayName && (
+                <Box
+                  sx={{
+                    mb: 1.5,
+                    p: 1,
+                    borderRadius: '8px',
+                    bgcolor: 'rgba(229, 62, 62, 0.12)',
+                    border: '1px solid rgba(229, 62, 62, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                  }}
+                >
+                  <Chip
+                    label="공휴일"
+                    size="small"
+                    sx={{
+                      bgcolor: '#E53E3E',
+                      color: 'white',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      height: 20,
+                    }}
+                  />
+                  <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>
+                    {modalSelectedHolidayName}
+                  </Typography>
+                </Box>
+              )}
               {getLeavesForDate(modalSelectedDate).length === 0 ? (
                 <Box
                   sx={{

@@ -287,6 +287,8 @@ export interface CalendarDay {
   isCurrentMonth: boolean;
   isToday: boolean;
   leaves: MonthlyLeave[];
+  isHoliday?: boolean;
+  holidayName?: string | null;
 }
 
 // 관리자 페이지용 타입 정의

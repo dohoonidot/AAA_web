@@ -45,6 +45,7 @@ import isBetween from 'dayjs/plugin/isBetween';
 import leaveService from '../../services/leaveService';
 import authService from '../../services/authService';
 import type { TotalCalendarLeave, MonthlyLeave } from '../../types/leave';
+import type { Holiday } from '../../types/holiday';
 
 dayjs.extend(isBetween);
 
@@ -76,6 +77,7 @@ export default function TotalCalendar({
   const [currentCalendarDate, setCurrentCalendarDate] = useState(dayjs(selectedDate));
   const [pageIndex, setPageIndex] = useState(0);
   const [selectedDateDetails, setSelectedDateDetails] = useState<any[]>([]);
+  const [selectedHolidayName, setSelectedHolidayName] = useState<string | null>(null);
 
   // 뷰 모드 관리
   const [isMyVacationView, setIsMyVacationView] = useState(true); // true: 내 휴가 내역, false: 부서 휴가 현황
@@ -90,6 +92,7 @@ export default function TotalCalendar({
 
   // 내 휴가 내역 데이터
   const [myMonthlyLeaves, setMyMonthlyLeaves] = useState<MonthlyLeave[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
 
   // 슬라이드 패널 관리
   const [isDetailPanelVisible, setIsDetailPanelVisible] = useState(false);
@@ -113,6 +116,7 @@ export default function TotalCalendar({
       const monthsFromBase = (currentCalendarDate.year() - 2020) * 12 + (currentCalendarDate.month());
       setPageIndex(monthsFromBase);
       loadMonthlyCalendarData(currentCalendarDate);
+      loadMonthlyHolidays(currentCalendarDate);
       // 부서 휴가 현황 모드일 경우 API 호출
       if (!isMyVacationView) {
         loadDepartmentCalendarData(currentCalendarDate);
@@ -124,6 +128,7 @@ export default function TotalCalendar({
   useEffect(() => {
     if (open || embedded) {
       loadMonthlyCalendarData(currentCalendarDate);
+      loadMonthlyHolidays(currentCalendarDate);
       if (!isMyVacationView) {
         loadDepartmentCalendarData(currentCalendarDate);
       }
@@ -134,6 +139,10 @@ export default function TotalCalendar({
   useEffect(() => {
     setDetailPage(1);
   }, [selectedDateDetails]);
+
+  useEffect(() => {
+    setSelectedHolidayName(getHolidayName(selectedDate));
+  }, [holidays, selectedDate]);
 
   // 내 휴가 내역 데이터 로드
   const loadMonthlyCalendarData = async (monthDate: dayjs.Dayjs) => {
@@ -202,6 +211,21 @@ export default function TotalCalendar({
     }
   };
 
+  const loadMonthlyHolidays = async (monthDate: dayjs.Dayjs) => {
+    try {
+      const response = await leaveService.getHolidays(monthDate.year(), monthDate.month() + 1);
+      setHolidays(response.holidays || []);
+    } catch (err: any) {
+      console.error('공휴일 데이터 로드 실패:', err);
+      setHolidays([]);
+    }
+  };
+
+  const getHolidayName = (date: Date) => {
+    const holiday = holidays.find((item) => dayjs(item.locDate).isSame(dayjs(date), 'day'));
+    return holiday?.dateName || null;
+  };
+
   // 페이지 변경 핸들러
   const handlePageChange = (newIndex: number) => {
     setPageIndex(newIndex);
@@ -264,6 +288,8 @@ export default function TotalCalendar({
   const updateSelectedDateDetails = (date: Date) => {
     const dateDayjs = dayjs(date);
     let filteredLeaves: any[] = [];
+    const holidayName = getHolidayName(date);
+    setSelectedHolidayName(holidayName);
 
     if (isMyVacationView) {
       // 내 휴가 내역 모드
@@ -420,6 +446,8 @@ export default function TotalCalendar({
       isCurrentMonth: boolean;
       isToday: boolean;
       leaves: any[];
+      isHoliday?: boolean;
+      holidayName?: string | null;
     }> = [];
 
     let currentDay = startOfWeek;
@@ -457,11 +485,15 @@ export default function TotalCalendar({
         }
       }
 
+      const holidayName = getHolidayName(dayDate);
+
       days.push({
         date: dayDate,
         isCurrentMonth,
         isToday,
         leaves: dayLeaves,
+        isHoliday: !!holidayName,
+        holidayName,
       });
 
       currentDay = currentDay.add(1, 'day');
@@ -477,6 +509,7 @@ export default function TotalCalendar({
     const weekday = day.date.getDay();
     const isSunday = weekday === 0;
     const isSaturday = weekday === 6;
+    const isHoliday = !!day.isHoliday;
 
     // 상태별 색상 결정
     let leaveColor: string | null = null;
@@ -533,11 +566,13 @@ export default function TotalCalendar({
             ? (isDark ? '#64748B' : '#9CA3AF')
             : isSelected || day.isToday
               ? 'white'
-              : isSunday
+              : isHoliday
                 ? '#E53E3E'
-                : isSaturday
-                  ? '#3182CE'
-                  : '#495057',
+                : isSunday
+                  ? '#E53E3E'
+                  : isSaturday
+                    ? '#3182CE'
+                    : '#495057',
           '&:hover': {
             backgroundColor: isSelected
               ? (isMobile ? '#1E88E5' : (isDark ? '#6D63B5' : '#9C88D4'))
@@ -569,6 +604,20 @@ export default function TotalCalendar({
               height: 5,
               borderRadius: '50%',
               bgcolor: leaveColor || '#20C997',
+            }}
+          />
+        )}
+
+        {!isMobile && isHoliday && !isSelected && !day.isToday && day.isCurrentMonth && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              width: 5,
+              height: 5,
+              borderRadius: '50%',
+              bgcolor: '#E53E3E',
             }}
           />
         )}
@@ -635,6 +684,20 @@ export default function TotalCalendar({
               </Typography>
             )}
           </Box>
+        )}
+
+        {isMobile && isHoliday && day.isCurrentMonth && !isSelected && !day.isToday && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 2,
+              right: 2,
+              width: 4,
+              height: 4,
+              borderRadius: '50%',
+              bgcolor: '#E53E3E',
+            }}
+          />
         )}
       </Box>
     );
@@ -1035,6 +1098,36 @@ export default function TotalCalendar({
                       </Typography>
                     </Box>
                   </Box>
+
+                  {selectedHolidayName && (
+                    <Box
+                      sx={{
+                        mb: isMobile ? 1 : 1.5,
+                        p: 1,
+                        borderRadius: '8px',
+                        bgcolor: 'rgba(229, 62, 62, 0.12)',
+                        border: '1px solid rgba(229, 62, 62, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <Chip
+                        label="공휴일"
+                        size="small"
+                        sx={{
+                          bgcolor: '#E53E3E',
+                          color: 'white',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          height: 20,
+                        }}
+                      />
+                      <Typography sx={{ fontSize: isMobile ? '12px' : '13px', color: panelText, fontWeight: 600 }}>
+                        {selectedHolidayName}
+                      </Typography>
+                    </Box>
+                  )}
 
                   {selectedDateDetails.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: isMobile ? 4 : 8 }}>
@@ -1458,6 +1551,35 @@ export default function TotalCalendar({
 
                     {/* 스크롤 가능한 상세내역 영역 */}
                     <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                      {selectedHolidayName && (
+                        <Box
+                          sx={{
+                            mb: isMobile ? 1 : 1.5,
+                            p: 1,
+                            borderRadius: '8px',
+                            bgcolor: 'rgba(229, 62, 62, 0.12)',
+                            border: '1px solid rgba(229, 62, 62, 0.3)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <Chip
+                            label="공휴일"
+                            size="small"
+                            sx={{
+                              bgcolor: '#E53E3E',
+                              color: 'white',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              height: 20,
+                            }}
+                          />
+                          <Typography sx={{ fontSize: isMobile ? '12px' : '13px', color: panelText, fontWeight: 600 }}>
+                            {selectedHolidayName}
+                          </Typography>
+                        </Box>
+                      )}
                       {/* 상세 내용 */}
                       {selectedDateDetails.length === 0 ? (
                         <Box sx={{ textAlign: 'center', py: isMobile ? 4 : 8 }}>

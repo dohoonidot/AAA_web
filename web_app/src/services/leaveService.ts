@@ -28,6 +28,7 @@ import type {
   DepartmentLeaveStatusResponse,
   AdminWaitingLeave,
 } from '../types/leave';
+import type { HolidayResponse } from '../types/holiday';
 
 const logger = createLogger('LeaveService');
 
@@ -90,6 +91,28 @@ class LeaveService {
     return {
       error: data.error || undefined,
       monthlyLeaves: monthlyLeaves,
+    };
+  }
+
+  /**
+   * 공휴일 조회 (Flutter와 동일) - /api/holidays
+   */
+  async getHolidays(year: number, month: number): Promise<HolidayResponse> {
+    logger.dev('공휴일 조회 API 요청:', { year, month });
+
+    const response = await api.get<any>('/api/holidays', {
+      params: { year, month },
+    });
+
+    const data = response.data || {};
+    const holidays = (data.holidays || data.Holidays || []).map((item: any) => ({
+      dateName: item.date_name || item.dateName || '',
+      locDate: item.loc_date || item.locDate || '',
+    }));
+
+    return {
+      error: data.error || undefined,
+      holidays,
     };
   }
 

@@ -35,6 +35,7 @@ import dayjs from 'dayjs';
 import leaveService from '../../services/leaveService';
 import authService from '../../services/authService';
 import type { MonthlyLeave, CalendarDay } from '../../types/leave';
+import type { Holiday } from '../../types/holiday';
 
 interface PersonalCalendarProps {
   monthlyLeaves?: MonthlyLeave[]; // 초기 데이터 (선택사항)
@@ -57,6 +58,7 @@ export default function PersonalCalendar({
   const [currentDate, setCurrentDate] = useState(dayjs());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedDateDetails, setSelectedDateDetails] = useState<MonthlyLeave[]>([]);
+  const [selectedHolidayName, setSelectedHolidayName] = useState<string | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [slidePanelOpen, setSlidePanelOpen] = useState(false);
   const [fullCalendarOpen, setFullCalendarOpen] = useState(false);
@@ -65,10 +67,12 @@ export default function PersonalCalendar({
   const [monthlyLeaves, setMonthlyLeaves] = useState<MonthlyLeave[]>(initialMonthlyLeaves);
   const [loading, setLoading] = useState(initialLoading);
   const [error, setError] = useState<string | null>(initialError);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
 
   // 월별 달력 데이터 로드
   useEffect(() => {
     loadMonthlyCalendar();
+    loadMonthlyHolidays();
   }, [currentDate]);
 
   // 초기 데이터가 변경되면 업데이트
@@ -77,6 +81,12 @@ export default function PersonalCalendar({
       setMonthlyLeaves(initialMonthlyLeaves);
     }
   }, [initialMonthlyLeaves]);
+
+  useEffect(() => {
+    if (selectedDate) {
+      setSelectedHolidayName(getHolidayName(selectedDate));
+    }
+  }, [holidays, selectedDate]);
 
   const loadMonthlyCalendar = async () => {
     try {
@@ -110,6 +120,21 @@ export default function PersonalCalendar({
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadMonthlyHolidays = async () => {
+    try {
+      const response = await leaveService.getHolidays(currentDate.year(), currentDate.month() + 1);
+      setHolidays(response.holidays || []);
+    } catch (err: any) {
+      console.error('공휴일 데이터 로드 실패:', err);
+      setHolidays([]);
+    }
+  };
+
+  const getHolidayName = (date: Date) => {
+    const holiday = holidays.find((item) => dayjs(item.locDate).isSame(dayjs(date), 'day'));
+    return holiday?.dateName || null;
   };
 
   // 달력 그리드 생성
@@ -146,11 +171,15 @@ export default function PersonalCalendar({
       // 승인된 건만 표시
       const approvedLeaves = dayLeaves.filter(l => l.status?.toUpperCase() === 'APPROVED');
 
+      const holidayName = getHolidayName(dayDate);
+
       days.push({
         date: dayDate,
         isCurrentMonth,
         isToday,
         leaves: approvedLeaves,
+        isHoliday: !!holidayName,
+        holidayName,
       });
 
       currentDay = currentDay.add(1, 'day');
@@ -177,6 +206,7 @@ export default function PersonalCalendar({
 
   const handleDateClick = (day: CalendarDay) => {
     setSelectedDate(day.date);
+    setSelectedHolidayName(day.holidayName || null);
 
     // 선택된 날짜의 모든 휴가 내역 표시 (승인/대기/반려 모두) - Flutter와 동일한 로직
     const selectedDateDetails = monthlyLeaves.filter(leave => {
@@ -195,7 +225,7 @@ export default function PersonalCalendar({
       );
     });
 
-    if (selectedDateDetails.length > 0) {
+    if (selectedDateDetails.length > 0 || day.holidayName) {
       setSelectedDateDetails(selectedDateDetails);
       setSlidePanelOpen(true);
     } else {
@@ -235,6 +265,7 @@ export default function PersonalCalendar({
   const renderCalendarDay = (day: CalendarDay) => {
     const hasLeaves = day.leaves.length > 0;
     const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
+    const isHoliday = !!day.isHoliday;
 
     // Flutter와 동일한 상태별 우선순위 색상 결정
     // 승인된 건만 표시하므로 색상은 승인 색상만 사용
@@ -251,7 +282,7 @@ export default function PersonalCalendar({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          cursor: hasLeaves ? 'pointer' : 'default',
+          cursor: hasLeaves || isHoliday ? 'pointer' : 'default',
           border: '1px solid',
           borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'divider',
           backgroundColor: day.isToday
@@ -260,9 +291,13 @@ export default function PersonalCalendar({
               ? (isDark ? 'rgba(255,255,255,0.04)' : 'grey.50')
               : (isDark ? 'transparent' : 'white'),
           color: day.isCurrentMonth
-            ? (day.isToday ? 'primary.contrastText' : (isDark ? 'grey.100' : 'text.primary'))
+            ? (day.isToday
+              ? 'primary.contrastText'
+              : isHoliday
+                ? '#E53E3E'
+                : (isDark ? 'grey.100' : 'text.primary'))
             : (isDark ? 'grey.600' : 'text.disabled'),
-          '&:hover': hasLeaves ? {
+          '&:hover': (hasLeaves || isHoliday) ? {
             backgroundColor: isDark ? 'primary.dark' : 'primary.light',
             color: 'primary.contrastText',
           } : {},
@@ -299,6 +334,20 @@ export default function PersonalCalendar({
               borderRadius: '50%',
               backgroundColor: leaveColor,
               zIndex: 2,
+            }}
+          />
+        )}
+
+        {isHoliday && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              width: 4,
+              height: 4,
+              borderRadius: '50%',
+              backgroundColor: '#E53E3E',
             }}
           />
         )}
@@ -503,6 +552,35 @@ export default function PersonalCalendar({
 
               {/* 휴가 내역 리스트 - Flutter와 동일한 스타일 */}
               <Box sx={{ flex: 1, overflow: 'auto', p: 1.5 }}>
+                {selectedHolidayName && (
+                  <Box
+                    sx={{
+                      mb: 1,
+                      p: 1,
+                      borderRadius: '8px',
+                      bgcolor: 'rgba(229, 62, 62, 0.12)',
+                      border: '1px solid rgba(229, 62, 62, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <Chip
+                      label="공휴일"
+                      size="small"
+                      sx={{
+                        bgcolor: '#E53E3E',
+                        color: 'white',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        height: 20,
+                      }}
+                    />
+                    <Typography sx={{ fontSize: '12px', color: panelText, fontWeight: 600 }}>
+                      {selectedHolidayName}
+                    </Typography>
+                  </Box>
+                )}
                 {selectedDateDetails.length === 0 ? (
                   <Box sx={{
                     display: 'flex',
@@ -662,7 +740,12 @@ export default function PersonalCalendar({
         <DialogTitle>
           {selectedDate && dayjs(selectedDate).format('YYYY년 MM월 DD일')} 휴가 내역
         </DialogTitle>
-        <DialogContent>
+      <DialogContent>
+          {selectedHolidayName && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              공휴일: {selectedHolidayName}
+            </Alert>
+          )}
           {selectedDateDetails.map((leave, index) => (
             <Card key={index} sx={{ mb: 2 }}>
               <CardContent sx={{ p: 2 }}>
