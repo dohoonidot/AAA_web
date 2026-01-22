@@ -101,6 +101,7 @@ const getApprovalTypeValue = (label?: string) => {
 export default function ElectronicApprovalDraftPanel() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isNarrowDesktop = useMediaQuery(theme.breakpoints.down('lg'));
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme.name === 'Dark';
   const user = authService.getCurrentUser();
@@ -180,11 +181,11 @@ export default function ElectronicApprovalDraftPanel() {
         if (data?.approval_line && data.approval_line.length > 0) {
           setApprovers(
             data.approval_line.map((item, index) => ({
-              approverId: item.approver_id || item.approverId || '',
-              approverName: item.approver_name || item.approverName || '',
-              approvalSeq: item.approval_seq || item.approvalSeq || index + 1,
+              approverId: item.approver_id || item.approver_id || '',
+              approverName: item.approver_name || item.approver_name || '',
+              approvalSeq: item.approval_seq || item.approval_seq || index + 1,
               department: item.department,
-              jobPosition: item.job_position || item.jobPosition,
+              jobPosition: item.job_position || item.job_position,
             }))
           );
         } else if (user?.userId) {
@@ -257,10 +258,16 @@ export default function ElectronicApprovalDraftPanel() {
   const panelSurface = isDark ? DARK_SURFACE : LIGHT_SURFACE;
   const panelText = isDark ? 'white' : LIGHT_TEXT;
   const subtitleText = isDark ? '#9CA3AF' : '#6B7280';
+  const noWrapTextSx = {
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  };
   const fieldSx = {
     '& .MuiInputLabel-root': {
       color: isDark ? '#A0AEC0' : MUTED_TEXT,
       fontSize: 12,
+      whiteSpace: 'nowrap',
     },
     '& .MuiOutlinedInput-root': {
       borderRadius: '8px',
@@ -392,16 +399,26 @@ export default function ElectronicApprovalDraftPanel() {
     <>
       <Box
             sx={{
-              px: 3,
-              py: 2.5,
+              px: isNarrowDesktop ? 2 : 3,
+              py: isNarrowDesktop ? 2 : 2.5,
               borderBottom: `1px solid ${isDark ? '#2D3748' : LIGHT_BORDER}`,
               display: 'flex',
               alignItems: 'center',
               gap: 1.5,
+              minWidth: 0,
             }}
           >
             <DescriptionIcon sx={{ color: panelText, fontSize: 24 }} />
-            <Typography sx={{ flexGrow: 1, fontSize: 18, fontWeight: 700, color: panelText }}>
+            <Typography
+              sx={{
+                flexGrow: 1,
+                fontSize: 18,
+                fontWeight: 700,
+                color: panelText,
+                minWidth: 0,
+                ...noWrapTextSx,
+              }}
+            >
               전자결재 상신
             </Typography>
             <IconButton onClick={closePanel} sx={{ color: panelText }}>
@@ -409,7 +426,7 @@ export default function ElectronicApprovalDraftPanel() {
             </IconButton>
           </Box>
 
-          <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
+          <Box sx={{ flex: 1, overflow: 'auto', p: isNarrowDesktop ? 2 : 3 }}>
             {isLoading && (
               <Box
                 sx={{
@@ -430,14 +447,25 @@ export default function ElectronicApprovalDraftPanel() {
               </Box>
             )}
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, minWidth: 0 }}>
               <DescriptionIcon sx={{ fontSize: 16, color: PRIMARY_COLOR }} />
-              <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText, minWidth: 0, ...noWrapTextSx }}>
                 공통 필수영역
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 1 }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: isMobile
+                  ? '1fr'
+                  : isNarrowDesktop
+                    ? 'repeat(2, minmax(0, 1fr))'
+                    : 'repeat(4, minmax(0, 1fr))',
+                gap: 1,
+                minWidth: 0,
+              }}
+            >
               {isCustomDepartment ? (
                 <TextField
                   label="기안부서 *"
@@ -537,45 +565,89 @@ export default function ElectronicApprovalDraftPanel() {
               </FormControl>
             </Box>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 2, mb: 3 }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: isMobile || isNarrowDesktop ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+                gap: 2,
+                mb: 3,
+                minWidth: 0,
+              }}
+            >
               <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, minWidth: 0 }}>
                   <HowToRegIcon sx={{ fontSize: 16, color: PRIMARY_COLOR }} />
-                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText }}>
+                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText, minWidth: 0, ...noWrapTextSx }}>
                     승인자
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'stretch',
+                    gap: 1,
+                    mb: 1.5,
+                    flexWrap: 'nowrap',
+                    minWidth: 0,
+                  }}
+                >
                   <Button
-                    fullWidth
                     variant="contained"
                     startIcon={<HowToRegIcon sx={{ fontSize: 16 }} />}
                     onClick={() => {
                       setIsSequentialApproval(false);
                       setIsApproverModalOpen(true);
                     }}
-                    sx={{ bgcolor: PRIMARY_COLOR, borderRadius: '10px', py: 1.3, fontWeight: 600 }}
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      bgcolor: PRIMARY_COLOR,
+                      borderRadius: '10px',
+                      py: 1.3,
+                      fontWeight: 600,
+                      fontSize: 'clamp(11px, 1.1vw, 14px)',
+                      whiteSpace: 'nowrap',
+                      px: 1.25,
+                    }}
                   >
                     승인자 선택
                   </Button>
                   <Button
-                    fullWidth
                     variant="contained"
                     startIcon={<FormatListNumberedIcon sx={{ fontSize: 16 }} />}
                     onClick={() => {
                       setIsSequentialApproval(true);
                       setIsApproverModalOpen(true);
                     }}
-                    sx={{ bgcolor: SUCCESS_COLOR, borderRadius: '10px', py: 1.3, fontWeight: 600 }}
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      bgcolor: SUCCESS_COLOR,
+                      borderRadius: '10px',
+                      py: 1.3,
+                      fontWeight: 600,
+                      fontSize: 'clamp(11px, 1.1vw, 14px)',
+                      whiteSpace: 'nowrap',
+                      px: 1.25,
+                    }}
                   >
                     순차결재
                   </Button>
                   <Button
-                    fullWidth
                     variant="contained"
                     startIcon={<SaveIcon sx={{ fontSize: 16 }} />}
                     onClick={handleSaveApprovalLine}
-                    sx={{ bgcolor: '#6B7280', borderRadius: '10px', py: 1.3, fontWeight: 600, fontSize: 12 }}
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      bgcolor: '#6B7280',
+                      borderRadius: '10px',
+                      py: 1.3,
+                      fontWeight: 600,
+                      fontSize: 'clamp(11px, 1.1vw, 13px)',
+                      whiteSpace: 'nowrap',
+                      px: 1.25,
+                    }}
                   >
                     결재라인 저장
                   </Button>
@@ -628,9 +700,9 @@ export default function ElectronicApprovalDraftPanel() {
               </Box>
 
               <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, minWidth: 0 }}>
                   <PersonAddOutlinedIcon sx={{ fontSize: 16, color: INFO_COLOR }} />
-                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText }}>
+                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText, minWidth: 0, ...noWrapTextSx }}>
                     참조자
                   </Typography>
                 </Box>
@@ -639,7 +711,15 @@ export default function ElectronicApprovalDraftPanel() {
                   variant="contained"
                   startIcon={<PersonAddOutlinedIcon sx={{ fontSize: 16 }} />}
                   onClick={() => setIsReferenceModalOpen(true)}
-                  sx={{ bgcolor: INFO_COLOR, borderRadius: '10px', py: 1.3, fontWeight: 600, mb: 1.5 }}
+                  sx={{
+                    bgcolor: INFO_COLOR,
+                    borderRadius: '10px',
+                    py: 1.3,
+                    fontWeight: 600,
+                    mb: 1.5,
+                    fontSize: 'clamp(11px, 1.1vw, 14px)',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
                   참조자 선택
                 </Button>
@@ -691,9 +771,9 @@ export default function ElectronicApprovalDraftPanel() {
               </Box>
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, minWidth: 0 }}>
               <DescriptionIcon sx={{ fontSize: 16, color: PRIMARY_COLOR }} />
-              <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText, minWidth: 0, ...noWrapTextSx }}>
                 결재 상세
               </Typography>
             </Box>
@@ -796,9 +876,9 @@ export default function ElectronicApprovalDraftPanel() {
               )}
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, minWidth: 0 }}>
               <AttachFileIcon sx={{ fontSize: 16, color: PRIMARY_COLOR }} />
-              <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText, minWidth: 0, ...noWrapTextSx }}>
                 첨부파일
               </Typography>
             </Box>
@@ -811,9 +891,9 @@ export default function ElectronicApprovalDraftPanel() {
                 border: `1px solid ${panelBorderColor}`,
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, minWidth: 0 }}>
                 <AttachFileIcon sx={{ fontSize: 16, color: panelText }} />
-                <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText }}>
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: panelText, minWidth: 0, ...noWrapTextSx }}>
                   {attachments.length + chatAttachments.length === 0
                     ? '첨부파일'
                     : `첨부파일 ${attachments.length + chatAttachments.length}개`}
@@ -829,7 +909,7 @@ export default function ElectronicApprovalDraftPanel() {
                   variant="contained"
                   startIcon={<AddIcon sx={{ fontSize: 16 }} />}
                   component="label"
-                  sx={{ bgcolor: PRIMARY_COLOR, fontSize: 12, py: 0.5, px: 1.5 }}
+                  sx={{ bgcolor: PRIMARY_COLOR, fontSize: 12, py: 0.5, px: 1.5, whiteSpace: 'nowrap' }}
                 >
                   파일 추가
                   <input hidden type="file" multiple onChange={(e) => handleAttachmentSelect(e.target.files)} />
@@ -934,7 +1014,7 @@ export default function ElectronicApprovalDraftPanel() {
           </Box>
 
           <Divider />
-          <Box sx={{ p: 3, borderTop: `1px solid ${isDark ? '#2D3748' : LIGHT_BORDER}` }}>
+          <Box sx={{ p: isNarrowDesktop ? 2 : 3, borderTop: `1px solid ${isDark ? '#2D3748' : LIGHT_BORDER}` }}>
             <Button
               fullWidth
               variant="outlined"
@@ -946,6 +1026,8 @@ export default function ElectronicApprovalDraftPanel() {
                 borderRadius: '8px',
                 py: 1.2,
                 fontWeight: 600,
+                fontSize: 'clamp(11px, 1.1vw, 14px)',
+                whiteSpace: 'nowrap',
                 mb: 1.5,
               }}
             >
@@ -955,7 +1037,12 @@ export default function ElectronicApprovalDraftPanel() {
               <Button
                 fullWidth
                 onClick={handleReset}
-                sx={{ color: MUTED_COLOR, fontWeight: 600 }}
+                sx={{
+                  color: MUTED_COLOR,
+                  fontWeight: 600,
+                  fontSize: 'clamp(11px, 1.1vw, 14px)',
+                  whiteSpace: 'nowrap',
+                }}
               >
                 초기화
               </Button>
@@ -964,7 +1051,13 @@ export default function ElectronicApprovalDraftPanel() {
                 variant="contained"
                 onClick={handleSubmit}
                 disabled={isLoading}
-                sx={{ bgcolor: PRIMARY_COLOR, fontWeight: 600, py: 1.2 }}
+                sx={{
+                  bgcolor: PRIMARY_COLOR,
+                  fontWeight: 600,
+                  py: 1.2,
+                  fontSize: 'clamp(11px, 1.1vw, 14px)',
+                  whiteSpace: 'nowrap',
+                }}
               >
                 {isLoading ? <CircularProgress size={20} sx={{ color: 'white' }} /> : '상신'}
               </Button>
@@ -1074,9 +1167,9 @@ export default function ElectronicApprovalDraftPanel() {
         <Box
           sx={{
             ...panelContentSx,
-            width: '60vw',
-            minWidth: 500,
-            maxWidth: 1000,
+            width: { md: '86vw', lg: '70vw', xl: '60vw' },
+            minWidth: 560,
+            maxWidth: 1100,
             maxHeight: '90vh',
             borderRadius: '12px',
             overflow: 'hidden',
