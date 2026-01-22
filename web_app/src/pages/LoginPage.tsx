@@ -1,12 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Container, Paper, Typography } from '@mui/material';
 import LoginForm from '../components/auth/LoginForm';
+import PrivacyAgreementDialog from '../components/auth/PrivacyAgreementDialog';
+import authService from '../services/authService';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [privacyDialogOpen, setPrivacyDialogOpen] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string>('');
+
+  // 페이지 마운트 시 개인정보 동의 여부 확인
+  useEffect(() => {
+    const checkPrivacyAgreement = () => {
+      const currentUser = authService.getCurrentUser();
+      if (currentUser && !currentUser.privacyAgreed) {
+        // 로그인은 되어 있지만 개인정보 동의가 안 된 경우 모달 표시
+        setPendingUserId(currentUser.userId);
+        setPrivacyDialogOpen(true);
+      }
+    };
+
+    checkPrivacyAgreement();
+  }, []);
 
   const handleLoginSuccess = () => {
+    navigate('/chat');
+  };
+
+  const handlePrivacyAgreed = () => {
+    // 개인정보 동의 완료 후 모달 닫기 및 채팅 페이지로 이동
+    setPrivacyDialogOpen(false);
+    setPendingUserId(''); // pendingUserId도 초기화하여 모달 컴포넌트 언마운트
+    navigate('/chat');
+  };
+
+  const handlePrivacyDisagreed = async () => {
+    // 동의 안 함: 서버에 0 저장 후, 로그인 상태 유지(이번 세션에서는 모달 닫기만)
+    setPrivacyDialogOpen(false);
+    setPendingUserId('');
+    sessionStorage.setItem('privacy_disagree_dismissed', '1');
     navigate('/chat');
   };
 
@@ -77,6 +110,17 @@ export default function LoginPage() {
           </Box>
 
           <LoginForm onLoginSuccess={handleLoginSuccess} />
+
+          {/* 개인정보 동의 모달 (이미 로그인된 상태이지만 동의가 안 된 경우) */}
+          {pendingUserId && (
+            <PrivacyAgreementDialog
+              open={privacyDialogOpen}
+              userId={pendingUserId}
+              onAgreed={handlePrivacyAgreed}
+              onDisagreed={handlePrivacyDisagreed}
+              required={true}
+            />
+          )}
         </Paper>
       </Container>
     </Box>

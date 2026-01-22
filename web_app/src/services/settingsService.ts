@@ -6,8 +6,9 @@ const logger = createLogger('SettingsService');
 // 설정 관련 타입 정의
 export interface PrivacyStatus {
   is_agreed: number;
-  success: boolean;
-  error?: string;
+  // 서버 응답이 환경에 따라 success 없이 올 수 있어 optional 처리
+  success?: boolean;
+  error?: string | null;
 }
 
 export interface PrivacyUpdateRequest {
@@ -16,11 +17,21 @@ export interface PrivacyUpdateRequest {
 }
 
 export interface PrivacyUpdateResponse {
-  success: boolean;
-  error?: string;
+  // 서버가 { error: null } 형태로만 내려주는 경우가 있어 optional 처리
+  success?: boolean;
+  error?: string | null;
 }
 
 class SettingsService {
+  /**
+   * 백엔드가 success 플래그를 주지 않는 경우가 있어,
+   * error가 없으면 성공으로 정규화한다.
+   */
+  private normalizeSuccess<T extends { success?: boolean; error?: any }>(data: T): T & { success: boolean } {
+    const success = typeof data.success === 'boolean' ? data.success : data.error == null;
+    return { ...data, success };
+  }
+
   /**
    * 개인정보 동의 상태 확인 - Flutter와 동일
    */
@@ -31,8 +42,9 @@ class SettingsService {
       user_id: userId,
     });
 
-    logger.dev('개인정보 동의 상태 확인 응답:', response.data);
-    return response.data;
+    const normalized = this.normalizeSuccess(response.data as PrivacyStatus);
+    logger.dev('개인정보 동의 상태 확인 응답:', normalized);
+    return normalized;
   }
 
   /**
@@ -46,8 +58,9 @@ class SettingsService {
       is_agreed: isAgreed ? 1 : 0,
     });
 
-    logger.dev('개인정보 동의 상태 업데이트 응답:', response.data);
-    return response.data;
+    const normalized = this.normalizeSuccess(response.data as PrivacyUpdateResponse);
+    logger.dev('개인정보 동의 상태 업데이트 응답:', normalized);
+    return normalized;
   }
 
   /**

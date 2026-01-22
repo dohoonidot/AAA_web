@@ -12,6 +12,7 @@ import {
 import { Person, Lock, Visibility, VisibilityOff } from '@mui/icons-material';
 import authService from '../../services/authService';
 import PasswordChangeDialog from './PasswordChangeDialog';
+import PrivacyAgreementDialog from './PrivacyAgreementDialog';
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
@@ -25,6 +26,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordChangeDialogOpen, setPasswordChangeDialogOpen] = useState(false);
+  const [privacyDialogOpen, setPrivacyDialogOpen] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,12 +44,14 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       if (response.status_code === 200) {
         // 개인정보 동의 여부 확인
         if (response.is_agreed === 0) {
-          // TODO: 개인정보 동의 팝업 표시
-          console.log('개인정보 동의 필요');
+          // 개인정보 동의 모달 표시 (필수)
+          setPendingUserId(userId);
+          setPrivacyDialogOpen(true);
+        } else {
+          // 동의 상태면 바로 이동
+          navigate('/chat');
+          onLoginSuccess();
         }
-
-        // SPA 방식으로 이동 (로그 유지됨)
-        navigate('/chat');
       } else {
         setError('로그인에 실패했습니다.');
       }
@@ -55,6 +60,23 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePrivacyAgreed = () => {
+    // 개인정보 동의 완료 후 모달 닫기 및 채팅 페이지로 이동
+    setPrivacyDialogOpen(false);
+    setPendingUserId(''); // pendingUserId도 초기화하여 모달 컴포넌트 언마운트
+    navigate('/chat');
+    onLoginSuccess();
+  };
+
+  const handlePrivacyDisagreed = async () => {
+    // 동의 안 함: 서버에 0 저장 후, 로그인 상태 유지 + 채팅 화면 이동
+    setPrivacyDialogOpen(false);
+    setPendingUserId('');
+    sessionStorage.setItem('privacy_disagree_dismissed', '1');
+    navigate('/chat');
+    onLoginSuccess();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -193,6 +215,17 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         open={passwordChangeDialogOpen}
         onClose={() => setPasswordChangeDialogOpen(false)}
       />
+
+      {/* Privacy Agreement Dialog */}
+      {pendingUserId && (
+        <PrivacyAgreementDialog
+          open={privacyDialogOpen}
+          userId={pendingUserId}
+          onAgreed={handlePrivacyAgreed}
+          onDisagreed={handlePrivacyDisagreed}
+          required={true}
+        />
+      )}
     </Box>
   );
 }

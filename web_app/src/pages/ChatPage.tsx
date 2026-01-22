@@ -240,11 +240,14 @@ export default function ChatPage() {
 
       setArchives(sorted);
 
-      // 기본 아카이브가 없으면 생성
+      // 기본 아카이브가 없으면 생성 (4개 모두)
       if (sorted.length === 0) {
-        console.log('아카이브가 없어서 기본 아카이브를 생성합니다.');
-        await createDefaultArchive();
+        console.log('아카이브가 없어서 기본 아카이브 4개를 생성합니다.');
+        await createDefaultArchives();
       } else {
+        // 빠진 기본 아카이브 확인 및 생성
+        await ensureDefaultArchives(sorted);
+        
         // 현재 아카이브가 없을 때만 기본 아카이브 선택
         if (!currentArchive) {
           // 사내업무 아카이브를 찾아서 선택
@@ -268,9 +271,9 @@ export default function ChatPage() {
 
       // 500 에러 시 기본 아카이브 생성 시도
       if (error.response?.status === 500) {
-        console.log('서버 에러로 인해 기본 아카이브를 생성합니다.');
+        console.log('서버 에러로 인해 기본 아카이브 4개를 생성합니다.');
         try {
-          await createDefaultArchive();
+          await createDefaultArchives();
         } catch (createError) {
           console.error('기본 아카이브 생성도 실패:', createError);
         }
@@ -297,8 +300,55 @@ export default function ChatPage() {
     return 5;
   };
 
-  // 기본 아카이브 생성 (사내업무)
-  const createDefaultArchive = async () => {
+  // 빠진 기본 아카이브 확인 및 생성
+  const ensureDefaultArchives = async (existingArchives: Archive[]) => {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) return;
+
+    // 필수 기본 아카이브 목록
+    const requiredArchives = [
+      { title: ARCHIVE_NAMES.WORK, type: '', check: (a: Archive) => a.archive_name === ARCHIVE_NAMES.WORK && (a.archive_type === '' || !a.archive_type) },
+      { title: ARCHIVE_NAMES.CODE, type: 'code', check: (a: Archive) => (a.archive_name === ARCHIVE_NAMES.CODE || a.archive_type === 'code') },
+      { title: ARCHIVE_NAMES.SAP, type: 'sap', check: (a: Archive) => (a.archive_name === ARCHIVE_NAMES.SAP || a.archive_type === 'sap') },
+      { title: ARCHIVE_NAMES.CHATBOT, type: '', check: (a: Archive) => a.archive_name === ARCHIVE_NAMES.CHATBOT },
+    ];
+
+    const missingArchives = requiredArchives.filter(
+      required => !existingArchives.some(required.check)
+    );
+
+    if (missingArchives.length > 0) {
+      console.log(`⚠️ 빠진 기본 아카이브 ${missingArchives.length}개 발견:`, missingArchives.map(a => a.title));
+      
+      for (const archive of missingArchives) {
+        try {
+          console.log(`📦 ${archive.title} 아카이브 생성 중...`);
+          const response = await chatService.createArchive(currentUser.userId, '', archive.type);
+          let newArchive = response.archive;
+
+          // archive_type이 ''인 경우 이름 변경 필요
+          if (archive.type === '') {
+            if (newArchive.archive_name !== archive.title) {
+              await chatService.updateArchive(currentUser.userId, newArchive.archive_id, archive.title);
+              newArchive = { ...newArchive, archive_name: archive.title };
+            }
+          }
+
+          console.log(`✅ ${archive.title} 아카이브 생성 완료: ${newArchive.archive_id}`);
+        } catch (error: any) {
+          console.error(`❌ ${archive.title} 아카이브 생성 실패:`, error);
+        }
+      }
+
+      // 아카이브 목록 새로고침
+      await loadArchives();
+    } else {
+      console.log('✅ 모든 기본 아카이브가 존재합니다.');
+    }
+  };
+
+  // 기본 아카이브 생성 (4개 모두 생성 - Flutter와 동일)
+  const createDefaultArchives = async () => {
     const currentUser = authService.getCurrentUser();
     if (!currentUser) {
       console.warn('사용자 정보가 없어서 기본 아카이브를 생성할 수 없습니다.');
@@ -306,23 +356,57 @@ export default function ChatPage() {
     }
 
     try {
-      console.log('기본 아카이브 생성 시작:', currentUser.userId);
-      const response = await chatService.createArchive(currentUser.userId, '');
-      const newArchive = response.archive;
-      console.log('생성된 아카이브:', newArchive);
+      console.log('====== 기본 아카이브 4개 생성 시작 ======');
+      
+      // 기본 아카이브 생성 목록 (Flutter와 동일)
+      const archivesToCreate = [
+        { title: ARCHIVE_NAMES.WORK, type: '' },
+        { title: ARCHIVE_NAMES.CODE, type: 'code' },
+        { title: ARCHIVE_NAMES.SAP, type: 'sap' },
+        { title: ARCHIVE_NAMES.CHATBOT, type: '' },
+      ];
 
-      // 아카이브 이름을 "사내업무"로 설정
-      if (newArchive.archive_name !== ARCHIVE_NAMES.WORK) {
-        console.log('아카이브 이름을 사내업무로 변경합니다.');
-        await chatService.updateArchive(currentUser.userId, newArchive.archive_id, ARCHIVE_NAMES.WORK);
-        newArchive.archive_name = ARCHIVE_NAMES.WORK;
+      const createdArchives: Archive[] = [];
+
+      for (const archive of archivesToCreate) {
+        try {
+          console.log(`📦 ${archive.title} 아카이브 생성 중...`);
+          const response = await chatService.createArchive(currentUser.userId, '', archive.type);
+          let newArchive = response.archive;
+
+          // archive_type이 ''인 경우 이름 변경 필요
+          if (archive.type === '') {
+            if (newArchive.archive_name !== archive.title) {
+              console.log(`${archive.title} 아카이브 이름 변경 중...`);
+              await chatService.updateArchive(currentUser.userId, newArchive.archive_id, archive.title);
+              newArchive = { ...newArchive, archive_name: archive.title };
+            }
+          }
+
+          createdArchives.push(newArchive);
+          console.log(`✅ ${archive.title} 아카이브 생성 완료: ${newArchive.archive_id}`);
+        } catch (error: any) {
+          console.error(`❌ ${archive.title} 아카이브 생성 실패:`, error);
+          // 하나 실패해도 계속 진행
+        }
       }
 
-      setArchives([newArchive]);
-      selectArchive(newArchive);
-      console.log('기본 아카이브 생성 및 선택 완료');
+      // 아카이브 목록 새로고침
+      await loadArchives();
+
+      // 사내업무 아카이브 선택
+      if (createdArchives.length > 0) {
+        const workArchive = createdArchives.find(a => a.archive_name === ARCHIVE_NAMES.WORK);
+        if (workArchive) {
+          selectArchive(workArchive);
+        } else {
+          selectArchive(createdArchives[0]);
+        }
+      }
+
+      console.log('====== 기본 아카이브 생성 완료 ======');
     } catch (error: any) {
-      console.error('Failed to create default archive:', error);
+      console.error('기본 아카이브 생성 중 오류:', error);
       console.error('에러 상세:', error.response?.data);
     }
   };

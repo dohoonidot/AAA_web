@@ -29,13 +29,13 @@ import {
   Notifications as NotificationsIcon,
   Security as SecurityIcon,
   Info as InfoIcon,
-  Close as CloseIcon,
   Description as DescriptionIcon,
   Logout as LogoutIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 import MobileMainLayout from '../components/layout/MobileMainLayout';
+import PrivacyAgreementDialog from '../components/auth/PrivacyAgreementDialog';
 import authService from '../services/authService';
 import settingsService from '../services/settingsService';
 import { useThemeStore, AppThemeMode } from '../store/themeStore';
@@ -47,36 +47,6 @@ import { useNavigate } from 'react-router-dom';
 // 테마 타입 정의
 type ThemeMode = 'light' | 'dark' | 'system';
 
-// 개인정보 동의서 내용
-const PRIVACY_CONTENT = {
-  title: '개인정보 수집·이용 동의서',
-  sections: [
-    {
-      title: '1. 개인정보 수집 및 이용 목적',
-      content: 'ASPN AI Agent 서비스 제공을 위해 필요한 최소한의 개인정보를 수집합니다. 수집된 정보는 서비스 제공, 고객 지원, 서비스 개선 목적으로만 사용됩니다.'
-    },
-    {
-      title: '2. 수집하는 개인정보 항목',
-      content: '필수: 사용자 ID, 이메일 주소, 이름\n선택: 프로필 사진, 연락처'
-    },
-    {
-      title: '3. 개인정보 보유 및 이용 기간',
-      content: '개인정보는 서비스 이용 기간 동안 보유하며, 회원 탈퇴 시 즉시 삭제됩니다.'
-    },
-    {
-      title: '4. 개인정보 제3자 제공',
-      content: '개인정보는 법령에 의해 요구되는 경우를 제외하고는 제3자에게 제공되지 않습니다.'
-    },
-    {
-      title: '5. 개인정보 처리의 위탁',
-      content: '개인정보 처리는 회사 내부에서만 수행되며, 외부 위탁은 하지 않습니다.'
-    },
-    {
-      title: '6. 개인정보의 안전성 확보 조치',
-      content: '개인정보는 암호화되어 저장되며, 접근 권한이 있는 직원만이 처리할 수 있습니다.'
-    }
-  ]
-};
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -131,36 +101,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handlePrivacyAgreement = async (isAgreed: boolean) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      logger.dev('개인정보 동의 상태 업데이트:', { userId: user.userId, isAgreed });
-      const response = await settingsService.updatePrivacyAgreement(user.userId, isAgreed);
-
-      logger.dev('개인정보 동의 상태 업데이트 응답:', response);
-
-      if (response.success) {
-        setPrivacyAgreed(isAgreed);
-        setPrivacyDialogOpen(false);
-        alert(isAgreed ? '개인정보 수집·이용에 동의하셨습니다.' : '개인정보 수집·이용 동의를 철회하셨습니다.');
-      } else {
-        setError(response.error || '개인정보 동의 상태 업데이트에 실패했습니다.');
-      }
-    } catch (err: any) {
-      logger.error('개인정보 동의 상태 업데이트 실패:', err);
-      setError(err.response?.data?.message || err.message || '개인정보 동의 상태 업데이트 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogout = () => {
     if (window.confirm('로그아웃 하시겠습니까?')) {
@@ -188,16 +128,6 @@ export default function SettingsPage() {
     logger.dev('알림 설정 변경:', enabled);
   };
 
-  const PrivacySection = ({ title, content }: { title: string; content: string }) => (
-    <Box sx={{ mb: 3 }}>
-      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, color: isDark ? '#E5E7EB' : '#1F2937' }}>
-        {title}
-      </Typography>
-      <Typography variant="body2" sx={{ color: isDark ? '#9CA3AF' : '#4B5563', lineHeight: 1.6 }}>
-        {content}
-      </Typography>
-    </Box>
-  );
 
   return (
     <MobileMainLayout
@@ -423,56 +353,25 @@ export default function SettingsPage() {
         </Card>
 
         {/* 개인정보 동의서 다이얼로그 */}
-        <Dialog
-          open={privacyDialogOpen}
-          onClose={() => setPrivacyDialogOpen(false)}
-          maxWidth="md"
-          fullWidth
-          fullScreen={isMobile}
-        >
-          <DialogTitle sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: isDark
-              ? 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)'
-              : 'linear-gradient(135deg, #4A90E2 0%, #7BB3F0 100%)',
-            color: 'white',
-            borderRadius: '20px 20px 0 0',
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <SecurityIcon sx={{ mr: 1 }} />
-              <Typography component="span" sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
-                개인정보 수집·이용 동의서
-              </Typography>
-            </Box>
-            <IconButton onClick={() => setPrivacyDialogOpen(false)} sx={{ color: 'white' }}>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-
-          <DialogContent dividers sx={{ p: 3, bgcolor: isDark ? '#0F172A' : 'background.paper' }}>
-            {PRIVACY_CONTENT.sections.map((section, index) => (
-              <PrivacySection
-                key={index}
-                title={section.title}
-                content={section.content}
-              />
-            ))}
-          </DialogContent>
-
-          <DialogActions sx={{ p: 3, gap: 1 }}>
-            <Button
-              onClick={() => handlePrivacyAgreement(true)}
-              variant="contained"
-              color="primary"
-              disabled={loading}
-              startIcon={<CheckCircleIcon />}
-            >
-              동의함
-            </Button>
-          </DialogActions>
-        </Dialog>
+        {userInfo && (
+          <PrivacyAgreementDialog
+            open={privacyDialogOpen}
+            userId={userInfo.userId}
+            onAgreed={async () => {
+              setPrivacyDialogOpen(false);
+              // 동의 상태 다시 로드
+              await loadPrivacyStatus();
+            }}
+            onClose={() => setPrivacyDialogOpen(false)}
+            required={false}
+            // 설정 페이지에서는 "동의 안 함" 버튼 제거
+            showDisagreeButton={false}
+            // 이미 동의한 상태면 "동의함" 버튼도 숨김(뷰어 모드)
+            showAgreeButton={!privacyAgreed}
+            // 이미 동의한 상태면 하단 취소 버튼도 숨김(상단 X로만 닫기)
+            showCancelButton={!privacyAgreed}
+          />
+        )}
       </Box>
     </MobileMainLayout>
   );

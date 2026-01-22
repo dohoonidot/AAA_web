@@ -23,6 +23,7 @@ import type { NotificationEnvelope } from './types/notification';
 import { NotificationPanel } from './components/common/NotificationPanel';
 import GiftArrivalPopup from './components/common/GiftArrivalPopup';
 import LeaveRequestDraftPanel from './components/leave/LeaveRequestDraftPanel';
+import PrivacyAgreementDialog from './components/auth/PrivacyAgreementDialog';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ function AppContent() {
   const [notification, setNotification] = React.useState<{ message: string; severity: 'success' | 'error' | 'warning' | 'info' } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+  const [privacyDialogOpen, setPrivacyDialogOpen] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string>('');
 
   // 알림 스토어
   const { setConnectionState, setSseEnabled } = useNotificationStore();
@@ -66,6 +69,16 @@ function AppContent() {
         if (refreshResult && refreshResult.status_code === 200) {
           setIsLoggedIn(true);
           console.log('[App] 리프레시 성공 - 로그인 상태 유지');
+
+          // 개인정보 동의 여부가 0이면 전역 모달 표시(로그인 상태는 유지)
+          if (refreshResult.is_agreed === 0) {
+            const currentUser = authService.getCurrentUser();
+            const dismissed = sessionStorage.getItem('privacy_disagree_dismissed') === '1';
+            if (currentUser && !dismissed) {
+              setPendingUserId(currentUser.userId);
+              setPrivacyDialogOpen(true);
+            }
+          }
         } else {
           setIsLoggedIn(false);
           console.log('[App] 리프레시 실패 - 로그인 필요');
@@ -79,7 +92,21 @@ function AppContent() {
     };
 
     checkAuthStatus();
-  }, [location.pathname]);
+  }, [location.pathname, navigate]);
+
+  const handlePrivacyAgreed = () => {
+    setPrivacyDialogOpen(false);
+    setPendingUserId('');
+    // 동의하면 privacyAgreed=true가 되어 이후 재노출 없음
+    sessionStorage.removeItem('privacy_disagree_dismissed');
+  };
+
+  const handlePrivacyDisagreed = () => {
+    // 동의안함은 이번 세션에서는 일단 닫기만 하고 진행(로그인 상태 유지)
+    sessionStorage.setItem('privacy_disagree_dismissed', '1');
+    setPrivacyDialogOpen(false);
+    setPendingUserId('');
+  };
 
   // SSE 알림 수신 핸들러
   const handleNotification = useCallback((envelope: NotificationEnvelope) => {
@@ -249,6 +276,15 @@ function AppContent() {
   return (
     <>
       <NotificationPanel />
+      {pendingUserId && (
+        <PrivacyAgreementDialog
+          open={privacyDialogOpen}
+          userId={pendingUserId}
+          onAgreed={handlePrivacyAgreed}
+          onDisagreed={handlePrivacyDisagreed}
+          required={true}
+        />
+      )}
       <GiftArrivalPopup
         open={giftArrivalPopup.open}
         giftData={giftArrivalPopup.data}
