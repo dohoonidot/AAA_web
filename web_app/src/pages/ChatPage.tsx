@@ -15,17 +15,7 @@ import {
   useTheme,
   AppBar,
   Toolbar,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
   Button,
-  Snackbar,
-  Alert,
-  DialogContentText,
   Avatar,
 } from '@mui/material';
 import {
@@ -55,15 +45,12 @@ import { useThemeStore } from '../store/themeStore';
 import authService from '../services/authService';
 import chatService from '../services/chatService';
 import ChatArea from '../components/chat/ChatArea';
-import SearchDialog from '../components/chat/SearchDialog';
 import { NotificationBell } from '../components/common/NotificationBell';
 import { GiftButton } from '../components/common/GiftBox';
-import HelpDialog from '../components/common/HelpDialog';
-import LeaveRequestDraftPanel from '../components/leave/LeaveRequestDraftPanel';
-import ElectronicApprovalDraftPanel from '../components/approval/ElectronicApprovalDraftPanel';
 import { MobileOnly, DesktopOnly } from '../components/common/Responsive';
 import type { Archive } from '../types';
 import { useElectronicApprovalStore } from '../store/electronicApprovalStore';
+import ChatPageModals from './ChatPage.modals';
 
 const SIDEBAR_WIDTH = 280; // 230 + 20px
 
@@ -1490,352 +1477,37 @@ export default function ChatPage() {
         </Box>
       </Box>
 
-      {/* 검색 다이얼로그 */}
-      <SearchDialog
-        open={searchDialogOpen}
-        onClose={() => setSearchDialogOpen(false)}
-        archives={archives}
-        onSelectArchive={(archive) => {
-          selectArchive(archive);
-          setSearchDialogOpen(false);
-        }}
-        onSelectMessage={(archiveId, chatId) => {
-          console.log('메시지 선택:', archiveId, chatId);
-        }}
-      />
-
-      {/* 컨텍스트 메뉴 */}
-      {/* 도움말 다이얼로그 */}
-      <HelpDialog
-        open={helpDialogOpen}
-        onClose={() => setHelpDialogOpen(false)}
-      />
-
-      <Menu
+      <ChatPageModals
+        searchDialogOpen={searchDialogOpen}
+        setSearchDialogOpen={setSearchDialogOpen}
+        helpDialogOpen={helpDialogOpen}
+        setHelpDialogOpen={setHelpDialogOpen}
         anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        MenuListProps={{
-          'aria-labelledby': 'archive-menu-button',
-          disableListWrap: true,
-          autoFocus: false,
-          autoFocusItem: false,
-        }}
-        slotProps={{
-          paper: {
-            sx: {
-              zIndex: (theme) => theme.zIndex.modal + 1, // Modal 위에 표시
-            },
-          },
-        }}
-        disablePortal={false} // Portal 사용
-        disableAutoFocus={true} // 자동 포커스 비활성화로 aria-hidden 문제 방지
-        disableEnforceFocus={true} // 포커스 강제 비활성화
-        disableRestoreFocus={true} // 메뉴 닫을 때 포커스 복원 비활성화
-        disableScrollLock={true} // 스크롤 잠금 비활성화
-      >
-        {selectedArchive && !isDefaultArchive(selectedArchive) && (
-          <MenuItem
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRenameClick();
-            }}
-          >
-            <ListItemIcon>
-              <EditIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>이름 변경</ListItemText>
-          </MenuItem>
-        )}
-        <MenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDeleteClick();
-          }}
-        >
-          <ListItemIcon>
-            {selectedArchive && isDefaultArchive(selectedArchive) ? (
-              <RefreshIcon fontSize="small" />
-            ) : (
-              <DeleteIcon fontSize="small" color="error" />
-            )}
-          </ListItemIcon>
-          <ListItemText>
-            {selectedArchive && isDefaultArchive(selectedArchive) ? '초기화' : '삭제'}
-          </ListItemText>
-        </MenuItem>
-      </Menu>
+        handleMenuClose={handleMenuClose}
+        selectedArchive={selectedArchive}
+        setSelectedArchive={setSelectedArchive}
+        handleRenameClick={handleRenameClick}
+        handleDeleteClick={handleDeleteClick}
+        renameDialogOpen={renameDialogOpen}
+        setRenameDialogOpen={setRenameDialogOpen}
+        newName={newName}
+        setNewName={setNewName}
+        handleRenameSubmit={handleRenameSubmit}
+        deleteDialogOpen={deleteDialogOpen}
+        setDeleteDialogOpen={setDeleteDialogOpen}
+        handleDeleteConfirm={handleDeleteConfirm}
+        resetDialogOpen={resetDialogOpen}
+        setResetDialogOpen={setResetDialogOpen}
+        handleResetConfirm={handleResetConfirm}
+        bulkDeleteDialogOpen={bulkDeleteDialogOpen}
+        setBulkDeleteDialogOpen={setBulkDeleteDialogOpen}
+        handleBulkDelete={handleBulkDelete}
+        archives={archives}
+        selectArchive={selectArchive}
+        snackbar={snackbar}
+        setSnackbar={setSnackbar}
+      />
 
-      {/* 이름 변경 다이얼로그 */}
-      <Dialog
-        open={renameDialogOpen}
-        onClose={() => setRenameDialogOpen(false)}
-        disableEnforceFocus
-      >
-        <DialogTitle>아카이브 이름 변경</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="새 이름"
-            fullWidth
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleRenameSubmit();
-              }
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            console.log('이름 변경 다이얼로그 취소 버튼 클릭');
-            setRenameDialogOpen(false);
-          }}>취소</Button>
-          <Button onClick={() => {
-            console.log('이름 변경 버튼 클릭됨!');
-            handleRenameSubmit();
-          }} variant="contained">
-            변경
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* 삭제 확인 다이얼로그 */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => {
-          console.log('🔵 다이얼로그 onClose');
-          setDeleteDialogOpen(false);
-          setSelectedArchive(null);
-        }}
-        PaperProps={{
-          onMouseMove: () => {
-            console.log('🟠 다이얼로그 내부에서 마우스 움직임 감지됨');
-          },
-          sx: {
-            zIndex: 9999,
-          }
-        }}
-        slotProps={{
-          backdrop: {
-            sx: {
-              zIndex: (theme) => theme.zIndex.drawer + 1,
-            },
-          },
-        }}
-      >
-        <DialogTitle
-          onMouseEnter={() => console.log('🔷 DialogTitle 마우스 진입')}
-        >
-          아카이브 삭제
-        </DialogTitle>
-        <DialogContent
-          onMouseEnter={() => console.log('🔷 DialogContent 마우스 진입')}
-        >
-          <DialogContentText>
-            "{selectedArchive?.archive_name}" 아카이브를 삭제하시겠습니까?
-            <br />
-            이 작업은 되돌릴 수 없습니다.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setDeleteDialogOpen(false);
-            setSelectedArchive(null);
-          }}>취소</Button>
-          <Button
-            onMouseEnter={() => {
-              console.log('🟢 삭제 버튼 위에 마우스 올림');
-              console.log('🟢 버튼 disabled 상태:', !selectedArchive);
-            }}
-            onMouseDown={(e) => {
-              console.log('🟡 삭제 버튼 mouseDown');
-              e.stopPropagation();
-            }}
-            onClick={async (e) => {
-              console.log('🔴 삭제 버튼 onClick 발생!');
-              e.stopPropagation();
-              e.preventDefault();
-
-              if (!selectedArchive) {
-                console.log('❌ selectedArchive 없음');
-                return;
-              }
-
-              console.log('✅ selectedArchive 있음:', selectedArchive.archive_id);
-              console.log('🚀 handleDeleteConfirm 호출 시작...');
-
-              try {
-                await handleDeleteConfirm();
-                console.log('✅ handleDeleteConfirm 완료');
-              } catch (error) {
-                console.error('❌ 삭제 중 에러:', error);
-              }
-            }}
-            variant="contained"
-            color="error"
-            disabled={!selectedArchive}
-          >
-            삭제
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* 초기화 확인 다이얼로그 */}
-      <Dialog
-        open={resetDialogOpen}
-        onClose={() => {
-          console.log('🔵 초기화 다이얼로그 onClose');
-          setResetDialogOpen(false);
-          setSelectedArchive(null);
-        }}
-        PaperProps={{
-          onMouseMove: () => {
-            console.log('🟠 초기화 다이얼로그 내부에서 마우스 움직임');
-          },
-          sx: {
-            zIndex: 9999,
-          }
-        }}
-        slotProps={{
-          backdrop: {
-            sx: {
-              zIndex: (theme) => theme.zIndex.drawer + 1,
-            },
-          },
-        }}
-      >
-        <DialogTitle
-          onMouseEnter={() => console.log('🔷 초기화 DialogTitle 마우스 진입')}
-        >
-          기본 아카이브 초기화
-        </DialogTitle>
-        <DialogContent
-          onMouseEnter={() => console.log('🔷 초기화 DialogContent 마우스 진입')}
-        >
-          <DialogContentText>
-            "{selectedArchive?.archive_name}"의 대화 내용을 초기화하시겠습니까?
-            <br />
-            <br />
-            초기화하면 기존 대화 내용이 모두 삭제되고 새로운 동일 유형의 아카이브가 생성됩니다.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onMouseEnter={() => console.log('🟢 취소 버튼 마우스 진입')}
-            onMouseDown={(e) => {
-              console.log('🟡 취소 버튼 mouseDown');
-              e.stopPropagation();
-            }}
-            onClick={(e) => {
-              console.log('🔴 취소 버튼 클릭됨!');
-              e.stopPropagation();
-              setResetDialogOpen(false);
-              setSelectedArchive(null);
-            }}
-          >
-            취소
-          </Button>
-          <Button
-            onMouseEnter={() => {
-              console.log('🟢 초기화 버튼 마우스 진입');
-            }}
-            onMouseDown={(e) => {
-              console.log('🟡 초기화 버튼 mouseDown');
-              e.stopPropagation();
-            }}
-            onClick={async (e) => {
-              console.log('🔴🔴🔴 초기화 버튼 onClick 발생!');
-              e.stopPropagation();
-              e.preventDefault();
-
-              try {
-                await handleResetConfirm();
-              } catch (error) {
-                console.error('❌ 초기화 중 에러:', error);
-              }
-            }}
-            variant="contained"
-            color="primary"
-          >
-            초기화
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* 일괄 삭제 확인 다이얼로그 */}
-      <Dialog
-        open={bulkDeleteDialogOpen}
-        onClose={() => {
-          setBulkDeleteDialogOpen(false);
-        }}
-        PaperProps={{
-          sx: {
-            zIndex: 9999,
-          }
-        }}
-        slotProps={{
-          backdrop: {
-            sx: {
-              zIndex: (theme) => theme.zIndex.drawer + 1,
-            },
-          },
-        }}
-      >
-        <DialogTitle>커스텀 아카이브 일괄 삭제</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            기본 아카이브를 제외한 모든 커스텀 아카이브를 삭제하시겠습니까?
-            <br />
-            <br />
-            <strong>삭제 대상: {archives.filter(a => !isDefaultArchive(a)).length}개</strong>
-            <br />
-            이 작업은 되돌릴 수 없습니다.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setBulkDeleteDialogOpen(false);
-            }}
-          >
-            취소
-          </Button>
-          <Button
-            onClick={async (e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              await handleBulkDelete();
-            }}
-            variant="contained"
-            color="error"
-          >
-            전체 삭제
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* 알림 스낵바 */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-
-      {/* 휴가 신청 초안 패널 */}
-      <LeaveRequestDraftPanel />
-      <ElectronicApprovalDraftPanel />
     </Box>
   );
 }

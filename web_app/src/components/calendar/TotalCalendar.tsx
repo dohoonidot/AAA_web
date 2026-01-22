@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import {
   Box,
@@ -42,10 +41,7 @@ import {
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import leaveService from '../../services/leaveService';
-import authService from '../../services/authService';
-import type { TotalCalendarLeave, MonthlyLeave } from '../../types/leave';
-import type { Holiday } from '../../types/holiday';
+import { useTotalCalendarState } from './TotalCalendar.state';
 
 dayjs.extend(isBetween);
 
@@ -73,434 +69,58 @@ export default function TotalCalendar({
   const panelText = isDark ? '#E5E7EB' : '#111827';
   const panelSubText = isDark ? '#9CA3AF' : '#6B7280';
 
-  const [selectedDate, setSelectedDate] = useState<Date>(initialSelectedDate || new Date());
-  const [currentCalendarDate, setCurrentCalendarDate] = useState(dayjs(selectedDate));
-  const [pageIndex, setPageIndex] = useState(0);
-  const [selectedDateDetails, setSelectedDateDetails] = useState<any[]>([]);
-  const [selectedHolidayName, setSelectedHolidayName] = useState<string | null>(null);
+  const { state, actions, derived } = useTotalCalendarState({
+    open,
+    embedded,
+    initialSelectedDate,
+    onDateSelected,
+  });
+  const {
+    selectedDate,
+    currentCalendarDate,
+    selectedDateDetails,
+    selectedHolidayName,
+    isMyVacationView,
+    selectedDepartments,
+    selectedEmployees,
+    expandedDepartments,
+    departmentEmployees,
+    isDepartmentDataLoading,
+    isDetailPanelVisible,
+    detailPage,
+    yearMonthDialogOpen,
+    selectedYear,
+    selectedMonth,
+    loading,
+    error,
+  } = state;
 
-  // 뷰 모드 관리
-  const [isMyVacationView, setIsMyVacationView] = useState(true); // true: 내 휴가 내역, false: 부서 휴가 현황
-  const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(new Set());
-  const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
-  const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
+  const {
+    setDetailPage,
+    setSelectedYear,
+    setSelectedMonth,
+    setIsDetailPanelVisible,
+    handlePrevMonth,
+    handleNextMonth,
+    handleGoToToday,
+    handleDateClick,
+    handleYearMonthClick,
+    handleYearMonthConfirm,
+    handleYearMonthCancel,
+    handleViewModeChange,
+    toggleDepartmentSelection,
+    toggleDepartmentExpansion,
+    toggleEmployeeSelection,
+    handleSelectAll,
+    handleSelectNone,
+  } = actions;
 
-  // 부서 휴가 현황 데이터
-  const [totalCalendarLeaves, setTotalCalendarLeaves] = useState<TotalCalendarLeave[]>([]);
-  const [departmentEmployees, setDepartmentEmployees] = useState<Map<string, string[]>>(new Map());
-  const [isDepartmentDataLoading, setIsDepartmentDataLoading] = useState(false);
-
-  // 내 휴가 내역 데이터
-  const [myMonthlyLeaves, setMyMonthlyLeaves] = useState<MonthlyLeave[]>([]);
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
-
-  // 슬라이드 패널 관리
-  const [isDetailPanelVisible, setIsDetailPanelVisible] = useState(false);
-
-  // 상세내역 페이지네이션
-  const [detailPage, setDetailPage] = useState(1);
-  const detailItemsPerPage = 5;
-
-  // 년월 선택 다이얼로그
-  const [yearMonthDialogOpen, setYearMonthDialogOpen] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(currentCalendarDate.year());
-  const [selectedMonth, setSelectedMonth] = useState(currentCalendarDate.month() + 1); // dayjs는 0-11, UI는 1-12
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // 초기 페이지 인덱스 계산 (2020년 1월 기준)
-  useEffect(() => {
-    // embedded 모드거나 open이 true일 때 데이터 로드
-    if (open || embedded) {
-      const monthsFromBase = (currentCalendarDate.year() - 2020) * 12 + (currentCalendarDate.month());
-      setPageIndex(monthsFromBase);
-      loadMonthlyCalendarData(currentCalendarDate);
-      loadMonthlyHolidays(currentCalendarDate);
-      // 부서 휴가 현황 모드일 경우 API 호출
-      if (!isMyVacationView) {
-        loadDepartmentCalendarData(currentCalendarDate);
-      }
-    }
-  }, [open, embedded, isMyVacationView]);
-
-  // 월 변경 시 데이터 로드
-  useEffect(() => {
-    if (open || embedded) {
-      loadMonthlyCalendarData(currentCalendarDate);
-      loadMonthlyHolidays(currentCalendarDate);
-      if (!isMyVacationView) {
-        loadDepartmentCalendarData(currentCalendarDate);
-      }
-    }
-  }, [currentCalendarDate, open, embedded, isMyVacationView]);
-
-  // 상세내역 변경 시 페이지 초기화
-  useEffect(() => {
-    setDetailPage(1);
-  }, [selectedDateDetails]);
-
-  useEffect(() => {
-    setSelectedHolidayName(getHolidayName(selectedDate));
-  }, [holidays, selectedDate]);
-
-  // 내 휴가 내역 데이터 로드
-  const loadMonthlyCalendarData = async (monthDate: dayjs.Dayjs) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      const month = monthDate.format('YYYY-MM');
-      console.log('월별 달력 데이터 로드:', month);
-
-      const response = await leaveService.getMonthlyCalendar({
-        userId: user.userId,
-        month: month,
-      });
-
-      console.log('월별 달력 응답:', response);
-
-      if (response.monthlyLeaves) {
-        setMyMonthlyLeaves(response.monthlyLeaves);
-      }
-    } catch (err: any) {
-      console.error('월별 달력 로드 실패:', err);
-      setError(err.response?.data?.message || '월별 달력 데이터를 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 부서 휴가 현황 데이터 로드
-  const loadDepartmentCalendarData = async (monthDate: dayjs.Dayjs) => {
-    setIsDepartmentDataLoading(true);
-    try {
-      const month = monthDate.format('YYYY-MM');
-      console.log('부서 휴가 현황 데이터 로드:', month);
-
-      const response = await leaveService.getTotalCalendar(month);
-      console.log('부서 휴가 현황 응답:', response);
-
-      setTotalCalendarLeaves(response.monthlyLeaves || []);
-
-      // 부서별 직원 그룹핑
-      const deptMap = new Map<string, Set<string>>();
-      (response.monthlyLeaves || []).forEach(leave => {
-        if (!deptMap.has(leave.department)) {
-          deptMap.set(leave.department, new Set());
-        }
-        deptMap.get(leave.department)!.add(leave.name);
-      });
-
-      const deptEmployeesMap = new Map<string, string[]>();
-      deptMap.forEach((employees, dept) => {
-        deptEmployeesMap.set(dept, Array.from(employees).sort());
-      });
-
-      setDepartmentEmployees(deptEmployeesMap);
-    } catch (err: any) {
-      console.error('부서 휴가 현황 로드 실패:', err);
-    } finally {
-      setIsDepartmentDataLoading(false);
-    }
-  };
-
-  const loadMonthlyHolidays = async (monthDate: dayjs.Dayjs) => {
-    try {
-      const response = await leaveService.getHolidays(monthDate.year(), monthDate.month() + 1);
-      setHolidays(response.holidays || []);
-    } catch (err: any) {
-      console.error('공휴일 데이터 로드 실패:', err);
-      setHolidays([]);
-    }
-  };
-
-  const getHolidayName = (date: Date) => {
-    const holiday = holidays.find((item) => dayjs(item.locDate).isSame(dayjs(date), 'day'));
-    return holiday?.dateName || null;
-  };
-
-  // 페이지 변경 핸들러
-  const handlePageChange = (newIndex: number) => {
-    setPageIndex(newIndex);
-    const newDate = dayjs('2020-01').add(newIndex, 'month');
-    setCurrentCalendarDate(newDate);
-  };
-
-  // 이전 달로 이동
-  const handlePrevMonth = () => {
-    if (pageIndex > 0) {
-      handlePageChange(pageIndex - 1);
-    }
-  };
-
-  // 다음 달로 이동
-  const handleNextMonth = () => {
-    handlePageChange(pageIndex + 1);
-  };
-
-  // 오늘로 이동
-  const handleGoToToday = () => {
-    const today = dayjs();
-    const monthsFromBase = (today.year() - 2020) * 12 + today.month();
-    handlePageChange(monthsFromBase);
-    setSelectedDate(today.toDate());
-    updateSelectedDateDetails(today.toDate());
-    onDateSelected?.(today.toDate());
-  };
-
-  // 날짜 선택 핸들러
-  const handleDateClick = (date: Date) => {
-    setSelectedDate(date);
-    updateSelectedDateDetails(date);
-    if (!isMyVacationView) {
-      setIsDetailPanelVisible(true);
-    }
-    onDateSelected?.(date);
-  };
-
-  // 년월 선택 다이얼로그 핸들러
-  const handleYearMonthClick = () => {
-    setSelectedYear(currentCalendarDate.year());
-    setSelectedMonth(currentCalendarDate.month() + 1);
-    setYearMonthDialogOpen(true);
-  };
-
-  const handleYearMonthConfirm = () => {
-    const newDate = dayjs(`${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-01`);
-    setCurrentCalendarDate(newDate);
-    setSelectedDate(newDate.toDate());
-    updateSelectedDateDetails(newDate.toDate());
-    setYearMonthDialogOpen(false);
-  };
-
-  const handleYearMonthCancel = () => {
-    setYearMonthDialogOpen(false);
-  };
-
-  // 선택된 날짜의 상세 정보 업데이트
-  const updateSelectedDateDetails = (date: Date) => {
-    const dateDayjs = dayjs(date);
-    let filteredLeaves: any[] = [];
-    const holidayName = getHolidayName(date);
-    setSelectedHolidayName(holidayName);
-
-    if (isMyVacationView) {
-      // 내 휴가 내역 모드
-      filteredLeaves = myMonthlyLeaves.filter(leave => {
-        const startDate = dayjs(leave.startDate);
-        const endDate = dayjs(leave.endDate);
-        return dateDayjs.isBetween(startDate, endDate, 'day', '[]') ||
-          dateDayjs.isSame(startDate, 'day') ||
-          dateDayjs.isSame(endDate, 'day');
-      }).map((leave: MonthlyLeave) => ({
-        status: leave.status,
-        vacationType: leave.leaveType,
-        reason: leave.reason,
-        startDate: leave.startDate,
-        endDate: leave.endDate,
-      }));
-    } else {
-      // 부서 휴가 현황 모드
-      if (selectedEmployees.size === 0) {
-        setSelectedDateDetails([]);
-        return;
-      }
-
-      filteredLeaves = totalCalendarLeaves
-        .filter(leave => {
-          // 이름과 부서를 함께 확인하여 동명이인 문제 해결
-          const employeeKey = `${leave.name}|${leave.department}`;
-          return selectedEmployees.has(employeeKey);
-        })
-        .filter(leave => {
-          const startDate = dayjs(leave.startDate);
-          const endDate = dayjs(leave.endDate);
-          return dateDayjs.isBetween(startDate, endDate, 'day', '[]') ||
-            dateDayjs.isSame(startDate, 'day') ||
-            dateDayjs.isSame(endDate, 'day');
-        })
-        .map((leave: TotalCalendarLeave) => ({
-          status: 'APPROVED',
-          vacationType: leave.leaveType,
-          employeeName: leave.name,
-          department: leave.department,
-          startDate: leave.startDate,
-          endDate: leave.endDate,
-        }));
-    }
-
-    // 상태별 우선순위 정렬
-    filteredLeaves.sort((a, b) => {
-      const statusPriority: { [key: string]: number } = {
-        'REQUESTED': 1,
-        'PENDING': 1,
-        'APPROVED': 2,
-        'REJECTED': 3,
-        'CANCELLED': 4,
-      };
-      const priorityA = statusPriority[a.status?.toUpperCase() || ''] || 5;
-      const priorityB = statusPriority[b.status?.toUpperCase() || ''] || 5;
-      return priorityA - priorityB;
-    });
-
-    setSelectedDateDetails(filteredLeaves);
-  };
-
-  // 뷰 모드 전환
-  const handleViewModeChange = (isMyVacation: boolean) => {
-    setIsMyVacationView(isMyVacation);
-    if (!isMyVacation) {
-      setSelectedDepartments(new Set());
-      setSelectedEmployees(new Set());
-      setExpandedDepartments(new Set());
-      loadDepartmentCalendarData(currentCalendarDate);
-    }
-    updateSelectedDateDetails(selectedDate);
-  };
-
-  // 부서 선택/해제
-  const toggleDepartmentSelection = (deptName: string) => {
-    const newSelectedDepartments = new Set(selectedDepartments);
-    const newSelectedEmployees = new Set(selectedEmployees);
-    const employees = departmentEmployees.get(deptName) || [];
-
-    if (newSelectedDepartments.has(deptName)) {
-      newSelectedDepartments.delete(deptName);
-      // 해당 부서의 모든 직원 제거 (이름|부서 형식)
-      employees.forEach(emp => {
-        newSelectedEmployees.delete(`${emp}|${deptName}`);
-      });
-    } else {
-      newSelectedDepartments.add(deptName);
-      // 해당 부서의 모든 직원 추가 (이름|부서 형식)
-      employees.forEach(emp => {
-        newSelectedEmployees.add(`${emp}|${deptName}`);
-      });
-    }
-
-    setSelectedDepartments(newSelectedDepartments);
-    setSelectedEmployees(newSelectedEmployees);
-    updateSelectedDateDetails(selectedDate);
-  };
-
-  // 부서 확장/축소
-  const toggleDepartmentExpansion = (deptName: string) => {
-    const newExpanded = new Set(expandedDepartments);
-    if (newExpanded.has(deptName)) {
-      newExpanded.delete(deptName);
-    } else {
-      newExpanded.add(deptName);
-    }
-    setExpandedDepartments(newExpanded);
-  };
-
-  // 직원 선택/해제 (부서 정보 포함)
-  const toggleEmployeeSelection = (employeeName: string, department: string) => {
-    const newSelectedEmployees = new Set(selectedEmployees);
-    const employeeKey = `${employeeName}|${department}`;
-
-    if (newSelectedEmployees.has(employeeKey)) {
-      newSelectedEmployees.delete(employeeKey);
-    } else {
-      newSelectedEmployees.add(employeeKey);
-    }
-    setSelectedEmployees(newSelectedEmployees);
-    updateSelectedDateDetails(selectedDate);
-  };
-
-  // 전체 선택
-  const handleSelectAll = () => {
-    const allDepartments = new Set(departmentEmployees.keys());
-    const allEmployees = new Set<string>();
-    departmentEmployees.forEach((employees, dept) => {
-      employees.forEach(emp => allEmployees.add(`${emp}|${dept}`));
-    });
-    setSelectedDepartments(allDepartments);
-    setSelectedEmployees(allEmployees);
-    updateSelectedDateDetails(selectedDate);
-  };
-
-  // 선택 해제
-  const handleSelectNone = () => {
-    setSelectedDepartments(new Set());
-    setSelectedEmployees(new Set());
-    updateSelectedDateDetails(selectedDate);
-  };
-
-  // 달력 그리드 생성
-  const generateCalendarDays = (monthDate: dayjs.Dayjs) => {
-    const startOfMonth = monthDate.startOf('month');
-    const endOfMonth = monthDate.endOf('month');
-    const startOfWeek = startOfMonth.startOf('week');
-    const endOfWeek = endOfMonth.endOf('week');
-
-    const days: Array<{
-      date: Date;
-      isCurrentMonth: boolean;
-      isToday: boolean;
-      leaves: any[];
-      isHoliday?: boolean;
-      holidayName?: string | null;
-    }> = [];
-
-    let currentDay = startOfWeek;
-
-    while (currentDay.isBefore(endOfWeek) || currentDay.isSame(endOfWeek, 'day')) {
-      const dayDate = currentDay.toDate();
-      const isCurrentMonth = currentDay.isSame(monthDate, 'month');
-      const isToday = currentDay.isSame(dayjs(), 'day');
-
-      // 필터링된 휴가 데이터 사용
-      let dayLeaves: any[] = [];
-      if (isMyVacationView) {
-        dayLeaves = myMonthlyLeaves.filter((leave: MonthlyLeave) => {
-          const startDate = dayjs(leave.startDate);
-          const endDate = dayjs(leave.endDate);
-          return currentDay.isBetween(startDate, endDate, 'day', '[]') ||
-            currentDay.isSame(startDate, 'day') ||
-            currentDay.isSame(endDate, 'day');
-        });
-      } else {
-        if (selectedEmployees.size > 0) {
-          dayLeaves = totalCalendarLeaves
-            .filter(leave => {
-              // 이름과 부서를 함께 확인하여 동명이인 문제 해결
-              const employeeKey = `${leave.name}|${leave.department}`;
-              return selectedEmployees.has(employeeKey);
-            })
-            .filter((leave: TotalCalendarLeave) => {
-              const startDate = dayjs(leave.startDate);
-              const endDate = dayjs(leave.endDate);
-              return currentDay.isBetween(startDate, endDate, 'day', '[]') ||
-                currentDay.isSame(startDate, 'day') ||
-                currentDay.isSame(endDate, 'day');
-            });
-        }
-      }
-
-      const holidayName = getHolidayName(dayDate);
-
-      days.push({
-        date: dayDate,
-        isCurrentMonth,
-        isToday,
-        leaves: dayLeaves,
-        isHoliday: !!holidayName,
-        holidayName,
-      });
-
-      currentDay = currentDay.add(1, 'day');
-    }
-
-    return days;
-  };
+  const {
+    getHolidayName,
+    generateCalendarDays,
+    getPaginatedDetails,
+    getDetailTotalPages,
+  } = derived;
 
   // 날짜 셀 렌더링
   const renderDateCell = (day: any) => {
@@ -840,17 +460,6 @@ export default function TotalCalendar({
         )}
       </Box>
     );
-  };
-
-  // 상세내역 페이지네이션 헬퍼 함수
-  const getPaginatedDetails = () => {
-    const startIndex = (detailPage - 1) * detailItemsPerPage;
-    const endIndex = startIndex + detailItemsPerPage;
-    return selectedDateDetails.slice(startIndex, endIndex);
-  };
-
-  const getDetailTotalPages = () => {
-    return Math.ceil(selectedDateDetails.length / detailItemsPerPage);
   };
 
   // 메인 컨텐츠 (Dialog 내부 또는 직접 렌더링)

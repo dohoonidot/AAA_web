@@ -14,6 +14,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    strictPort: true,
     host: true,
     open: true, // 브라우저 자동 열기
     hmr: {

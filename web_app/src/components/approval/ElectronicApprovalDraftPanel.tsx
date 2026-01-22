@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -11,14 +11,8 @@ import {
   InputLabel,
   Divider,
   CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   useMediaQuery,
   Slide,
-  Snackbar,
-  Alert,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -39,35 +33,10 @@ import {
   InsertDriveFile as InsertDriveFileIcon,
   Image as ImageIcon,
 } from '@mui/icons-material';
-import authService from '../../services/authService';
-import leaveService from '../../services/leaveService';
-import departmentService from '../../services/departmentService';
 import { useThemeStore } from '../../store/themeStore';
-import { useElectronicApprovalStore } from '../../store/electronicApprovalStore';
-import ApproverSelectionModal from '../leave/ApproverSelectionModal';
-import ReferenceSelectionModal from '../leave/ReferenceSelectionModal';
-import type { EApprovalAttachment, EApprovalDraftData, EApprovalCcPerson } from '../../types/eapproval';
-import { LIMIT_APPROVAL_TYPE } from '../../config/env.config';
-
-const APPROVAL_TYPES_ALL = [
-  '매출/매입계약 기안서',
-  '기본양식',
-  '구매신청서',
-  '교육신청서',
-  '경조사비 지급신청서',
-  '휴가 부여 상신',
-];
-
-const APPROVAL_TYPES_PROD = ['휴가 부여 상신'];
-
-const LEAVE_TYPES = [
-  '예비군/민방위 연차',
-  '배우자 출산휴가',
-  '경조사휴가',
-  '산전후휴가',
-  '결혼휴가',
-  '병가',
-];
+import { LEAVE_TYPES } from './ElectronicApprovalDraftPanel.shared';
+import { useElectronicApprovalDraftState } from './ElectronicApprovalDraftPanel.state';
+import ElectronicApprovalDraftPanelModals from './ElectronicApprovalDraftPanel.modals';
 
 const CONTRACT_WEB_URL = 'http://210.107.96.193:3001/contract';
 const PURCHASE_WEB_URL = 'http://210.107.96.193:3001/purchase';
@@ -84,165 +53,79 @@ const DARK_PANEL = '#1A1D1F';
 const LIGHT_TEXT = '#1A1D1F';
 const MUTED_TEXT = '#6C757D';
 
-const getApprovalTypeLabel = (value?: string) => {
-  if (!value) return '';
-  if (value === 'hr_leave_grant') return '휴가 부여 상신';
-  if (value === '매출/매입 계약 기안서') return '매출/매입계약 기안서';
-  return value;
-};
-
-const getApprovalTypeValue = (label?: string) => {
-  if (!label) return '';
-  if (label === '휴가 부여 상신') return 'hr_leave_grant';
-  if (label === '매출/매입계약 기안서') return '매출/매입 계약 기안서';
-  return label;
-};
-
 export default function ElectronicApprovalDraftPanel() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isNarrowDesktop = useMediaQuery(theme.breakpoints.down('lg'));
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme.name === 'Dark';
-  const user = authService.getCurrentUser();
+  const { state, derived, actions } = useElectronicApprovalDraftState();
   const {
+    user,
     isOpen,
     isLoading,
-    pendingData,
+    approvalType,
+    draftingDepartment,
+    isCustomDepartment,
+    departments,
+    retentionPeriod,
+    draftingDate,
+    documentTitle,
+    content,
+    leaveType,
+    grantDays,
+    reason,
+    approvers,
+    ccList,
+    attachments,
+    chatAttachments,
+    isApproverModalOpen,
+    isReferenceModalOpen,
+    isSequentialApproval,
+    webviewOpen,
+    htmlContent,
+    snackbarOpen,
+    snackbarMessage,
+    snackbarSeverity,
+  } = state;
+
+  const { approvalOptions } = derived;
+
+  const {
     closePanel,
-    setLoading,
-    clearPendingData,
-  } = useElectronicApprovalStore();
-
-  const [approvalType, setApprovalType] = useState('');
-  const [draftingDepartment, setDraftingDepartment] = useState('');
-  const [isCustomDepartment, setIsCustomDepartment] = useState(false);
-  const [departments, setDepartments] = useState<string[]>([]);
-  const [retentionPeriod, setRetentionPeriod] = useState('영구');
-  const [draftingDate, setDraftingDate] = useState(new Date().toISOString().slice(0, 10));
-  const [documentTitle, setDocumentTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [leaveType, setLeaveType] = useState('');
-  const [grantDays, setGrantDays] = useState('');
-  const [reason, setReason] = useState('');
-  const [approvers, setApprovers] = useState<Array<{
-    approverId: string;
-    approverName: string;
-    approvalSeq: number;
-    department?: string;
-    jobPosition?: string;
-  }>>([]);
-  const [ccList, setCcList] = useState<EApprovalCcPerson[]>([]);
-  const [attachments, setAttachments] = useState<File[]>([]);
-  const [chatAttachments, setChatAttachments] = useState<EApprovalAttachment[]>([]);
-  const [isApproverModalOpen, setIsApproverModalOpen] = useState(false);
-  const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
-  const [isSequentialApproval, setIsSequentialApproval] = useState(false);
-  const [webviewOpen, setWebviewOpen] = useState(false);
-  const [htmlContent, setHtmlContent] = useState('');
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
-
-  const approvalOptions = LIMIT_APPROVAL_TYPE ? APPROVAL_TYPES_PROD : APPROVAL_TYPES_ALL;
+    setApprovalType,
+    setDraftingDepartment,
+    setIsCustomDepartment,
+    setRetentionPeriod,
+    setDraftingDate,
+    setDocumentTitle,
+    setContent,
+    setLeaveType,
+    setGrantDays,
+    setReason,
+    setApprovers,
+    setCcList,
+    setAttachments,
+    setChatAttachments,
+    setIsApproverModalOpen,
+    setIsReferenceModalOpen,
+    setIsSequentialApproval,
+    setWebviewOpen,
+    setSnackbarOpen,
+    handleAttachmentSelect,
+    handleRemoveAttachment,
+    handleRemoveChatAttachment,
+    handleApproverConfirm,
+    handleSaveApprovalLine,
+    handleSubmit,
+    handleReset,
+  } = actions;
 
   const webviewUrl = useMemo(() => {
     if (approvalType === '매출/매입계약 기안서') return CONTRACT_WEB_URL;
     if (approvalType === '구매신청서') return PURCHASE_WEB_URL;
     return DEFAULT_WEB_URL;
   }, [approvalType]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      clearPendingData();
-      return;
-    }
-
-    const init = async (data?: EApprovalDraftData | null) => {
-      setLoading(true);
-      try {
-        const deptList = await departmentService.getDepartmentList();
-        setDepartments(deptList || []);
-
-        const initialApprovalType = getApprovalTypeLabel(data?.approval_type) || approvalOptions[0];
-        const resolvedApprovalType = LIMIT_APPROVAL_TYPE && initialApprovalType !== '휴가 부여 상신'
-          ? '휴가 부여 상신'
-          : initialApprovalType;
-        setApprovalType(resolvedApprovalType);
-        setDraftingDepartment(data?.department || '');
-        setDocumentTitle(data?.title || '');
-        setContent(data?.content || '');
-        setHtmlContent(data?.html_content || '');
-        setLeaveType(data?.leave_type || '');
-        setGrantDays(data?.grant_days ? String(data.grant_days) : '');
-        setReason(data?.reason || '');
-        setChatAttachments(data?.attachments_list || []);
-
-        if (data?.approval_line && data.approval_line.length > 0) {
-          setApprovers(
-            data.approval_line.map((item, index) => ({
-              approverId: item.approver_id || item.approver_id || '',
-              approverName: item.approver_name || item.approver_name || '',
-              approvalSeq: item.approval_seq || item.approval_seq || index + 1,
-              department: item.department,
-              jobPosition: item.job_position || item.job_position,
-            }))
-          );
-        } else if (user?.userId) {
-          const saved = await leaveService.loadEApprovalLine(user.userId, 'hr_leave_grant');
-          setApprovers(saved.approvalLine || []);
-          setCcList(saved.ccList || []);
-        }
-
-        if (data?.cc_list && data.cc_list.length > 0) {
-          setCcList(data.cc_list);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    init(pendingData);
-  }, [isOpen, pendingData, user?.userId, approvalOptions, clearPendingData, setLoading]);
-
-  const handleAttachmentSelect = (files: FileList | null) => {
-    if (!files) return;
-    setAttachments((prev) => [...prev, ...Array.from(files)]);
-  };
-
-  const handleRemoveAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleRemoveChatAttachment = (index: number) => {
-    setChatAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleReset = () => {
-    setApprovalType(approvalOptions[0] || '');
-    setDraftingDepartment('');
-    setIsCustomDepartment(false);
-    setRetentionPeriod('영구');
-    setDraftingDate(new Date().toISOString().slice(0, 10));
-    setDocumentTitle('');
-    setContent('');
-    setLeaveType('');
-    setGrantDays('');
-    setReason('');
-    setApprovers([]);
-    setCcList([]);
-    setAttachments([]);
-    setChatAttachments([]);
-    setIsSequentialApproval(false);
-    setHtmlContent('');
-  };
-
-  const formatSize = (size?: number) => {
-    if (!size && size !== 0) return '';
-    if (size < 1024) return `${size} B`;
-    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-  };
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
@@ -252,6 +135,18 @@ export default function ElectronicApprovalDraftPanel() {
     if (['xls', 'xlsx'].includes(ext)) return TableChartIcon;
     if (['txt'].includes(ext)) return TextSnippetIcon;
     return InsertDriveFileIcon;
+  };
+
+  const formatSize = (size?: number) => {
+    if (!size && size !== 0) return '-';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let value = size;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+    return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
   };
 
   const panelBorderColor = isDark ? DARK_BORDER : LIGHT_BORDER;
@@ -288,103 +183,6 @@ export default function ElectronicApprovalDraftPanel() {
   };
 
   if (!isOpen) return null;
-
-  const handleApproverConfirm = (_ids: string[], selectedApprovers: any[]) => {
-    const next = selectedApprovers.map((approver, index) => ({
-      approverId: approver.approverId,
-      approverName: approver.approverName,
-      approvalSeq: index + 1,
-      department: approver.department,
-      jobPosition: approver.jobPosition,
-    }));
-    setApprovers(next);
-    setIsApproverModalOpen(false);
-  };
-
-  const handleSaveApprovalLine = async () => {
-    if (!user?.userId || approvers.length === 0) return;
-    try {
-      await leaveService.saveEApprovalLine({
-        userId: user.userId,
-        approvalType: 'hr_leave_grant',
-        approvalLine: approvers.map((item) => ({
-          approverId: item.approverId,
-          approverName: item.approverName,
-          approvalSeq: item.approvalSeq,
-          department: item.department,
-          jobPosition: item.jobPosition,
-        })),
-        ccList: ccList.map((item: any) => ({ user_id: item.user_id || item.userId, name: item.name })),
-      });
-      setSnackbarSeverity('success');
-      setSnackbarMessage('결재라인이 저장되었습니다.');
-      setSnackbarOpen(true);
-    } catch (error: any) {
-      setSnackbarSeverity('error');
-      setSnackbarMessage(error?.message || '결재라인 저장에 실패했습니다.');
-      setSnackbarOpen(true);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!draftingDepartment.trim() || !approvalType) {
-      alert('기안부서와 결재 종류를 입력해주세요.');
-      return;
-    }
-    if (!documentTitle.trim()) {
-      alert('제목을 입력해주세요.');
-      return;
-    }
-    if (approvers.length === 0) {
-      alert('승인자를 선택해주세요.');
-      return;
-    }
-
-    const confirmed = window.confirm('전자결재를 상신하시겠습니까?');
-    if (!confirmed) return;
-
-    setLoading(true);
-    try {
-      if (approvalType === '휴가 부여 상신') {
-        if (!leaveType) {
-          alert('휴가 종류를 선택해주세요.');
-          return;
-        }
-        const grant = Number(grantDays || 0);
-        if (!grant) {
-          alert('휴가 부여 일수를 입력해주세요.');
-          return;
-        }
-
-        await leaveService.submitLeaveGrantRequestMultipart({
-          userId: user?.userId || '',
-          department: draftingDepartment,
-          approvalDate: new Date().toISOString().split('.')[0] + 'Z',
-          approvalType: getApprovalTypeValue(approvalType),
-          approvalLine: approvers.map((item) => ({
-            approverId: item.approverId,
-            approverName: item.approverName,
-            approvalSeq: item.approvalSeq,
-            department: item.department,
-            jobPosition: item.jobPosition,
-          })),
-          title: documentTitle,
-          leaveType,
-          grantDays: grant,
-          reason: reason || '',
-          attachmentsList: chatAttachments,
-          ccList: ccList.map((item: any) => ({ user_id: item.user_id || item.userId, name: item.name })),
-          files: attachments,
-        });
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-      }
-
-      closePanel();
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // 공통 패널 내용 스타일
   const panelContentSx = {
@@ -1066,55 +864,6 @@ export default function ElectronicApprovalDraftPanel() {
     </>
   );
 
-  // 공통 모달들
-  const renderModals = () => (
-    <>
-      <Dialog open={webviewOpen} onClose={() => setWebviewOpen(false)} fullScreen={isMobile} maxWidth="xl" fullWidth>
-        <DialogTitle>결재 상세</DialogTitle>
-        <DialogContent sx={{ p: 0, height: isMobile ? '100%' : '80vh' }}>
-          <iframe title="approval-webview-full" src={webviewUrl} width="100%" height="100%" style={{ border: 0 }} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setWebviewOpen(false)}>닫기</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity={snackbarSeverity}
-          sx={{ width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-
-      <ApproverSelectionModal
-        open={isApproverModalOpen}
-        onClose={() => setIsApproverModalOpen(false)}
-        onConfirm={handleApproverConfirm}
-        initialSelectedApproverIds={approvers.map((item) => item.approverId)}
-        sequentialApproval={isSequentialApproval}
-      />
-
-      <ReferenceSelectionModal
-        open={isReferenceModalOpen}
-        onClose={() => setIsReferenceModalOpen(false)}
-        onConfirm={(refs: any[]) => setCcList(refs.map((ref) => ({
-          name: ref.name,
-          department: ref.department,
-          user_id: ref.userId || ref.user_id,
-        })))}
-        currentReferences={ccList as any}
-      />
-    </>
-  );
-
   // 모바일: 오른쪽 슬라이드 패널
   if (isMobile) {
     return (
@@ -1144,7 +893,29 @@ export default function ElectronicApprovalDraftPanel() {
             {renderPanelContent()}
           </Box>
         </Slide>
-        {renderModals()}
+        <ElectronicApprovalDraftPanelModals
+          isApproverModalOpen={isApproverModalOpen}
+          isReferenceModalOpen={isReferenceModalOpen}
+          isSequentialApproval={isSequentialApproval}
+          webviewOpen={webviewOpen}
+          webviewUrl={webviewUrl}
+          snackbarOpen={snackbarOpen}
+          snackbarMessage={snackbarMessage}
+          snackbarSeverity={snackbarSeverity}
+          isMobile={isMobile}
+          approverIds={approvers.map((item) => item.approverId)}
+          ccList={ccList}
+          onCloseApprover={() => setIsApproverModalOpen(false)}
+          onConfirmApprover={handleApproverConfirm}
+          onCloseReference={() => setIsReferenceModalOpen(false)}
+          onConfirmReference={(refs) => setCcList(refs.map((ref) => ({
+            name: ref.name,
+            department: ref.department,
+            user_id: (ref as any).userId || (ref as any).user_id,
+          })))}
+          onCloseWebview={() => setWebviewOpen(false)}
+          onSnackbarClose={() => setSnackbarOpen(false)}
+        />
       </>
     );
   }
@@ -1179,7 +950,29 @@ export default function ElectronicApprovalDraftPanel() {
           {renderPanelContent()}
         </Box>
       </Box>
-      {renderModals()}
+      <ElectronicApprovalDraftPanelModals
+        isApproverModalOpen={isApproverModalOpen}
+        isReferenceModalOpen={isReferenceModalOpen}
+        isSequentialApproval={isSequentialApproval}
+        webviewOpen={webviewOpen}
+        webviewUrl={webviewUrl}
+        snackbarOpen={snackbarOpen}
+        snackbarMessage={snackbarMessage}
+        snackbarSeverity={snackbarSeverity}
+        isMobile={isMobile}
+        approverIds={approvers.map((item) => item.approverId)}
+        ccList={ccList}
+        onCloseApprover={() => setIsApproverModalOpen(false)}
+        onConfirmApprover={handleApproverConfirm}
+        onCloseReference={() => setIsReferenceModalOpen(false)}
+        onConfirmReference={(refs) => setCcList(refs.map((ref) => ({
+          name: ref.name,
+          department: ref.department,
+          user_id: (ref as any).userId || (ref as any).user_id,
+        })))}
+        onCloseWebview={() => setWebviewOpen(false)}
+        onSnackbarClose={() => setSnackbarOpen(false)}
+      />
     </>
   );
 }
