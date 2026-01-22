@@ -674,7 +674,7 @@ export default function DesktopLeaveManagement({
         </Box>
 
         {/* 메인 컨텐츠 영역 */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           {/* AppBar - Flutter 스타일 */}
           <Box
             sx={{
@@ -706,7 +706,7 @@ export default function DesktopLeaveManagement({
             </Box>
 
             {/* Toolbar Buttons - Flutter 스타일 */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'nowrap', minWidth: 0 }}>
               {/* 휴가관리 사용 가이드 버튼 */}
               <Button
                 variant="text"
@@ -733,6 +733,28 @@ export default function DesktopLeaveManagement({
                 }}
               >
                 AI 메뉴얼
+              </Button>
+
+              {/* 내 휴가계획 AI 추천 버튼 (AppBar로 이동) */}
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AutoAwesomeIcon />}
+                onClick={() => setAiModalOpen(true)}
+                sx={{
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderColor: '#667EEA',
+                  color: '#667EEA',
+                  px: 2,
+                  '&:hover': {
+                    borderColor: '#764BA2',
+                    bgcolor: isDark ? 'rgba(102, 126, 234, 0.05)' : 'rgba(102, 126, 234, 0.05)',
+                  },
+                }}
+              >
+                내 휴가계획 AI 추천
               </Button>
 
               {/* 관리자용 결재 버튼 - 승인자인 경우에만 표시 */}
@@ -814,11 +836,11 @@ export default function DesktopLeaveManagement({
 
           {/* Main Content - Flutter 레이아웃과 동일 */}
           <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%', minWidth: 0 }}>
               {/* 상단 영역: 내 휴가 현황 + 결재진행 현황 */}
-              <Box sx={{ display: 'flex', gap: 1.5, flexShrink: 0, alignItems: 'stretch' }}>
+              <Box sx={{ display: 'flex', gap: 1.5, flexShrink: 0, alignItems: 'stretch', minWidth: 0 }}>
                 {/* 왼쪽: 내 휴가 현황 */}
-                <Box sx={{ flex: 1, display: 'flex' }}>
+                <Box sx={{ flex: '1 1 0', minWidth: 0, display: 'flex' }}>
                   <Card
                     sx={{
                       width: '100%',
@@ -897,7 +919,7 @@ export default function DesktopLeaveManagement({
                 </Box>
 
                 {/* 오른쪽: 결재진행 현황 */}
-                <Box sx={{ flex: 1, display: 'flex' }}>
+                <Box sx={{ flex: '1 1 0', minWidth: 0, display: 'flex' }}>
                   <Card
                     sx={{
                       width: '100%',
@@ -986,41 +1008,33 @@ export default function DesktopLeaveManagement({
               </Box>
 
               {/* 하단 영역: 개인별 휴가 내역 + 달력/휴가 관리 대장 */}
-              <Box sx={{ display: 'flex', gap: 1.5, flex: 1, minHeight: 0 }}>
+              <Box sx={{ display: 'flex', gap: 1.5, flex: 1, minHeight: 0, minWidth: 0 }}>
                 {/* 왼쪽: 개인별 휴가 내역 (50%) */}
-                <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ flex: '1 1 0', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   <Card sx={{ height: '100%', borderRadius: '16px', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.surfaceColor, border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                     <CardContent sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexShrink: 0 }}>
-                        <Typography sx={{ fontSize: '16px', fontWeight: 700, color: colorScheme.textColor }}>개인별 휴가 내역</Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<AutoAwesomeIcon />}
-                            onClick={() => setAiModalOpen(true)}
-                            sx={{
-                              borderRadius: '10px',
-                              textTransform: 'none',
-                              fontWeight: 600,
-                              borderColor: '#667EEA',
-                              color: '#667EEA',
-                              px: 2,
-                              '&:hover': {
-                                borderColor: '#764BA2',
-                                bgcolor: isDark ? 'rgba(102, 126, 234, 0.05)' : 'rgba(102, 126, 234, 0.05)',
-                              },
-                            }}
-                          >
-                            내 휴가계획 AI 추천
-                          </Button>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexShrink: 0, gap: 1, minWidth: 0 }}>
+                        <Typography
+                          noWrap
+                          sx={{
+                            fontSize: '16px',
+                            fontWeight: 700,
+                            color: colorScheme.textColor,
+                            minWidth: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          개인별 휴가 내역
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'nowrap', minWidth: 0 }}>
                           <Chip
                             label={`${filteredCount}건${filteredCount > 0 ? ` (${currentPage}/${totalPages}페이지)` : ''}`}
                             size="small"
                             color={filteredCount > itemsPerPage ? "primary" : "default"}
-                            sx={{ fontSize: '11px' }}
+                            sx={{ fontSize: '11px', flexShrink: 0 }}
                           />
-                          <FormControl size="small" sx={{ minWidth: 100 }}>
+                          <FormControl size="small" sx={{ minWidth: 100, flexShrink: 0 }}>
                             <Select
                               value={selectedYear}
                               onChange={(e) => setSelectedYear(e.target.value as number)}
@@ -1095,9 +1109,19 @@ export default function DesktopLeaveManagement({
                                 }}
                               >
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
                                     {getStatusIcon(detail.status)}
-                                    <Typography sx={{ fontSize: '14px', fontWeight: 600, color: colorScheme.textColor }}>
+                                    <Typography
+                                      noWrap
+                                      sx={{
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        color: colorScheme.textColor,
+                                        minWidth: 0,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                      }}
+                                    >
                                       {detail.leaveType}
                                     </Typography>
                                   </Box>
@@ -1119,10 +1143,27 @@ export default function DesktopLeaveManagement({
                                     }}
                                   />
                                 </Box>
-                                <Typography sx={{ fontSize: '12px', color: colorScheme.hintTextColor }}>
+                                <Typography
+                                  noWrap
+                                  sx={{
+                                    fontSize: '12px',
+                                    color: colorScheme.hintTextColor,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                  }}
+                                >
                                   {dayjs(detail.startDate).format('YYYY-MM-DD')} ~ {dayjs(detail.endDate).format('YYYY-MM-DD')}
                                 </Typography>
-                                <Typography sx={{ fontSize: '12px', color: colorScheme.hintTextColor, mt: 0.5 }}>
+                                <Typography
+                                  noWrap
+                                  sx={{
+                                    fontSize: '12px',
+                                    color: colorScheme.hintTextColor,
+                                    mt: 0.5,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                  }}
+                                >
                                   {detail.reason}
                                 </Typography>
                                 {detail.rejectMessage && (
@@ -1133,7 +1174,15 @@ export default function DesktopLeaveManagement({
                                     borderRadius: 1,
                                     border: `1px solid ${colorScheme.textFieldBorderColor}`
                                   }}>
-                                    <Typography sx={{ fontSize: '11px', color: colorScheme.textColor }}>
+                                    <Typography
+                                      noWrap
+                                      sx={{
+                                        fontSize: '11px',
+                                        color: colorScheme.textColor,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                      }}
+                                    >
                                       <Typography component="span" sx={{ fontWeight: 600 }}>반려 사유:</Typography> {detail.rejectMessage}
                                     </Typography>
                                   </Box>
@@ -1172,7 +1221,7 @@ export default function DesktopLeaveManagement({
                 </Box>
 
                 {/* 오른쪽: 달력 + 휴가 관리 대장 (50%) */}
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5, minHeight: 0 }}>
+                <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', gap: 1.5, minHeight: 0, minWidth: 0 }}>
                   {/* 위: 휴가 일정 달력 (55%) */}
                   <Box sx={{ flex: 5.5, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                     <Card sx={{ height: '100%', borderRadius: '16px', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.surfaceColor, border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
