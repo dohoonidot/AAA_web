@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import leaveService from '../../services/leaveService';
 import type { Approver } from '../../types/leave';
+import { useThemeStore } from '../../store/themeStore';
 
 interface ApproverSelectionModalProps {
   open: boolean;
@@ -48,6 +49,8 @@ export default function ApproverSelectionModal({
   initialSelectedApproverIds = [],
   sequentialApproval = false,
 }: ApproverSelectionModalProps) {
+  const { colorScheme } = useThemeStore();
+  const isDark = colorScheme.name === 'Dark';
   const [approverList, setApproverList] = useState<Approver[]>([]);
   const [selectedApproverIds, setSelectedApproverIds] = useState<Set<string>>(
     new Set(initialSelectedApproverIds)
@@ -153,6 +156,13 @@ export default function ApproverSelectionModal({
       fullWidth
       disableEnforceFocus
       disableAutoFocus
+      sx={{
+        '& .MuiPaper-root': {
+          bgcolor: isDark ? '#1F2937' : 'white',
+          color: isDark ? '#E5E7EB' : '#111827',
+          border: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
+        },
+      }}
     >
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -173,11 +183,11 @@ export default function ApproverSelectionModal({
               {sequentialApproval ? '승인자 선택 (순차결재)' : '승인자 선택'}
             </Typography>
           </Box>
-          <IconButton onClick={onClose} size="small">
+          <IconButton onClick={onClose} size="small" sx={{ color: isDark ? '#E5E7EB' : '#111827' }}>
             <CloseIcon />
           </IconButton>
         </Box>
-        <Typography sx={{ fontSize: '13px', color: '#6B7280', mt: 1 }}>
+        <Typography sx={{ fontSize: '13px', color: isDark ? '#9CA3AF' : '#6B7280', mt: 1 }}>
           {selectedApproverIds.size}명 선택됨
           {sequentialApproval && selectedApproverOrder.length > 0 && (
             <span> · 순서: {selectedApproverOrder.map((_, idx) => idx + 1).join(' → ')}</span>
@@ -193,11 +203,26 @@ export default function ApproverSelectionModal({
             placeholder="이름, 이메일, 부서, 직급으로 검색"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              '& .MuiOutlinedInput-root': {
+                bgcolor: isDark ? '#111827' : 'white',
+                color: isDark ? '#E5E7EB' : '#111827',
+                '& fieldset': {
+                  borderColor: isDark ? '#374151' : '#E5E7EB',
+                },
+                '&:hover fieldset': {
+                  borderColor: isDark ? '#4B5563' : '#D1D5DB',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#1E88E5',
+                },
+              },
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: '#9CA3AF' }} />
+                  <SearchIcon sx={{ color: isDark ? '#9CA3AF' : '#9CA3AF' }} />
                 </InputAdornment>
               ),
             }}
@@ -207,7 +232,7 @@ export default function ApproverSelectionModal({
         {isLoading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
             <CircularProgress />
-            <Typography sx={{ mt: 2, color: '#6B7280' }}>승인자 목록을 불러오는 중...</Typography>
+            <Typography sx={{ mt: 2, color: isDark ? '#9CA3AF' : '#6B7280' }}>승인자 목록을 불러오는 중...</Typography>
           </Box>
         ) : error ? (
           <Box>
@@ -225,15 +250,15 @@ export default function ApproverSelectionModal({
           </Box>
         ) : approverList.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            <PeopleIcon sx={{ fontSize: 64, color: '#E5E7EB', mb: 2 }} />
-            <Typography sx={{ color: '#6B7280' }}>승인자 목록이 없습니다.</Typography>
+            <PeopleIcon sx={{ fontSize: 64, color: isDark ? '#374151' : '#E5E7EB', mb: 2 }} />
+            <Typography sx={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>승인자 목록이 없습니다.</Typography>
           </Box>
         ) : (
           <>
             {/* 선택된 승인자 표시 (모든 모드) */}
             {selectedApproverIds.size > 0 && (
               <Box sx={{ mb: 2 }}>
-                <Typography sx={{ fontSize: '13px', fontWeight: 600, mb: 1, color: '#374151' }}>
+                <Typography sx={{ fontSize: '13px', fontWeight: 600, mb: 1, color: isDark ? '#E5E7EB' : '#374151' }}>
                   {sequentialApproval ? '선택된 승인자 순서' : '선택된 승인자'}
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -253,7 +278,7 @@ export default function ApproverSelectionModal({
                                   width: 24,
                                   height: 24,
                                   borderRadius: '50%',
-                                  bgcolor: 'white',
+                                  bgcolor: isDark ? '#111827' : 'white',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -268,7 +293,7 @@ export default function ApproverSelectionModal({
                                 {approver.approverName}
                               </Typography>
                               {index < selectedApproverOrder.length - 1 && (
-                                <ArrowForwardIcon sx={{ fontSize: 16, color: '#9CA3AF' }} />
+                                <ArrowForwardIcon sx={{ fontSize: 16, color: isDark ? '#9CA3AF' : '#9CA3AF' }} />
                               )}
                             </Box>
                           }
@@ -316,7 +341,7 @@ export default function ApproverSelectionModal({
             <List sx={{ maxHeight: 400, overflow: 'auto' }}>
               {getFilteredApprovers().length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography sx={{ color: '#6B7280' }}>
+                  <Typography sx={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
                     검색 결과가 없습니다.
                   </Typography>
                 </Box>
@@ -335,8 +360,12 @@ export default function ApproverSelectionModal({
                     sx={{
                       mb: 1,
                       borderRadius: '12px',
-                      border: `1px solid ${isSelected ? '#1E88E5' : '#E9ECEF'}`,
-                      bgcolor: isSelected ? 'rgba(30, 136, 229, 0.1)' : '#F8F9FA',
+                      border: `1px solid ${isSelected ? '#1E88E5' : isDark ? '#374151' : '#E9ECEF'}`,
+                      bgcolor: isSelected
+                        ? 'rgba(30, 136, 229, 0.15)'
+                        : isDark
+                          ? '#111827'
+                          : '#F8F9FA',
                     }}
                   >
                     <ListItemButton
@@ -377,7 +406,7 @@ export default function ApproverSelectionModal({
                       <ListItemText
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography sx={{ fontSize: '15px', fontWeight: 600 }}>
+                            <Typography sx={{ fontSize: '15px', fontWeight: 600, color: isDark ? '#E5E7EB' : '#111827' }}>
                               {approver.approverName}
                             </Typography>
                             {approver.jobPosition && (
@@ -385,7 +414,7 @@ export default function ApproverSelectionModal({
                                 label={approver.jobPosition}
                                 size="small"
                                 sx={{
-                                  bgcolor: 'rgba(30, 136, 229, 0.1)',
+                                  bgcolor: isDark ? 'rgba(30, 136, 229, 0.2)' : 'rgba(30, 136, 229, 0.1)',
                                   color: '#1E88E5',
                                   fontSize: '11px',
                                   fontWeight: 600,
@@ -398,15 +427,15 @@ export default function ApproverSelectionModal({
                         secondary={
                           <Box component="div" sx={{ mt: 0.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                              <BusinessIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
-                              <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>
+                              <BusinessIcon sx={{ fontSize: 14, color: isDark ? '#9CA3AF' : '#9CA3AF' }} />
+                              <Typography sx={{ fontSize: '12px', color: isDark ? '#C4C8D1' : '#6B7280' }}>
                                 {approver.department}
                               </Typography>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <EmailIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
+                              <EmailIcon sx={{ fontSize: 14, color: isDark ? '#9CA3AF' : '#9CA3AF' }} />
                               <Typography
-                                sx={{ fontSize: '11px', color: '#9CA3AF' }}
+                                sx={{ fontSize: '11px', color: isDark ? '#9CA3AF' : '#9CA3AF' }}
                                 noWrap
                               >
                                 {approver.approverId}
@@ -427,7 +456,15 @@ export default function ApproverSelectionModal({
       </DialogContent>
 
       <DialogActions sx={{ p: 2, pt: 1 }}>
-        <Button onClick={onClose} variant="outlined" sx={{ flex: 1 }}>
+        <Button
+          onClick={onClose}
+          variant="outlined"
+          sx={{
+            flex: 1,
+            color: isDark ? '#E5E7EB' : '#374151',
+            borderColor: isDark ? '#4B5563' : '#D1D5DB',
+          }}
+        >
           취소
         </Button>
         <Button

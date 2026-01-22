@@ -32,6 +32,7 @@ import {
 import departmentService from '../../services/departmentService';
 import { createLogger } from '../../utils/logger';
 import type { CcPerson } from '../../types/leave';
+import { useThemeStore } from '../../store/themeStore';
 
 const logger = createLogger('ReferenceSelectionModal');
 
@@ -48,6 +49,8 @@ export default function ReferenceSelectionModal({
   onConfirm,
   currentReferences = [],
 }: ReferenceSelectionModalProps) {
+  const { colorScheme } = useThemeStore();
+  const isDark = colorScheme.name === 'Dark';
   const [selectedReferences, setSelectedReferences] = useState<CcPerson[]>(currentReferences);
   const [departments, setDepartments] = useState<string[]>([]);
   const [departmentMembers, setDepartmentMembers] = useState<Map<string, CcPerson[]>>(new Map());
@@ -195,6 +198,13 @@ export default function ReferenceSelectionModal({
       fullWidth
       disableEnforceFocus
       disableAutoFocus
+      sx={{
+        '& .MuiPaper-root': {
+          bgcolor: isDark ? '#1F2937' : 'white',
+          color: isDark ? '#E5E7EB' : '#111827',
+          border: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
+        },
+      }}
     >
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -215,7 +225,7 @@ export default function ReferenceSelectionModal({
               참조자 선택
             </Typography>
           </Box>
-          <IconButton onClick={onClose} size="small">
+          <IconButton onClick={onClose} size="small" sx={{ color: isDark ? '#E5E7EB' : '#111827' }}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -228,11 +238,26 @@ export default function ReferenceSelectionModal({
           placeholder="부서명 또는 이름으로 검색"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          sx={{ mb: 2 }}
+          sx={{
+            mb: 2,
+            '& .MuiOutlinedInput-root': {
+              bgcolor: isDark ? '#111827' : 'white',
+              color: isDark ? '#E5E7EB' : '#111827',
+              '& fieldset': {
+                borderColor: isDark ? '#374151' : '#E5E7EB',
+              },
+              '&:hover fieldset': {
+                borderColor: isDark ? '#4B5563' : '#D1D5DB',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: '#20C997',
+              },
+            },
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ color: '#9CA3AF' }} />
+                <SearchIcon sx={{ color: isDark ? '#9CA3AF' : '#9CA3AF' }} />
               </InputAdornment>
             ),
           }}
@@ -245,8 +270,8 @@ export default function ReferenceSelectionModal({
               p: 1.5,
               mb: 2,
               borderRadius: '12px',
-              bgcolor: 'rgba(32, 201, 151, 0.1)',
-              border: '1px solid rgba(32, 201, 151, 0.2)',
+              bgcolor: isDark ? 'rgba(32, 201, 151, 0.15)' : 'rgba(32, 201, 151, 0.1)',
+              border: `1px solid ${isDark ? 'rgba(32, 201, 151, 0.35)' : 'rgba(32, 201, 151, 0.2)'}`,
             }}
           >
             <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#20C997', mb: 1 }}>
@@ -271,7 +296,7 @@ export default function ReferenceSelectionModal({
                   label={`+${selectedReferences.length - 5}명 더`}
                   size="small"
                   sx={{
-                    bgcolor: 'rgba(32, 201, 151, 0.2)',
+                    bgcolor: isDark ? 'rgba(32, 201, 151, 0.25)' : 'rgba(32, 201, 151, 0.2)',
                     color: '#20C997',
                     fontSize: '10px',
                     height: 20,
@@ -286,7 +311,7 @@ export default function ReferenceSelectionModal({
         {isLoading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
             <CircularProgress />
-            <Typography sx={{ mt: 2, color: '#6B7280' }}>부서 목록을 불러오는 중...</Typography>
+            <Typography sx={{ mt: 2, color: isDark ? '#9CA3AF' : '#6B7280' }}>부서 목록을 불러오는 중...</Typography>
           </Box>
         ) : error ? (
           <Alert severity="error">{error}</Alert>
@@ -305,7 +330,8 @@ export default function ReferenceSelectionModal({
                     sx={{
                       mb: 0.5,
                       borderRadius: '8px',
-                      bgcolor: '#F8F9FA',
+                      bgcolor: isDark ? '#111827' : '#F8F9FA',
+                      border: isDark ? '1px solid #374151' : '1px solid transparent',
                     }}
                   >
                     <ListItemButton onClick={() => toggleDepartmentExpansion(department)}>
@@ -325,24 +351,24 @@ export default function ReferenceSelectionModal({
                             marginRight: 1,
                           }}
                         />
-                        <BusinessIcon sx={{ color: '#6B7280', fontSize: 18 }} />
+                        <BusinessIcon sx={{ color: isDark ? '#9CA3AF' : '#6B7280', fontSize: 18 }} />
                       </ListItemIcon>
                       <ListItemText
                         primary={
-                          <Typography sx={{ fontSize: '14px', fontWeight: 600 }}>
+                          <Typography sx={{ fontSize: '14px', fontWeight: 600, color: isDark ? '#E5E7EB' : '#111827' }}>
                             {department}
                           </Typography>
                         }
                         secondary={
-                          <Typography sx={{ fontSize: '12px', color: '#9CA3AF' }}>
+                          <Typography sx={{ fontSize: '12px', color: isDark ? '#9CA3AF' : '#9CA3AF' }}>
                             {members.length}명
                           </Typography>
                         }
                       />
                       {isExpanded ? (
-                        <ExpandLessIcon sx={{ color: '#6B7280' }} />
+                        <ExpandLessIcon sx={{ color: isDark ? '#9CA3AF' : '#6B7280' }} />
                       ) : (
-                        <ExpandMoreIcon sx={{ color: '#6B7280' }} />
+                        <ExpandMoreIcon sx={{ color: isDark ? '#9CA3AF' : '#6B7280' }} />
                       )}
                     </ListItemButton>
                   </ListItem>
@@ -360,8 +386,12 @@ export default function ReferenceSelectionModal({
                               pl: 4,
                               mb: 0.5,
                               borderRadius: '8px',
-                              bgcolor: isSelected ? 'rgba(32, 201, 151, 0.1)' : 'transparent',
-                              border: `1px solid ${isSelected ? '#20C997' : 'transparent'}`,
+                              bgcolor: isSelected
+                                ? 'rgba(32, 201, 151, 0.15)'
+                                : isDark
+                                  ? '#0F172A'
+                                  : 'transparent',
+                              border: `1px solid ${isSelected ? '#20C997' : isDark ? '#1F2937' : 'transparent'}`,
                             }}
                           >
                             <ListItemButton onClick={() => togglePerson(member)}>
@@ -379,7 +409,7 @@ export default function ReferenceSelectionModal({
                               </ListItemIcon>
                               <ListItemText
                                 primary={
-                                  <Typography sx={{ fontSize: '14px', fontWeight: 500 }}>
+                                  <Typography sx={{ fontSize: '14px', fontWeight: 500, color: isDark ? '#E5E7EB' : '#111827' }}>
                                     {member.name}
                                   </Typography>
                                 }
@@ -398,7 +428,15 @@ export default function ReferenceSelectionModal({
       </DialogContent>
 
       <DialogActions sx={{ p: 2, pt: 1 }}>
-        <Button onClick={onClose} variant="outlined" sx={{ flex: 1 }}>
+        <Button
+          onClick={onClose}
+          variant="outlined"
+          sx={{
+            flex: 1,
+            color: isDark ? '#E5E7EB' : '#374151',
+            borderColor: isDark ? '#4B5563' : '#D1D5DB',
+          }}
+        >
           취소
         </Button>
         <Button
