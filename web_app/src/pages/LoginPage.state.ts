@@ -6,6 +6,7 @@ export const useLoginPageState = () => {
   const navigate = useNavigate();
   const [privacyDialogOpen, setPrivacyDialogOpen] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string>('');
+  const [loginLoading, setLoginLoading] = useState(false);
 
   useEffect(() => {
     const checkPrivacyAgreement = () => {
@@ -40,10 +41,12 @@ export const useLoginPageState = () => {
     state: {
       privacyDialogOpen,
       pendingUserId,
+      loginLoading,
     },
     actions: {
       setPrivacyDialogOpen,
       setPendingUserId,
+      setLoginLoading,
       handleLoginSuccess,
       handlePrivacyAgreed,
       handlePrivacyDisagreed,

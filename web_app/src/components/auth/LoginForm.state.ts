@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import authService from '../../services/authService';
 import type { FormEvent, KeyboardEvent } from 'react';
 
 export const useLoginFormState = ({
   onLoginSuccess,
   navigate,
+  onLoadingChange,
 }: {
   onLoginSuccess: () => void;
   navigate: (path: string) => void;
+  onLoadingChange?: (loading: boolean) => void;
 }) => {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +19,10 @@ export const useLoginFormState = ({
   const [passwordChangeDialogOpen, setPasswordChangeDialogOpen] = useState(false);
   const [privacyDialogOpen, setPrivacyDialogOpen] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string>('');
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

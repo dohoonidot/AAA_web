@@ -16,11 +16,12 @@ import { useLoginFormState } from './LoginForm.state';
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
-export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
+export default function LoginForm({ onLoginSuccess, onLoadingChange }: LoginFormProps) {
   const navigate = useNavigate();
-  const { state, actions } = useLoginFormState({ onLoginSuccess, navigate });
+  const { state, actions } = useLoginFormState({ onLoginSuccess, navigate, onLoadingChange });
   const {
     userId,
     password,
@@ -147,7 +148,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         {loading ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CircularProgress size={20} color="inherit" />
-            로그인 중...
+            잠시만 기다려 주세요
           </Box>
         ) : (
           '로그인'

@@ -1,12 +1,14 @@
-import { Box, Container, Paper, Typography } from '@mui/material';
+import { Box, Container, Paper, Typography, useMediaQuery, useTheme } from '@mui/material';
 import LoginForm from '../components/auth/LoginForm';
 import PrivacyAgreementDialog from '../components/auth/PrivacyAgreementDialog';
 import { useLoginPageState } from './LoginPage.state';
 
 export default function LoginPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { state, actions } = useLoginPageState();
-  const { privacyDialogOpen, pendingUserId } = state;
-  const { handleLoginSuccess, handlePrivacyAgreed, handlePrivacyDisagreed } = actions;
+  const { privacyDialogOpen, pendingUserId, loginLoading } = state;
+  const { handleLoginSuccess, handlePrivacyAgreed, handlePrivacyDisagreed, setLoginLoading } = actions;
 
   return (
     <Box
@@ -70,11 +72,12 @@ export default function LoginPage() {
               color="text.secondary"
               sx={{ fontSize: '0.9rem' }}
             >
-              데스크톱 웹 버전
+              {!loginLoading &&
+                (isMobile ? '모바일 웹 버전' : '데스크톱 웹 버전')}
             </Typography>
           </Box>
 
-          <LoginForm onLoginSuccess={handleLoginSuccess} />
+          <LoginForm onLoginSuccess={handleLoginSuccess} onLoadingChange={setLoginLoading} />
 
           {/* 개인정보 동의 모달 (이미 로그인된 상태이지만 동의가 안 된 경우) */}
           {pendingUserId && (
