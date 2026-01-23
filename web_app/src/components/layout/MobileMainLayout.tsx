@@ -99,7 +99,7 @@ export default function MobileMainLayout({
           </Box>
         </Box>
         <Chip
-          label="모바일 웹 버전"
+          label={isMobile ? '모바일 웹 버전' : '데스크톱 웹 버전'}
           size="small"
           sx={{
             bgcolor: '#e3f2fd',
@@ -219,7 +219,7 @@ export default function MobileMainLayout({
           <ListItemButton
             onClick={() => {
               setHelpDialogOpen(true);
-              setMobileOpen(false);
+              handleDrawerClose();
             }}
             selected={helpDialogOpen}
             sx={{
