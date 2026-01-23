@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TextField,
@@ -10,9 +10,9 @@ import {
   IconButton
 } from '@mui/material';
 import { Person, Lock, Visibility, VisibilityOff } from '@mui/icons-material';
-import authService from '../../services/authService';
 import PasswordChangeDialog from './PasswordChangeDialog';
 import PrivacyAgreementDialog from './PrivacyAgreementDialog';
+import { useLoginFormState } from './LoginForm.state';
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
@@ -20,70 +20,28 @@ interface LoginFormProps {
 
 export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const navigate = useNavigate();
-  const [userId, setUserId] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordChangeDialogOpen, setPasswordChangeDialogOpen] = useState(false);
-  const [privacyDialogOpen, setPrivacyDialogOpen] = useState(false);
-  const [pendingUserId, setPendingUserId] = useState<string>('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const response = await authService.login({ user_id: userId, password });
-
-      // 디버깅: 로그인 응답 확인
-      console.log('🔐 [LoginForm] 로그인 응답:', response);
-      console.log('🔐 [LoginForm] is_approver:', response.is_approver);
-
-      if (response.status_code === 200) {
-        // 개인정보 동의 여부 확인
-        if (response.is_agreed === 0) {
-          // 개인정보 동의 모달 표시 (필수)
-          setPendingUserId(userId);
-          setPrivacyDialogOpen(true);
-        } else {
-          // 동의 상태면 바로 이동
-          navigate('/chat');
-          onLoginSuccess();
-        }
-      } else {
-        setError('로그인에 실패했습니다.');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || '로그인에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePrivacyAgreed = () => {
-    // 개인정보 동의 완료 후 모달 닫기 및 채팅 페이지로 이동
-    setPrivacyDialogOpen(false);
-    setPendingUserId(''); // pendingUserId도 초기화하여 모달 컴포넌트 언마운트
-    navigate('/chat');
-    onLoginSuccess();
-  };
-
-  const handlePrivacyDisagreed = async () => {
-    // 동의 안 함: 서버에 0 저장 후, 로그인 상태 유지 + 채팅 화면 이동
-    setPrivacyDialogOpen(false);
-    setPendingUserId('');
-    sessionStorage.setItem('privacy_disagree_dismissed', '1');
-    navigate('/chat');
-    onLoginSuccess();
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !loading) {
-      handleSubmit(e as any);
-    }
-  };
+  const { state, actions } = useLoginFormState({ onLoginSuccess, navigate });
+  const {
+    userId,
+    password,
+    error,
+    loading,
+    showPassword,
+    passwordChangeDialogOpen,
+    privacyDialogOpen,
+    pendingUserId,
+  } = state;
+  const {
+    setUserId,
+    setPassword,
+    setShowPassword,
+    setPasswordChangeDialogOpen,
+    setPrivacyDialogOpen,
+    handleSubmit,
+    handlePrivacyAgreed,
+    handlePrivacyDisagreed,
+    handleKeyPress,
+  } = actions;
 
   return (
     <Box

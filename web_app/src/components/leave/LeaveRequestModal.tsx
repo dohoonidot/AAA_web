@@ -3,7 +3,7 @@
  * LeaveRequestDraftPanel과 100% 동일한 구현
  */
 
-import { useEffect, useState } from 'react';
+import { createLogger } from '../../utils/logger';
 import {
   Box,
   Typography,
@@ -36,12 +36,10 @@ import {
   Save as SaveIcon,
 } from '@mui/icons-material';
 import { useThemeStore } from '../../store/themeStore';
-import authService from '../../services/authService';
 import ApproverSelectionModal from './ApproverSelectionModal';
 import ReferenceSelectionModal from './ReferenceSelectionModal';
-import leaveService from '../../services/leaveService';
-import { createLogger } from '../../utils/logger';
 import type { LeaveStatus } from '../../types/leave';
+import { useLeaveRequestModalState } from './LeaveRequestModal.state';
 
 const logger = createLogger('LeaveRequestModal');
 
@@ -51,24 +49,6 @@ interface LeaveRequestModalProps {
   onSubmit: () => void;
   userId: string;
   leaveStatusList?: LeaveStatus[];
-}
-
-interface ApprovalLineData {
-  approverName: string;
-  approverId: string;
-  approvalSeq: number;
-}
-
-interface CcPersonData {
-  name: string;
-  userId: string;
-  department: string;
-}
-
-interface LeaveStatusData {
-  leaveType: string;
-  totalDays: number;
-  remainDays: number;
 }
 
 export default function LeaveRequestModal({
@@ -82,347 +62,55 @@ export default function LeaveRequestModal({
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // < 900px = 모바일
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme.name === 'Dark';
-  const user = authService.getCurrentUser();
-
-  // 폼 데이터 상태 (Zustand store 대신 로컬 state)
-  const [leaveType, setLeaveType] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [reason, setReason] = useState('');
-  const [approvalLine, setApprovalLine] = useState<ApprovalLineData[]>([]);
-  const [ccList, setCcList] = useState<CcPersonData[]>([]);
-  const [isLeaveBalanceExpanded, setIsLeaveBalanceExpanded] = useState(true);
-  const [isSequentialApproval, setIsSequentialApproval] = useState(false);
-
-  // 로컬 상태 (LeaveRequestDraftPanel과 동일)
-  const [useNextYear, setUseNextYear] = useState(false);
-  const [halfDay, setHalfDay] = useState(false);
-  const [halfDayPeriod, setHalfDayPeriod] = useState<'AM' | 'PM'>('AM');
-  const [userName, setUserName] = useState('');
-  const [leaveStatusList, setLeaveStatusList] = useState<LeaveStatusData[]>([]);
-  const [nextYearLeaveTypes, setNextYearLeaveTypes] = useState<string[]>([]);
-  const [nextYearLeaveStatus, setNextYearLeaveStatus] = useState<Array<{leaveType: string; totalDays: number; remainDays: number}>>([]);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // 모달 상태
-  const [isApproverModalOpen, setIsApproverModalOpen] = useState(false);
-  const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (open && user && !isDataLoaded) {
-      logger.dev('모달 열림');
-      loadInitialData();
-    }
-  }, [open, user, isDataLoaded]);
-
-  // 모달 닫힐 때 로드 플래그 리셋
-  useEffect(() => {
-    if (!open) {
-      setIsDataLoaded(false);
-    }
-  }, [open]);
-
-  // 초기 데이터 로드 (LeaveRequestDraftPanel과 동일)
-  const loadInitialData = async () => {
-    if (!user?.userId) return;
-
-    try {
-      // 1. 사용자 이름 설정 (저장된 사용자 정보로부터 가져오기)
-      const currentUser = authService.getCurrentUser();
-      if (currentUser?.name) {
-        setUserName(currentUser.name);
-      } else {
-        logger.warn('사용자 정보 없음, userId 사용:', user.userId);
-        setUserName(user.userId);
-      }
-
-      // 2. 결재라인 설정 (저장된 결재라인 불러오기)
-      try {
-        const approvalLineData = await leaveService.loadApprovalLine(user.userId);
-
-        // 승인자 설정
-        if (approvalLineData.approvalLine && approvalLineData.approvalLine.length > 0) {
-          logger.dev('저장된 결재라인 불러옴:', approvalLineData.approvalLine);
-          const loadedApprovalLine: ApprovalLineData[] = approvalLineData.approvalLine.map((item) => ({
-            approverName: item.approverName,
-            approverId: item.approverId,
-            approvalSeq: item.approvalSeq,
-          }));
-          setApprovalLine(loadedApprovalLine);
-        }
-
-        // 참조자 설정
-        if (approvalLineData.ccList && approvalLineData.ccList.length > 0) {
-          logger.dev('저장된 참조자 불러옴:', approvalLineData.ccList);
-          const loadedCcList: CcPersonData[] = approvalLineData.ccList.map((item) => ({
-            name: item.name,
-            userId: item.userId,
-            department: '',
-          }));
-          setCcList(loadedCcList);
-        }
-      } catch (error) {
-        logger.dev('저장된 결재라인 없음 (사용자가 직접 선택)');
-      }
-
-      // 3. 휴가 현황 데이터 설정 (props에서 우선 확인, 없으면 API 호출)
-      if (propLeaveStatusList && propLeaveStatusList.length > 0) {
-        logger.dev('props에서 받은 휴가 현황 사용:', propLeaveStatusList);
-        const convertedData: LeaveStatusData[] = propLeaveStatusList.map((item: any) => ({
-          leaveType: item.leaveType || item.leave_type,
-          totalDays: item.totalDays || item.total_days,
-          remainDays: item.remainDays || item.remain_days,
-        }));
-        setLeaveStatusList(convertedData);
-      } else {
-        // API로부터 내 휴가 현황 조회
-        try {
-          const leaveManagementData = await leaveService.getLeaveManagement(user.userId);
-          if (leaveManagementData.leaveStatus) {
-            logger.dev('API에서 조회한 휴가 현황 사용:', leaveManagementData.leaveStatus);
-            const leaveStatusData = leaveManagementData.leaveStatus.map(item => ({
-              leaveType: item.leaveType,
-              totalDays: item.totalDays,
-              remainDays: item.remainDays,
-            }));
-            setLeaveStatusList(leaveStatusData);
-          }
-        } catch (error) {
-          logger.error('휴가 현황 조회 실패:', error);
-        }
-      }
-
-      // 데이터 로드 완료
-      setIsDataLoaded(true);
-    } catch (error) {
-      logger.error('초기 데이터 로드 실패:', error);
-      setIsDataLoaded(true); // 에러가 나도 플래그 설정
-    }
-  };
-
-  // 승인자 선택 핸들러 (LeaveRequestDraftPanel과 동일)
-  const handleApproverConfirm = (selectedApproverIds: string[], selectedApprovers: any[]) => {
-    logger.dev('선택된 승인자 IDs:', selectedApproverIds);
-    logger.dev('선택된 승인자 정보:', selectedApprovers);
-    // ApprovalLineData 형식으로 변환 (이름 포함)
-    const newApprovalLine: ApprovalLineData[] = selectedApprovers.map((approver, index) => ({
-      approverName: approver.approverName,
-      approverId: approver.approverId,
-      approvalSeq: index + 1, // 순차결재 순서
-    }));
-    setApprovalLine(newApprovalLine);
-    setIsApproverModalOpen(false);
-  };
-
-  // 참조자 선택 핸들러 (LeaveRequestDraftPanel과 동일)
-  const handleReferenceConfirm = (selectedReferences: any[]) => {
-    logger.dev('선택된 참조자:', selectedReferences);
-    // CcPerson을 CcPersonData로 변환 (userId 추가)
-    const newCcList: CcPersonData[] = selectedReferences.map((ref) => ({
-      name: ref.name,
-      userId: ref.userId || ref.user_id || '', // API 응답에 따라 userId 추출
-      department: ref.department,
-    }));
-    setCcList(newCcList);
-    setIsReferenceModalOpen(false);
-  };
-
-  // 결재라인 저장 핸들러 (LeaveRequestDraftPanel과 동일)
-  const handleSaveApprovalLine = async () => {
-    if (!user?.userId) {
-      alert('사용자 정보를 찾을 수 없습니다.');
-      return;
-    }
-
-    if (!approvalLine || approvalLine.length === 0) {
-      alert('승인자를 선택해주세요.');
-      return;
-    }
-
-    try {
-      logger.dev('결재라인 저장 시작:', {
-        approvalLine,
-        ccList,
-        isSequentialApproval,
-      });
-
-      // ApprovalLineData를 API 형식으로 변환
-      const apiApprovalLine = approvalLine.map((item, index, arr) => ({
-        approverId: item.approverId,
-        nextApproverId: index < arr.length - 1 ? arr[index + 1].approverId : '', // 다음 승인자 ID
-        approvalSeq: index + 1, // 1부터 시작하는 순서
-        approverName: item.approverName,
-      }));
-
-      const apiCcList = (ccList || []).map((item) => ({
-        name: item.name,
-        userId: item.userId || '',
-        department: item.department || '',
-        jobPosition: '', // 참조자의 직급 정보는 별도로 조회 필요
-      }));
-
-      const result = await leaveService.saveApprovalLine({
-        userId: user.userId,
-        approvalLine: apiApprovalLine,
-        ccList: apiCcList,
-      });
-
-      if (result.error) {
-        alert(`결재라인 저장 실패: ${result.error}`);
-      } else {
-        alert('결재라인이 저장되었습니다.');
-      }
-    } catch (error: any) {
-      logger.error('결재라인 저장 실패:', error);
-      alert(`결재라인 저장 중 오류가 발생했습니다: ${error.message}`);
-    }
-  };
-
-  // 내년 정기휴가 체크박스 핸들러 (LeaveRequestDraftPanel과 동일)
-  const handleNextYearCheckbox = async (checked: boolean) => {
-    setUseNextYear(checked);
-
-    if (checked && user?.userId) {
-      try {
-        // 내년 정기휴가 API 호출
-        const nextYearData = await leaveService.getNextYearLeaveStatus(user.userId);
-        logger.dev('내년 정기휴가 조회:', nextYearData);
-
-        // snake_case 응답 처리
-        const leaveStatusData = nextYearData.leave_status || nextYearData.leaveStatus;
-        if (leaveStatusData && leaveStatusData.length > 0) {
-          // 전체 객체 저장 (잔여일수, 허용일수 포함)
-          const statusWithDays = leaveStatusData.map((item: any) => ({
-            leaveType: item.leave_type || item.leaveType,
-            totalDays: item.total_days || item.totalDays,
-            remainDays: item.remain_days || item.remainDays,
-          }));
-          logger.dev('내년 휴가 현황 설정:', statusWithDays);
-          setNextYearLeaveStatus(statusWithDays);
-
-          const leaveTypes = statusWithDays.map((item) => item.leaveType);
-          setNextYearLeaveTypes(leaveTypes);
-        }
-      } catch (error) {
-        logger.error('내년 정기휴가 조회 실패:', error);
-      }
-    } else {
-      setNextYearLeaveTypes([]);
-      setNextYearLeaveStatus([]);
-    }
-  };
-
-  // 휴가 신청 핸들러
-  const handleSubmit = async () => {
-    if (!user?.userId) {
-      alert('사용자 정보를 찾을 수 없습니다.');
-      return;
-    }
-
-    if (!leaveType) {
-      alert('휴가 종류를 선택해주세요.');
-      return;
-    }
-
-    if (!startDate || !endDate) {
-      alert('시작일과 종료일을 선택해주세요.');
-      return;
-    }
-
-    // 사유는 선택사항으로 변경
-    // if (!reason.trim()) {
-    //   alert('휴가 사유를 입력해주세요.');
-    //   return;
-    // }
-
-    if (!approvalLine || approvalLine.length === 0) {
-      alert('승인자를 선택해주세요.');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // 날짜를 ISO 8601 형식으로 변환
-      const formatDateForApi = (dateStr: string): string => {
-        const date = new Date(dateStr);
-        const utcDate = new Date(
-          Date.UTC(
-            date.getFullYear(),
-            date.getMonth(),
-            date.getDate(),
-            date.getHours(),
-            date.getMinutes(),
-            date.getSeconds()
-          )
-        );
-        return utcDate.toISOString().replace('.000Z', 'Z');
-      };
-
-      // 반차 타입 변환
-      const getHalfDaySlotValue = (): string => {
-        if (halfDay && halfDayPeriod === 'AM') return 'AM';
-        if (halfDay && halfDayPeriod === 'PM') return 'PM';
-        return 'ALL';
-      };
-
-      // 순차결재 모드인 경우 approvalLine 생성
-      const apiApprovalLine = approvalLine.map((item, index, arr) => ({
-        approverId: item.approverId,
-        nextApproverId: index < arr.length - 1 ? arr[index + 1].approverId : '',
-        approvalSeq: index + 1,
-        approverName: item.approverName,
-      }));
-
-      const request = {
-        userId: user.userId,
-        leaveType,
-        startDate: formatDateForApi(startDate),
-        endDate: formatDateForApi(endDate),
-        approvalLine: apiApprovalLine,
-        ccList: ccList.map(cc => ({
-          name: cc.name,
-          department: cc.department || '',
-          userId: cc.userId,
-        })),
-        reason: reason.trim(),
-        halfDaySlot: getHalfDaySlotValue(),
-        isNextYear: useNextYear ? 1 : 0,
-      };
-
-      await leaveService.submitLeaveRequest(request);
-      alert('휴가 신청이 완료되었습니다.');
-      handleClose();
-      onSubmit();
-    } catch (error: any) {
-      logger.error('휴가 신청 실패:', error);
-      alert(`휴가 신청 중 오류가 발생했습니다: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleClose = () => {
-    // 초기화
-    setLeaveType('');
-    setStartDate('');
-    setEndDate('');
-    setReason('');
-    setUseNextYear(false);
-    setHalfDay(false);
-    setHalfDayPeriod('AM');
-    setIsDataLoaded(false);
-    onClose();
-  };
-
-  const toggleLeaveBalance = () => {
-    setIsLeaveBalanceExpanded(!isLeaveBalanceExpanded);
-  };
+  const { state, actions } = useLeaveRequestModalState({
+    open,
+    onClose,
+    onSubmit,
+    leaveStatusList: propLeaveStatusList,
+  });
+  const {
+    leaveType,
+    startDate,
+    endDate,
+    reason,
+    approvalLine,
+    ccList,
+    isLeaveBalanceExpanded,
+    isSequentialApproval,
+    useNextYear,
+    halfDay,
+    halfDayPeriod,
+    userName,
+    leaveStatusList,
+    nextYearLeaveStatus,
+    isLoading,
+    isApproverModalOpen,
+    isReferenceModalOpen,
+  } = state;
+  const {
+    setLeaveType,
+    setStartDate,
+    setEndDate,
+    setReason,
+    setIsSequentialApproval,
+    setHalfDay,
+    setHalfDayPeriod,
+    setIsApproverModalOpen,
+    setIsReferenceModalOpen,
+    handleApproverConfirm,
+    handleReferenceConfirm,
+    handleSaveApprovalLine,
+    handleNextYearCheckbox,
+    handleSubmit,
+    handleClose,
+    toggleLeaveBalance,
+  } = actions;
 
   if (!open) {
     return null;
   }
+
+
 
   return (
     <>

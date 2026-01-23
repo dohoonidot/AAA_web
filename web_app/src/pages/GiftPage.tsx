@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Box, 
   Typography, 
@@ -30,147 +30,38 @@ import {
   PhoneAndroid as PhoneAndroidIcon,
 } from '@mui/icons-material';
 import MobileMainLayout from '../components/layout/MobileMainLayout';
-import giftService from '../services/giftService';
-import type { Gift } from '../types/gift';
-import authService from '../services/authService';
 import { useNavigate } from 'react-router-dom';
+import { useGiftPageState } from './GiftPage.state';
 
 export default function GiftPage() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [gifts, setGifts] = useState<Gift[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  
-  // 모바일 내보내기 관련 상태
-  const [mobileExportDialogOpen, setMobileExportDialogOpen] = useState(false);
-  const [mobileExportLoading, setMobileExportLoading] = useState(false);
-  const [mobileExportGiftUrl, setMobileExportGiftUrl] = useState<string | null>(null);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
-  useEffect(() => {
-    loadGifts();
-  }, []);
-
-  const loadGifts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      const response = await giftService.checkGifts(user.userId);
-      console.log('받은 선물 목록:', response);
-      console.log('받은 선물 개수:', response.gifts?.length || 0);
-      
-      if (response.gifts && response.gifts.length > 0) {
-        console.log('첫 번째 선물 데이터:', response.gifts[0]);
-        console.log('선물 필드들:', Object.keys(response.gifts[0]));
-        // 쿠폰 이미지 URL 필드 확인
-        response.gifts.forEach((gift, index) => {
-          console.log(`선물 ${index + 1}:`, {
-            coupon_img_url: gift.coupon_img_url,
-            couponImgUrl: gift.couponImgUrl,
-            hasCouponImage: !!(gift.coupon_img_url || gift.couponImgUrl),
-            allFields: gift
-          });
-        });
-      }
-      
-      setGifts(response.gifts || []);
-    } catch (err: any) {
-      console.error('선물 목록 로드 실패:', err);
-      setError(err.response?.data?.message || '선물 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGiftClick = (gift: Gift) => {
-    setSelectedGift(gift);
-    setDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setSelectedGift(null);
-  };
-
-
-  // 브라우저에서 열기 핸들러
-  const handleOpenInBrowser = (url: string, event?: React.MouseEvent) => {
-    if (event) {
-      event.stopPropagation(); // 카드 클릭 이벤트 방지
-    }
-    window.open(url, '_blank');
-  };
-
-  // 모바일로 내보내기 확인 다이얼로그 열기
-  const handleOpenMobileExportDialog = (url: string, event?: React.MouseEvent) => {
-    if (event) {
-      event.stopPropagation(); // 카드 클릭 이벤트 방지
-    }
-    setMobileExportGiftUrl(url);
-    setMobileExportDialogOpen(true);
-  };
-
-  // 모바일로 내보내기 확인 다이얼로그 닫기
-  const handleCloseMobileExportDialog = () => {
-    setMobileExportDialogOpen(false);
-    setMobileExportGiftUrl(null);
-  };
-
-  // 모바일로 내보내기 실행
-  const handleSendToMobile = async () => {
-    if (!mobileExportGiftUrl) return;
-
-    try {
-      setMobileExportLoading(true);
-      const response = await giftService.sendToMobile(mobileExportGiftUrl);
-      
-      console.log('모바일 내보내기 성공:', response);
-      
-      setSnackbarMessage(response.message || '모바일로 전송되었습니다.');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      
-      handleCloseMobileExportDialog();
-    } catch (err: any) {
-      console.error('모바일 내보내기 실패:', err);
-      setSnackbarMessage(err.message || '모바일 내보내기에 실패했습니다.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    } finally {
-      setMobileExportLoading(false);
-    }
-  };
-
-  // Snackbar 닫기
-  const handleCloseSnackbar = () => {
-    setSnackbarOpen(false);
-  };
-
-  // 쿠폰 이미지 URL 가져오기 헬퍼 함수 (두 필드 모두 지원)
-  const getCouponImageUrl = (gift: Gift): string | undefined => {
-    const url = gift.coupon_img_url || gift.couponImgUrl;
-    if (!url) {
-      console.log('쿠폰 이미지 URL 없음:', {
-        coupon_img_url: gift.coupon_img_url,
-        couponImgUrl: gift.couponImgUrl,
-        giftId: gift.id
-      });
-    }
-    return url;
-  };
+  const { state, actions } = useGiftPageState();
+  const {
+    gifts,
+    loading,
+    error,
+    selectedGift,
+    dialogOpen,
+    mobileExportDialogOpen,
+    mobileExportLoading,
+    mobileExportGiftUrl,
+    snackbarOpen,
+    snackbarMessage,
+    snackbarSeverity,
+  } = state;
+  const {
+    handleGiftClick,
+    handleCloseDialog,
+    handleOpenInBrowser,
+    handleOpenMobileExportDialog,
+    handleCloseMobileExportDialog,
+    handleSendToMobile,
+    handleCloseSnackbar,
+    getCouponImageUrl,
+  } = actions;
 
   return (
     <MobileMainLayout>

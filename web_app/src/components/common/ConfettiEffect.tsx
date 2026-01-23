@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { Box } from '@mui/material';
+import { useConfettiEffectState, useConfettiState } from './ConfettiEffect.state';
 
 interface ConfettiEffectProps {
   active: boolean;
@@ -25,34 +25,8 @@ interface ConfettiEffectProps {
  * npm install react-confetti
  */
 export default function ConfettiEffect({ active, duration = 5000, onComplete }: ConfettiEffectProps) {
-  const [windowSize, setWindowSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    if (active && duration > 0) {
-      const timer = setTimeout(() => {
-        if (onComplete) {
-          onComplete();
-        }
-      }, duration);
-
-      return () => clearTimeout(timer);
-    }
-  }, [active, duration, onComplete]);
+  const { state } = useConfettiEffectState({ active, duration, onComplete });
+  const { windowSize } = state;
 
   if (!active) {
     return null;
@@ -143,17 +117,15 @@ export default function ConfettiEffect({ active, duration = 5000, onComplete }: 
  * ```
  */
 export function useConfetti(duration = 5000) {
-  const [active, setActive] = useState(false);
-
-  const triggerConfetti = () => {
-    setActive(true);
-  };
+  const { state, actions } = useConfettiState({ duration });
+  const { active } = state;
+  const { triggerConfetti, handleComplete } = actions;
 
   const ConfettiComponent = (
     <ConfettiEffect
       active={active}
       duration={duration}
-      onComplete={() => setActive(false)}
+      onComplete={handleComplete}
     />
   );
 

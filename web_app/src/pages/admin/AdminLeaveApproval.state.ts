@@ -76,6 +76,23 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
     setNameSearchFilter('');
   };
 
+  const handleYearMonthConfirm = async () => {
+    try {
+      const user = authService.getCurrentUser();
+      if (!user) return;
+
+      const month = dayjs(modalCalendarDate).format('YYYY-MM');
+      const response = await fetchAdminDeptCalendar(user.userId, month);
+
+      if (response.monthlyLeaves) {
+        setCalendarLeaves(response.monthlyLeaves);
+      }
+    } catch (err: any) {
+      logger.error('부서별 달력 조회 실패:', err);
+    }
+    setYearMonthPickerOpen(false);
+  };
+
   const hasActiveFilters = departmentFilter ||
     positionFilter ||
     leaveTypeFilters.size > 0 ||
@@ -725,6 +742,7 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
       showBatchRejectDialog,
       loadAdminData,
       loadYearlyWaitingList,
+      handleYearMonthConfirm,
     },
   };
 };

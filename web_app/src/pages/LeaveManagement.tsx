@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -41,13 +41,13 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import leaveService from '../services/leaveService';
 import authService from '../services/authService';
 import LeaveRequestModal from '../components/leave/LeaveRequestModal';
 import LeaveCancelRequestDialog from '../components/leave/LeaveCancelRequestDialog';
 import LeaveSidebar from '../components/leave/LeaveSidebar';
 import PersonalCalendar from '../components/calendar/PersonalCalendar';
-import type { LeaveManagementData, YearlyDetail } from '../types/leave';
+import type { YearlyDetail } from '../types/leave';
+import { useLeaveManagementState } from './LeaveManagement.state';
 
 export default function LeaveManagement() {
   const theme = useTheme();
@@ -56,118 +56,38 @@ export default function LeaveManagement() {
   const isDark = theme.palette.mode === 'dark';
   const navigate = useNavigate();
 
-  // 상태 관리
-  const [leaveData, setLeaveData] = useState<LeaveManagementData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { state, actions } = useLeaveManagementState({ isMobile });
+  const {
+    leaveData,
+    loading,
+    error,
+    requestModalOpen,
+    cancelDialogOpen,
+    selectedLeave,
+    hideCanceled,
+    selectedYear,
+    yearlyDetails,
+    yearlyLoading,
+    currentPage,
+    itemsPerPage,
+    sidebarExpanded,
+    sidebarPinned,
+    detailDrawerOpen,
+  } = state;
+  const {
+    setRequestModalOpen,
+    setCancelDialogOpen,
+    setSelectedLeave,
+    setHideCanceled,
+    setSelectedYear,
+    setSidebarExpanded,
+    setSidebarPinned,
+    setDetailDrawerOpen,
+    loadLeaveData,
+    handlePageChange,
+    setError,
+  } = actions;
 
-  // UI 상태
-  const [requestModalOpen, setRequestModalOpen] = useState(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [selectedLeave, setSelectedLeave] = useState<YearlyDetail | null>(null);
-  const [hideCanceled, setHideCanceled] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
-  // 연도별 휴가 내역 (필터링된 데이터)
-  const [yearlyDetails, setYearlyDetails] = useState<YearlyDetail[]>([]);
-  const [yearlyLoading, setYearlyLoading] = useState(false);
-
-  // 페이지네이션 상태
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = isMobile ? 5 : 10; // 모바일: 5개, 데스크톱: 10개
-
-  // 사이드바 상태
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [sidebarPinned, setSidebarPinned] = useState(false);
-
-  // 상세 보기 drawer (모바일)
-  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
-
-  // 데이터 로드
-  useEffect(() => {
-    loadLeaveData();
-  }, []);
-
-  // 연도 변경 시 연도별 휴가 내역 조회
-  useEffect(() => {
-    if (selectedYear && leaveData) {
-      loadYearlyLeaveData(selectedYear);
-    }
-  }, [selectedYear]);
-
-  const loadLeaveData = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      const data = await leaveService.getLeaveManagement(user.userId);
-      setLeaveData(data);
-
-      // 초기 연도별 데이터 로드
-      if (data) {
-        await loadYearlyLeaveData(selectedYear);
-      }
-    } catch (err: any) {
-      console.error('휴가관리 데이터 로드 실패:', err);
-      setError('데이터를 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 연도별 휴가 내역 조회
-  const loadYearlyLeaveData = async (year: number) => {
-    try {
-      setYearlyLoading(true);
-      const user = authService.getCurrentUser();
-      if (!user) return;
-
-      console.log('연도별 휴가 내역 조회:', year);
-
-      const response = await leaveService.getYearlyLeave({
-        userId: user.userId,
-        year: year,
-      });
-
-      console.log('연도별 휴가 내역 응답:', response);
-
-      if (response.yearlyDetails) {
-        setYearlyDetails(response.yearlyDetails);
-      } else if (leaveData?.yearlyDetails) {
-        // API 응답이 없으면 기존 데이터에서 필터링
-        const filtered = leaveData.yearlyDetails.filter(detail => {
-          const detailYear = new Date(detail.startDate).getFullYear();
-          return detailYear === year;
-        });
-        setYearlyDetails(filtered);
-      }
-    } catch (err: any) {
-      console.error('연도별 휴가 내역 조회 실패:', err);
-      // 에러 발생 시 기존 데이터에서 필터링
-      if (leaveData?.yearlyDetails) {
-        const filtered = leaveData.yearlyDetails.filter(detail => {
-          const detailYear = new Date(detail.startDate).getFullYear();
-          return detailYear === selectedYear;
-        });
-        setYearlyDetails(filtered);
-      }
-    } finally {
-      setYearlyLoading(false);
-    }
-  };
-
-  // 연도 변경 시 페이지 초기화
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedYear]);
-
-  // 상태 색상
   const getStatusColor = (status: string) => {
     if (status.includes('REQUESTED')) return '#FF8C00';
     if (status === 'APPROVED') return '#20C997';
@@ -175,14 +95,12 @@ export default function LeaveManagement() {
     return '#6B7280';
   };
 
-  // 상태 아이콘
   const getStatusIcon = (status: string) => {
     if (status === 'APPROVED') return <CheckCircleIcon sx={{ fontSize: 18 }} />;
     if (status === 'REJECTED') return <CancelIcon sx={{ fontSize: 18 }} />;
     return <ScheduleIcon sx={{ fontSize: 18 }} />;
   };
 
-  // 상태 레이블
   const getStatusLabel = (leave: YearlyDetail) => {
     if (leave.isCancel === 1) return '🔄 취소 대기';
     if (leave.status === 'REQUESTED') return '대기';
@@ -191,17 +109,13 @@ export default function LeaveManagement() {
     return leave.status;
   };
 
-  // 취소 가능 여부 확인
   const isCancelable = (leave: YearlyDetail) => {
     return leave.status === 'APPROVED' && leave.isCancel !== 1;
   };
 
-  // 필터링된 휴가 내역
   const getFilteredYearlyDetails = () => {
-    // 연도별 조회된 데이터 사용 (있으면)
     let filtered = yearlyDetails.length > 0 ? yearlyDetails : (leaveData?.yearlyDetails || []);
 
-    // 취소건 숨김
     if (hideCanceled) {
       filtered = filtered.filter((leave) => leave.status !== 'CANCELLED');
     }
@@ -209,7 +123,6 @@ export default function LeaveManagement() {
     return filtered;
   };
 
-  // 페이지네이션이 적용된 데이터
   const getPaginatedYearlyDetails = () => {
     const allFiltered = getFilteredYearlyDetails();
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -218,15 +131,9 @@ export default function LeaveManagement() {
     return allFiltered.slice(startIndex, endIndex);
   };
 
-  // 총 페이지 수 계산
   const getTotalPages = () => {
     const totalItems = getFilteredYearlyDetails().length;
     return Math.ceil(totalItems / itemsPerPage);
-  };
-
-  // 페이지 변경 핸들러
-  const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
-    setCurrentPage(page);
   };
 
   if (loading) {

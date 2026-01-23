@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Box,
   Popover,
@@ -15,7 +14,7 @@ import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
 } from '@mui/icons-material';
 import { useThemeStore } from '../../store/themeStore';
-import { useChatStore } from '../../store/chatStore';
+import { useAiModelSelectorState } from './AiModelSelector.state';
 
 // AI 모델 정의 (Flutter와 동일)
 const AI_MODELS = [
@@ -45,26 +44,12 @@ interface AiModelSelectorProps {
 
 export default function AiModelSelector({ size = 'small' }: AiModelSelectorProps) {
   const { colorScheme } = useThemeStore();
-  const { selectedModel, setSelectedModel } = useChatStore();
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const { state, actions } = useAiModelSelectorState();
+  const { selectedModel, anchorEl, open } = state;
+  const { handleClick, handleClose, handleSelect } = actions;
   const isDark = colorScheme.name === 'Dark';
 
   const currentModel = AI_MODELS.find((m) => m.id === selectedModel) || AI_MODELS[0];
-
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleSelect = (modelId: string) => {
-    setSelectedModel(modelId);
-    handleClose();
-  };
-
-  const open = Boolean(anchorEl);
 
   return (
     <>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -30,9 +30,9 @@ import {
   FormatListNumbered as SequentialIcon,
   ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
-import leaveService from '../../services/leaveService';
 import type { Approver } from '../../types/leave';
 import { useThemeStore } from '../../store/themeStore';
+import { useApproverSelectionModalState } from './ApproverSelectionModal.state';
 
 interface ApproverSelectionModalProps {
   open: boolean;
@@ -51,102 +51,23 @@ export default function ApproverSelectionModal({
 }: ApproverSelectionModalProps) {
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme.name === 'Dark';
-  const [approverList, setApproverList] = useState<Approver[]>([]);
-  const [selectedApproverIds, setSelectedApproverIds] = useState<Set<string>>(
-    new Set(initialSelectedApproverIds)
-  );
-  // 순차결재 모드에서 선택된 승인자의 순서를 추적
-  const [selectedApproverOrder, setSelectedApproverOrder] = useState<string[]>(
-    initialSelectedApproverIds
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchText, setSearchText] = useState('');
-
-  useEffect(() => {
-    if (open) {
-      setSelectedApproverIds(new Set(initialSelectedApproverIds));
-      // 순차결재 모드인 경우 초기 순서 리스트 설정
-      if (sequentialApproval) {
-        setSelectedApproverOrder(initialSelectedApproverIds);
-      }
-      setSearchText(''); // 모달 열릴 때 검색어 초기화
-      loadApprovers();
-    }
-  }, [open, initialSelectedApproverIds, sequentialApproval]);
-
-  const loadApprovers = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await leaveService.getApproverList();
-      
-      if (response.error) {
-        setError(response.error);
-      } else {
-        setApproverList(response.approverList || []);
-      }
-    } catch (err: any) {
-      console.error('승인자 목록 로드 실패:', err);
-      setError('승인자 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleToggleApprover = (approverId: string) => {
-    const newSelected = new Set(selectedApproverIds);
-    if (newSelected.has(approverId)) {
-      // 선택 해제
-      newSelected.delete(approverId);
-      // 순차결재 모드인 경우 순서 리스트에서도 제거
-      if (sequentialApproval) {
-        setSelectedApproverOrder((prev) => prev.filter((id) => id !== approverId));
-      }
-    } else {
-      // 선택 추가
-      newSelected.add(approverId);
-      // 순차결재 모드인 경우 선택 순서 추적
-      if (sequentialApproval) {
-        setSelectedApproverOrder((prev) => [...prev, approverId]);
-      }
-    }
-    setSelectedApproverIds(newSelected);
-  };
-
-  const handleConfirm = () => {
-    // 순차결재 모드인 경우 순서가 있는 리스트 반환
-    // 일반 모드인 경우 Set을 List로 변환하여 반환
-    const resultIds = sequentialApproval
-      ? selectedApproverOrder
-      : Array.from(selectedApproverIds);
-
-    // 선택된 승인자의 전체 정보 가져오기
-    const selectedApprovers = resultIds
-      .map(id => approverList.find(a => a.approverId === id))
-      .filter((a): a is Approver => a !== undefined);
-
-    onConfirm(resultIds, selectedApprovers);
-    onClose();
-  };
-
-  // 검색어로 필터링된 승인자 목록
-  const getFilteredApprovers = (): Approver[] => {
-    if (!searchText.trim()) {
-      return approverList;
-    }
-    
-    const searchLower = searchText.toLowerCase();
-    return approverList.filter((approver) => {
-      return (
-        approver.approverName.toLowerCase().includes(searchLower) ||
-        approver.approverId.toLowerCase().includes(searchLower) ||
-        approver.department.toLowerCase().includes(searchLower) ||
-        approver.jobPosition.toLowerCase().includes(searchLower)
-      );
-    });
-  };
+  const { state, actions } = useApproverSelectionModalState({
+    open,
+    onClose,
+    onConfirm,
+    initialSelectedApproverIds,
+    sequentialApproval,
+  });
+  const {
+    approverList,
+    selectedApproverIds,
+    selectedApproverOrder,
+    isLoading,
+    error,
+    searchText,
+    filteredApprovers,
+  } = state;
+  const { setSearchText, loadApprovers, handleToggleApprover, handleConfirm } = actions;
 
   return (
     <Dialog
@@ -339,14 +260,14 @@ export default function ApproverSelectionModal({
             )}
             
             <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-              {getFilteredApprovers().length === 0 ? (
+              {filteredApprovers.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
                   <Typography sx={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
                     검색 결과가 없습니다.
                   </Typography>
                 </Box>
               ) : (
-                getFilteredApprovers().map((approver) => {
+                filteredApprovers.map((approver) => {
                 const isSelected = selectedApproverIds.has(approver.approverId);
                 // 순차결재 모드에서 순서 번호 표시
                 const sequenceNumber = sequentialApproval && isSelected
@@ -479,4 +400,3 @@ export default function ApproverSelectionModal({
     </Dialog>
   );
 }
-

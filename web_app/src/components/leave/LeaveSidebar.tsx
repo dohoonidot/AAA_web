@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   Drawer,
   IconButton,
   Typography,
   Button,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
 import {
   CalendarToday as CalendarIcon,
@@ -14,6 +12,7 @@ import {
   CalendarMonth as CalendarMonthIcon,
   Description as DescriptionIcon,
 } from '@mui/icons-material';
+import { useLeaveSidebarState } from './LeaveSidebar.state';
 
 interface LeaveSidebarProps {
   isExpanded: boolean;
@@ -34,8 +33,8 @@ export default function LeaveSidebar({
   onCalendarOpen,
   onNoticeOpen,
 }: LeaveSidebarProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { state } = useLeaveSidebarState();
+  const { isMobile } = state;
 
   // 모바일에서는 Drawer로 표시
   if (isMobile) {

@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { Box, Typography, Paper, IconButton } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import dayjs from 'dayjs';
+import { useVacationCalendarGridState } from './VacationCalendarGrid.state';
 
 interface VacationCalendarGridProps {
     recommendedDates: string[];
@@ -13,13 +14,9 @@ const VacationCalendarGrid: React.FC<VacationCalendarGridProps> = ({
     recommendedDates,
     isDarkTheme,
 }) => {
-    const initialYear = recommendedDates.length > 0
-        ? dayjs(recommendedDates[0]).year()
-        : dayjs().year();
-    const [displayYear, setDisplayYear] = useState(initialYear);
-    const [displayMonth, setDisplayMonth] = useState(0);
-
-    const recommendedSet = useMemo(() => new Set(recommendedDates), [recommendedDates]);
+    const { state, actions } = useVacationCalendarGridState({ recommendedDates });
+    const { displayYear, displayMonth, recommendedSet } = state;
+    const { handlePrev, handleNext } = actions;
 
     // 특정 월의 일수 및 시작 요일 계산
     const getDaysInMonth = (month: number, year: number) => {
@@ -117,26 +114,6 @@ const VacationCalendarGrid: React.FC<VacationCalendarGridProps> = ({
                 </Box>
             </Paper>
         );
-    };
-
-    const handlePrev = () => {
-        setDisplayMonth((prev) => {
-            if (prev === 0) {
-                setDisplayYear((year) => year - 1);
-                return 11;
-            }
-            return prev - 1;
-        });
-    };
-
-    const handleNext = () => {
-        setDisplayMonth((prev) => {
-            if (prev === 11) {
-                setDisplayYear((year) => year + 1);
-                return 0;
-            }
-            return prev + 1;
-        });
     };
 
     return (

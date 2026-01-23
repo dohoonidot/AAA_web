@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React from 'react';
 import {
   Box,
   List,
@@ -10,7 +9,6 @@ import {
   Chip,
   Divider,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   BusinessCenter as BusinessCenterIcon,
@@ -18,8 +16,8 @@ import {
   BeachAccess as BeachAccessIcon,
   EmojiEvents as EmojiEventsIcon,
 } from '@mui/icons-material';
-import { useChatStore } from '../../store/chatStore';
 import type { Archive } from '../../types';
+import { useChatSidebarState } from './ChatSidebar.state';
 
 interface ChatSidebarProps {
   isMobile: boolean;
@@ -27,50 +25,11 @@ interface ChatSidebarProps {
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobile, onMobileMenuClose }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-
-  const {
-    archives,
-    currentArchive,
-    setCurrentArchive,
-    setMessages,
-  } = useChatStore();
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  // 아카이브 클릭 핸들러
-  const handleArchiveClick = async (archive: Archive) => {
-    try {
-      setIsLoading(true);
-      setCurrentArchive(archive);
-
-      // 채팅 내역 로드 (실제로는 chatService에서 가져와야 함)
-      // const messages = await chatService.getArchiveDetail(archive.archive_id);
-      // setMessages(messages);
-
-      // 채팅 페이지로 이동
-      navigate('/chat');
-
-      if (isMobile && onMobileMenuClose) {
-        onMobileMenuClose();
-      }
-    } catch (error) {
-      console.error('아카이브 로드 실패:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 업무 메뉴 클릭 핸들러
-  const handleMenuClick = (path: string) => {
-    navigate(path);
-    if (isMobile && onMobileMenuClose) {
-      onMobileMenuClose();
-    }
-  };
+  const { state, actions } = useChatSidebarState({ isMobile, onMobileMenuClose });
+  const { archives, currentArchive } = state;
+  const { handleArchiveClick, handleMenuClick } = actions;
 
   // 아카이브 아이콘 결정
   const getArchiveIcon = (archive: Archive) => {

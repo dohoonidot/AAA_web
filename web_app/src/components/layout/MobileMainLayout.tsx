@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React from 'react';
 import {
   Box,
   AppBar,
@@ -22,18 +21,15 @@ import {
 import {
   Menu as MenuIcon,
   Chat as ChatIcon,
-  Event as EventIcon,
-  Assignment as AssignmentIcon,
-  CardGiftcard as GiftIcon,
   Settings as SettingsIcon,
   Help as HelpIcon,
   Logout as LogoutIcon,
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
-import authService from '../../services/authService';
 import ChatSidebar from '../chat/ChatSidebar';
 import { GiftButton } from '../common/GiftBox';
 import HelpDialog from '../common/HelpDialog';
+import { useMobileMainLayoutState } from './MobileMainLayout.state';
 
 const DRAWER_WIDTH = 280;
 
@@ -54,150 +50,19 @@ export default function MobileMainLayout({
   showBackButton = false,
   onBackClick
 }: MobileMainLayoutProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isDark = theme.palette.mode === 'dark';
-  const navigate = useNavigate();
-  const location = useLocation();
-  const user = authService.getCurrentUser();
-  const drawerRef = useRef<HTMLDivElement>(null);
 
-
-  // is_approver에 따라 휴가관리 경로 분기
-  const isApprover = user?.isApprover || false;
-
-  // 디버깅: isApprover 값 확인
-  console.log('📍 [MobileMainLayout] user:', user);
-  console.log('📍 [MobileMainLayout] isApprover:', isApprover);
-
-  const workMenuItems = [
-    {
-      text: '전자결재',
-      icon: <AssignmentIcon />,
-      path: '/approval',
-    },
-    {
-      text: '휴가 관리',
-      icon: <EventIcon />,
-      // 승인자인 경우 관리자 휴가관리로 바로 이동
-      path: isApprover ? '/admin-leave' : '/leave',
-    },
-    {
-      text: '받은선물함',
-      icon: <GiftIcon />,
-      path: '/gift',
-    },
-  ];
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
-  const handleDrawerClose = () => {
-    setMobileOpen(false);
-  };
-
-  // 사이드바가 열릴 때 포커스 관리 및 aria-hidden 제거
-  useEffect(() => {
-    if (mobileOpen && isMobile) {
-      // MutationObserver로 aria-hidden 속성 실시간 제거
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.type === 'attributes' && mutation.attributeName === 'aria-hidden') {
-            const target = mutation.target as HTMLElement;
-            // root 요소나 그 자식 요소에서 aria-hidden 제거
-            if (target.id === 'root' || target.closest('#root')) {
-              const rootElement = document.getElementById('root');
-              if (rootElement && rootElement.getAttribute('aria-hidden') === 'true') {
-                rootElement.removeAttribute('aria-hidden');
-              }
-            }
-          }
-        });
-      });
-
-      // root 요소 관찰 시작
-      const rootElement = document.getElementById('root');
-      if (rootElement) {
-        observer.observe(rootElement, {
-          attributes: true,
-          attributeFilter: ['aria-hidden'],
-          subtree: true, // 자식 요소도 관찰
-        });
-
-        // 즉시 aria-hidden 제거
-        if (rootElement.getAttribute('aria-hidden') === 'true') {
-          rootElement.removeAttribute('aria-hidden');
-        }
-      }
-
-      // 전체 문서에서 포커스된 요소 찾기 및 제거
-      const activeElement = document.activeElement as HTMLElement;
-      if (activeElement && activeElement !== document.body) {
-        // AppBar의 버튼은 포커스 유지 (접근성)
-        if (!activeElement.closest('header') && !activeElement.closest('[role="banner"]')) {
-          activeElement.blur();
-        }
-      }
-
-      // 메인 콘텐츠의 모든 포커스 가능한 요소에서 포커스 제거
-      const mainContent = document.querySelector('main');
-      if (mainContent) {
-        const focusableElements = mainContent.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        focusableElements.forEach(element => {
-          (element as HTMLElement).blur();
-        });
-      }
-
-      // 주기적으로 aria-hidden 제거 (추가 보장)
-      const intervalId = setInterval(() => {
-        const rootElement = document.getElementById('root');
-        if (rootElement && rootElement.getAttribute('aria-hidden') === 'true') {
-          rootElement.removeAttribute('aria-hidden');
-        }
-      }, 50); // 더 빠른 간격으로 체크
-
-      // 사이드바가 열릴 때 첫 번째 포커스 가능한 요소에 포커스
-      if (drawerRef.current) {
-        const firstFocusableElement = drawerRef.current.querySelector(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        ) as HTMLElement;
-
-        if (firstFocusableElement) {
-          setTimeout(() => {
-            firstFocusableElement.focus();
-          }, 200);
-        }
-      }
-
-      // 정리 함수
-      return () => {
-        observer.disconnect();
-        clearInterval(intervalId);
-      };
-    } else {
-      // 사이드바가 닫힐 때 aria-hidden 제거
-      const rootElement = document.getElementById('root');
-      if (rootElement && rootElement.getAttribute('aria-hidden') === 'true') {
-        rootElement.removeAttribute('aria-hidden');
-      }
-    }
-  }, [mobileOpen, isMobile]);
-
-  const handleMenuClick = (path: string) => {
-    navigate(path);
-    if (isMobile) {
-      setMobileOpen(false);
-    }
-  };
-
-  const handleLogout = () => {
-    authService.logout();
-  };
+  const { state, actions } = useMobileMainLayoutState({ isMobile });
+  const { mobileOpen, helpDialogOpen, user, location, drawerRef, workMenuItems } = state;
+  const {
+    setHelpDialogOpen,
+    handleDrawerToggle,
+    handleDrawerClose,
+    handleMenuClick,
+    handleLogout,
+  } = actions;
 
   const drawer = (
     <Box ref={drawerRef} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -289,9 +154,10 @@ export default function MobileMainLayout({
                   color: location.pathname === item.path ? '#1976d2' : 'text.secondary',
                 }}
               >
-                {
-                  item.icon
-                }
+                {(() => {
+                  const Icon = item.icon;
+                  return <Icon />;
+                })()}
               </ListItemIcon>
               <ListItemText
                 primary={item.text}

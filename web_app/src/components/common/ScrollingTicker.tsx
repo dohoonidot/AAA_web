@@ -1,7 +1,6 @@
 import { Box, Typography, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
-import { useThemeStore } from '../../store/themeStore';
-import { useState, useEffect } from 'react';
+import { useScrollingTickerState } from './ScrollingTicker.state';
 
 export interface TickerMessage {
   id: string;
@@ -17,35 +16,9 @@ interface ScrollingTickerProps {
 }
 
 export default function ScrollingTicker({ messages, onClose }: ScrollingTickerProps) {
-  const { colorScheme } = useThemeStore();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
-
-  // 현재 메시지
-  const currentMessage = messages[currentIndex];
-
-  // 메시지 자동 변경 (5초마다)
-  useEffect(() => {
-    if (messages.length <= 1) return;
-
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % messages.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [messages.length]);
-
-  // 자동 닫힘 처리
-  useEffect(() => {
-    if (!currentMessage?.autoClose) return;
-
-    const duration = currentMessage.duration || 10000; // 기본 10초
-    const timeout = setTimeout(() => {
-      handleClose(currentMessage.id);
-    }, duration);
-
-    return () => clearTimeout(timeout);
-  }, [currentMessage]);
+  const { state, actions } = useScrollingTickerState({ messages, onClose });
+  const { currentMessage, isVisible } = state;
+  const { handleClose } = actions;
 
   // 메시지가 없으면 숨김
   if (messages.length === 0 || !isVisible) {
@@ -70,17 +43,6 @@ export default function ScrollingTicker({ messages, onClose }: ScrollingTickerPr
       default:
         return '#1D4487';
     }
-  };
-
-  const handleClose = (messageId: string) => {
-    setIsVisible(false);
-    if (onClose) {
-      onClose(messageId);
-    }
-    // 0.3초 후에 다시 표시 (애니메이션 완료 후)
-    setTimeout(() => {
-      setIsVisible(true);
-    }, 300);
   };
 
   return (

@@ -46,16 +46,11 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import authService from '../services/authService';
 import { useThemeStore } from '../store/themeStore';
-import { createLogger } from '../utils/logger';
 import { AdminCalendarSidebar } from '../components/admin/AdminCalendarSidebar';
-import { fetchAdminDeptCalendar } from './admin/AdminLeaveApproval.data';
 import { RenderReasonWithCancelHighlight } from './admin/AdminLeaveApproval.shared';
 import { useAdminLeaveApprovalState } from './admin/AdminLeaveApproval.state';
 import AdminLeaveApprovalModals from './admin/AdminLeaveApproval.modals';
-
-const logger = createLogger('AdminLeaveApprovalPage');
 
 
 const AdminLeaveApprovalPage: React.FC = () => {
@@ -180,6 +175,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
     showBatchRejectDialog,
     loadAdminData,
     loadYearlyWaitingList,
+    handleYearMonthConfirm,
   } = actions;
 
   const stats = getStats();
@@ -194,22 +190,6 @@ const AdminLeaveApprovalPage: React.FC = () => {
 
   const selectedHolidayName = getHolidayName(selectedDate, holidays);
   const modalSelectedHolidayName = getHolidayName(modalSelectedDate, modalHolidays);
-  const handleYearMonthConfirm = async () => {
-    try {
-      const user = authService.getCurrentUser();
-      if (!user) return;
-
-      const month = dayjs(modalCalendarDate).format('YYYY-MM');
-      const response = await fetchAdminDeptCalendar(user.userId, month);
-
-      if (response.monthlyLeaves) {
-        setCalendarLeaves(response.monthlyLeaves);
-      }
-    } catch (err: any) {
-      logger.error('부서별 달력 조회 실패:', err);
-    }
-    setYearMonthPickerOpen(false);
-  };
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.backgroundColor, position: 'relative' }}>

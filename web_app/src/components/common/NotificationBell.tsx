@@ -5,7 +5,7 @@
  * Flutter 앱과 동일한 알림함 기능 제공
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import {
   Badge,
   IconButton,
@@ -32,7 +32,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { notificationApi } from '../../services/notificationApi';
 import {
   getIconByQueueName,
   getTitleByQueueName,
@@ -40,8 +39,8 @@ import {
   formatAbsoluteDateTime,
   sanitizeNotificationPreview,
 } from '../../utils/notificationHelpers';
-import type { AlertItem } from '../../types/notification';
 import LeaveAnalyzeNotificationContent from '../leave/LeaveAnalyzeNotificationContent';
+import { useNotificationBellState } from './NotificationBell.state';
 
 interface NotificationBellProps {
   /** 사용자 ID (이메일) */
@@ -69,138 +68,33 @@ export function NotificationBell({
   const panelSurface = isDark ? '#111827' : 'white';
   const panelBorder = isDark ? 'rgba(255,255,255,0.08)' : 'divider';
   const headerBg = isDark ? '#1E3A8A' : '#1D4487';
-  const [internalOpen, setInternalOpen] = useState(false);
-  const [notifications, setNotifications] = useState<AlertItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [selectedNotification, setSelectedNotification] =
-    useState<AlertItem | null>(null);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [clearAllConfirmOpen, setClearAllConfirmOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  // 외부 제어 또는 내부 제어
-  const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
-  const handleClose = () => {
-    if (externalOnClose) {
-      externalOnClose();
-    } else {
-      setInternalOpen(false);
-    }
-  };
-  const handleOpen = () => {
-    if (externalOpen === undefined) {
-      setInternalOpen(true);
-    }
-  };
-
-  /**
-   * 알림 목록 로드
-   */
-  const loadNotifications = useCallback(async () => {
-    try {
-      setLoading(true);
-      const alerts = await notificationApi.getAlerts(userId);
-      setNotifications(alerts);
-
-      // 읽지 않은 알림 개수 계산
-      const unread = alerts.filter((alert) => !alert.is_read).length;
-      setUnreadCount(unread);
-    } catch (error) {
-      console.error('[NotificationBell] 알림 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  /**
-   * 컴포넌트 마운트 시 & 주기적으로 알림 로드
-   */
-  useEffect(() => {
-    loadNotifications();
-
-    // 주기적 새로고침
-    const intervalId = setInterval(loadNotifications, refreshInterval);
-
-    return () => clearInterval(intervalId);
-  }, [loadNotifications, refreshInterval]);
-
-  /**
-   * 알림 클릭 시 읽음 처리 및 상세 모달 열기
-   */
-  const handleNotificationClick = async (alert: AlertItem) => {
-    // 읽지 않은 알림인 경우 읽음 처리
-    if (!alert.is_read) {
-      try {
-        const updatedAlerts = await notificationApi.markAsRead(userId, alert.id);
-        setNotifications(updatedAlerts);
-
-        // 읽지 않은 알림 개수 업데이트
-        const unread = updatedAlerts.filter((a) => !a.is_read).length;
-        setUnreadCount(unread);
-      } catch (error) {
-        console.error('[NotificationBell] 읽음 처리 실패:', error);
-      }
-    }
-
-    // 상세 모달 열기 (모든 알림 타입에 대해 동일한 모달 사용)
-    setSelectedNotification(alert);
-    setDetailModalOpen(true);
-  };
-
-  /**
-   * 알림 삭제
-   */
-  const handleDelete = async (
-    alertId: number,
-    event: React.MouseEvent
-  ) => {
-    event.stopPropagation();
-
-    try {
-      const updatedAlerts = await notificationApi.deleteAlert(userId, alertId);
-      setNotifications(updatedAlerts);
-
-      // 읽지 않은 알림 개수 업데이트
-      const unread = updatedAlerts.filter((a) => !a.is_read).length;
-      setUnreadCount(unread);
-    } catch (error) {
-      console.error('[NotificationBell] 삭제 실패:', error);
-    }
-  };
-
-  /**
-   * 모두 읽음 처리
-   */
-  const handleMarkAllAsRead = async () => {
-    const unreadAlerts = notifications.filter((alert) => !alert.is_read);
-
-    for (const alert of unreadAlerts) {
-      try {
-        await notificationApi.markAsRead(userId, alert.id);
-      } catch (error) {
-        console.error('[NotificationBell] 읽음 처리 실패:', error);
-      }
-    }
-
-    // 알림 목록 새로고침
-    await loadNotifications();
-  };
-
-  /**
-   * 모두 삭제
-   */
-  const handleClearAll = async () => {
-    for (const alert of notifications) {
-      try {
-        await notificationApi.deleteAlert(userId, alert.id);
-      } catch (error) {
-        console.error('[NotificationBell] 삭제 실패:', error);
-      }
-    }
-
-    // 알림 목록 새로고침
-    await loadNotifications();
-  };
+  const { state, actions } = useNotificationBellState({
+    userId,
+    refreshInterval,
+    externalOpen,
+    externalOnClose,
+  });
+  const {
+    notifications,
+    unreadCount,
+    selectedNotification,
+    detailModalOpen,
+    clearAllConfirmOpen,
+    loading,
+    isOpen,
+  } = state;
+  const {
+    handleOpen,
+    handleClose,
+    loadNotifications,
+    handleNotificationClick,
+    handleDelete,
+    handleMarkAllAsRead,
+    handleClearAll,
+    setClearAllConfirmOpen,
+    setDetailModalOpen,
+    setSelectedNotification,
+  } = actions;
 
   return (
     <>

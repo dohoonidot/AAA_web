@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,11 +14,7 @@ import {
   Alert,
 } from '@mui/material';
 import { Close as CloseIcon, Security as SecurityIcon, CheckCircle as CheckCircleIcon, Cancel as CancelIcon } from '@mui/icons-material';
-import authService from '../../services/authService';
-import settingsService from '../../services/settingsService';
-import { createLogger } from '../../utils/logger';
-
-const logger = createLogger('PrivacyAgreementDialog');
+import { usePrivacyAgreementDialogState } from './PrivacyAgreementDialog.state';
 
 // 개인정보 동의서 내용
 const PRIVACY_CONTENT = {
@@ -91,54 +87,25 @@ export default function PrivacyAgreementDialog({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isDark = theme.palette.mode === 'dark';
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleAgreement = async (isAgreed: boolean) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      logger.dev('개인정보 동의 상태 업데이트:', { userId, isAgreed });
-      const response = await settingsService.updatePrivacyAgreement(userId, isAgreed);
-
-      logger.dev('개인정보 동의 상태 업데이트 응답:', response);
-
-      if (response.success) {
-        // 메모리의 사용자 정보 업데이트
-        await authService.updatePrivacy(userId, isAgreed);
-        
-        logger.dev(`개인정보 동의 상태 업데이트 완료: ${isAgreed ? '동의함' : '동의안함'}`);
-        
-        // API 호출 성공 후 즉시 콜백 호출
-        if (isAgreed) {
-          onAgreed();
-        } else {
-          // 동의 안 함은 별도 플로우(예: 로그아웃/로그인 유지)
-          if (onDisagreed) onDisagreed();
-          else onAgreed(); // 하위호환(기존 호출부)
-        }
-      } else {
-        setError(response.error || '개인정보 동의 상태 업데이트에 실패했습니다.');
-        setLoading(false);
-      }
-    } catch (err: any) {
-      logger.error('개인정보 동의 상태 업데이트 실패:', err);
-      setError(err.response?.data?.message || err.message || '개인정보 동의 상태 업데이트 중 오류가 발생했습니다.');
-      setLoading(false);
-    }
-  };
-
-  const handleClose = () => {
-    if (!required && onClose) {
-      onClose();
-    }
-  };
-
-  const cancelVisible = !required && !!onClose && showCancelButton;
-  const disagreeVisible = showDisagreeButton;
-  const agreeVisible = showAgreeButton;
-  const hasAnyActions = cancelVisible || disagreeVisible || agreeVisible;
+  const { state, actions } = usePrivacyAgreementDialogState({
+    userId,
+    onAgreed,
+    onDisagreed,
+    onClose,
+    required,
+    showAgreeButton,
+    showDisagreeButton,
+    showCancelButton,
+  });
+  const {
+    loading,
+    error,
+    cancelVisible,
+    disagreeVisible,
+    agreeVisible,
+    hasAnyActions,
+  } = state;
+  const { handleAgreement, handleClose } = actions;
 
   return (
     <Dialog
