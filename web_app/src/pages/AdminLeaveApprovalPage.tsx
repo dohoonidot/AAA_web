@@ -49,7 +49,11 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useThemeStore } from '../store/themeStore';
 import { AdminCalendarSidebar } from '../components/admin/AdminCalendarSidebar';
-import { RenderReasonWithCancelHighlight } from './admin/AdminLeaveApproval.shared';
+import {
+  RenderReasonWithCancelHighlight,
+  formatServerDateDots,
+  formatServerDateMD,
+} from './admin/AdminLeaveApproval.shared';
 import { useAdminLeaveApprovalState } from './admin/AdminLeaveApproval.state';
 import AdminLeaveApprovalModals from './admin/AdminLeaveApproval.modals';
 
@@ -703,7 +707,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                               <Typography variant="body2" fontWeight={600}>
-                                {dayjs(leave.start_date).format('YYYY.MM.DD')} - {dayjs(leave.end_date).format('YYYY.MM.DD')}
+                                {formatServerDateDots(leave.start_date)} - {formatServerDateDots(leave.end_date)}
                               </Typography>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 3 }}>
@@ -1284,7 +1288,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                               {/* 기간 정보 */}
                               <Box sx={{ textAlign: 'right' }}>
                                 <Typography variant="caption" fontWeight={600} sx={{ fontSize: '11px' }}>
-                                  {dayjs(leave.start_date).format('MM.DD')}-{dayjs(leave.end_date).format('MM.DD')}
+                                  {formatServerDateMD(leave.start_date)}-{formatServerDateMD(leave.end_date)}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '9px', display: 'block' }}>
                                   {dayjs(leave.requested_date).format('MM.DD HH:mm')}
@@ -1696,7 +1700,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                                   }}
                                 />
                                 <Typography variant="caption" color="text.secondary">
-                                  {dayjs(leave.start_date).format('MM.DD')} ~ {dayjs(leave.end_date).format('MM.DD')}
+                                  {formatServerDateMD(leave.start_date)} ~ {formatServerDateMD(leave.end_date)}
                                 </Typography>
                               </Box>
                             </Card>

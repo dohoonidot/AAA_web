@@ -79,3 +79,33 @@ export const RenderReasonWithCancelHighlight: React.FC<{ reason: string; maxLine
     </Typography>
   );
 };
+
+const getDatePart = (value?: string) => {
+  if (!value) return '';
+  const text = String(value);
+  const datePart = text.split('T')[0].split(' ')[0];
+  return datePart;
+};
+
+export const formatServerDateYMD = (value?: string) => getDatePart(value);
+
+export const formatServerDateDots = (value?: string) => {
+  const part = getDatePart(value);
+  return part ? part.replace(/-/g, '.') : '';
+};
+
+export const formatServerDateMD = (value?: string) => {
+  const part = getDatePart(value);
+  if (!part) return '';
+  const [_, month, day] = part.split('-');
+  if (month && day) return `${month}.${day}`;
+  return part;
+};
+
+export const formatServerDateKorean = (value?: string) => {
+  const part = getDatePart(value);
+  if (!part) return '';
+  const [year, month, day] = part.split('-');
+  if (year && month && day) return `${year}년 ${month}월 ${day}일`;
+  return part;
+};

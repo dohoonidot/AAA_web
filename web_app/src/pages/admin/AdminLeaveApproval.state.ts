@@ -38,6 +38,14 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
     ['연차', '반차', '병가', '경조사', '출산휴가', '육아휴가', '기타']
   ), []);
 
+  const toLocalDate = (value?: string) => {
+    if (!value) return null;
+    const part = String(value).split('T')[0].split(' ')[0];
+    const [year, month, day] = part.split('-').map((v) => Number(v));
+    if (!year || !month || !day) return null;
+    return new Date(year, month - 1, day);
+  };
+
   const [approvalDialog, setApprovalDialog] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<any | null>(null);
   const [approvalAction, setApprovalAction] = useState<'approve' | 'reject' | null>(null);
@@ -255,12 +263,10 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
 
   const getLeavesForDate = (date: Date) => {
     return calendarLeaves.filter((leave: any) => {
-      const startDate = new Date(leave.start_date);
-      const endDate = new Date(leave.end_date);
+      const startLocal = toLocalDate(leave.start_date);
+      const endLocal = toLocalDate(leave.end_date);
+      if (!startLocal || !endLocal) return false;
       const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-      const startLocal = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-      const endLocal = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
 
       return targetDate >= startLocal && targetDate <= endLocal;
     });

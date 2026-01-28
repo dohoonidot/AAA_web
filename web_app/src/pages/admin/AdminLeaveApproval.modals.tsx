@@ -35,7 +35,12 @@ import dayjs from 'dayjs';
 import type { Theme } from '@mui/material/styles';
 import { DepartmentLeaveStatusModal } from '../../components/admin/DepartmentLeaveStatusModal';
 import type { useThemeStore } from '../../store/themeStore';
-import { RenderReasonWithCancelHighlight } from './AdminLeaveApproval.shared';
+import {
+  RenderReasonWithCancelHighlight,
+  formatServerDateDots,
+  formatServerDateKorean,
+  formatServerDateYMD,
+} from './AdminLeaveApproval.shared';
 import type {
   AdminLeaveApprovalActions,
   AdminLeaveApprovalDerived,
@@ -152,7 +157,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
                   휴가 기간
                 </Typography>
                 <Typography variant="body1">
-                  {dayjs(selectedLeave.start_date).format('YYYY-MM-DD')} ~ {dayjs(selectedLeave.end_date).format('YYYY-MM-DD')} ({Math.floor(selectedLeave.workdays_count)}일)
+                  {formatServerDateYMD(selectedLeave.start_date)} ~ {formatServerDateYMD(selectedLeave.end_date)} ({Math.floor(selectedLeave.workdays_count)}일)
                 </Typography>
 
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }} gutterBottom>
@@ -672,7 +677,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
                                 기간
                               </Typography>
                               <Typography sx={{ fontSize: '13px', fontWeight: 500 }}>
-                                {dayjs(leave.start_date).format('YYYY.MM.DD')} ~ {dayjs(leave.end_date).format('YYYY.MM.DD')}
+                                {formatServerDateDots(leave.start_date)} ~ {formatServerDateDots(leave.end_date)}
                               </Typography>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -957,7 +962,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <CalendarTodayIcon sx={{ color: '#9C88D4', fontSize: 20 }} />
                     <Typography variant="body1" fontWeight={600}>
-                      {dayjs(selectedDetailLeave.start_date).format('YYYY년 MM월 DD일')} - {dayjs(selectedDetailLeave.end_date).format('YYYY년 MM월 DD일')}
+                      {formatServerDateKorean(selectedDetailLeave.start_date)} - {formatServerDateKorean(selectedDetailLeave.end_date)}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 4 }}>
