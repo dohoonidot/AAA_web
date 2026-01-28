@@ -161,6 +161,9 @@ export const useTotalCalendarState = ({
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
     updateSelectedDateDetails(date, myMonthlyLeaves, totalCalendarLeaves);
+    if (!isMyVacationView && (selectedDepartments.size > 0 || selectedEmployees.size > 0)) {
+      setIsDetailPanelVisible(true);
+    }
     onDateSelected?.(date);
   };
 
@@ -194,8 +197,23 @@ export const useTotalCalendarState = ({
         const startDate = dayjs(leave.startDate);
         const endDate = dayjs(leave.endDate);
         return dateDayjs.isBetween(startDate, endDate, 'day', '[]');
-      });
+      }).map((leave) => ({
+        ...leave,
+        vacationType: (leave as any).leaveType || (leave as any).leave_type || (leave as any).vacationType,
+      }));
     } else {
+      if (selectedDepartments.size === 0 && selectedEmployees.size === 0) {
+        details = [];
+        if (holidayName) {
+          details.unshift({
+            isHoliday: true,
+            holidayName,
+          });
+        }
+        setSelectedDateDetails(details);
+        setSelectedHolidayName(holidayName);
+        return;
+      }
       details = totalLeaves.filter((leave) => {
         const employeeKey = `${leave.name}|${leave.department}`;
         if (selectedDepartments.size > 0 && !selectedDepartments.has(leave.department)) return false;
@@ -204,7 +222,11 @@ export const useTotalCalendarState = ({
         const startDate = dayjs(leave.startDate);
         const endDate = dayjs(leave.endDate);
         return dateDayjs.isBetween(startDate, endDate, 'day', '[]');
-      });
+      }).map((leave) => ({
+        ...leave,
+        employeeName: (leave as any).employeeName || (leave as any).name,
+        vacationType: (leave as any).leaveType || (leave as any).leave_type || (leave as any).vacationType,
+      }));
 
       const statusPriority: Record<string, number> = {
         APPROVED: 1,
@@ -344,14 +366,16 @@ export const useTotalCalendarState = ({
             const endDate = dayjs(leave.endDate);
             return currentDay.isBetween(startDate, endDate, 'day', '[]');
           })
-        : totalCalendarLeaves.filter((leave) => {
-            if (selectedDepartments.size > 0 && !selectedDepartments.has(leave.department)) return false;
-            if (selectedEmployees.size > 0 && !selectedEmployees.has(`${leave.name}|${leave.department}`)) return false;
+        : (selectedDepartments.size === 0 && selectedEmployees.size === 0)
+          ? []
+          : totalCalendarLeaves.filter((leave) => {
+              if (selectedDepartments.size > 0 && !selectedDepartments.has(leave.department)) return false;
+              if (selectedEmployees.size > 0 && !selectedEmployees.has(`${leave.name}|${leave.department}`)) return false;
 
-            const startDate = dayjs(leave.startDate);
-            const endDate = dayjs(leave.endDate);
-            return currentDay.isBetween(startDate, endDate, 'day', '[]');
-          });
+              const startDate = dayjs(leave.startDate);
+              const endDate = dayjs(leave.endDate);
+              return currentDay.isBetween(startDate, endDate, 'day', '[]');
+            });
 
       const holidayName = getHolidayName(dayDate);
 

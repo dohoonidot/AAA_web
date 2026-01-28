@@ -791,7 +791,7 @@ export default function TotalCalendar({
                                   }}
                                 />
                                 <Typography sx={{ fontSize: isMobile ? '12px' : '13px', fontWeight: 600, color: panelText, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {detail.vacationType}
+                                  {detail.vacationType || detail.leaveType || detail.leave_type || '휴가'}
                                 </Typography>
                               </Box>
                               {detail.reason && (
@@ -1213,7 +1213,7 @@ export default function TotalCalendar({
                               >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: isMobile ? 0.75 : 1, flexWrap: 'wrap' }}>
                                   <Typography sx={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
-                                    {detail.employeeName || '신청자'}
+                                    {detail.employeeName || detail.name || '신청자'}
                                   </Typography>
                                   {detail.department && (
                                     <Typography sx={{ fontSize: isMobile ? '11px' : '12px', color: panelSubText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
