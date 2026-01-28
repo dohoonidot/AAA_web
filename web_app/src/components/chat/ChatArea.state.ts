@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useChatStore } from '../../store/chatStore';
+import { isDefaultArchive, useChatStore } from '../../store/chatStore';
 import { useLeaveRequestDraftStore } from '../../store/leaveRequestDraftStore';
 import { useElectronicApprovalStore } from '../../store/electronicApprovalStore';
 import chatService from '../../services/chatService';
@@ -39,6 +39,7 @@ export const useChatAreaState = () => {
     appendStreamingMessage,
     addMessage,
     setMessages,
+    setArchives,
     setCurrentArchive,
   } = useChatStore();
 
@@ -110,12 +111,51 @@ export const useChatAreaState = () => {
       timestamp: new Date().toISOString(),
     };
 
+    const isFirstUserMessage = messages.filter((msg) => msg.role === 0).length === 0;
+
     addMessage(userMessage);
     const messageText = inputMessage.trim();
     setInputMessage('');
 
     setStreaming(true);
     setStreamingMessage('');
+
+    if (isFirstUserMessage && !isDefaultArchive(currentArchive)) {
+      let autoTitleBuffer = '';
+      void chatService.getAutoTitleStream(
+        user.userId,
+        currentArchive.archive_id,
+        messageText,
+        (chunk: string) => {
+          autoTitleBuffer += chunk;
+          const trimmedTitle = autoTitleBuffer.trim();
+          if (!trimmedTitle) return;
+
+          setArchives(archives.map((archive) =>
+            archive.archive_id === currentArchive.archive_id
+              ? { ...archive, archive_name: trimmedTitle }
+              : archive
+          ));
+
+          setCurrentArchive({ ...currentArchive, archive_name: trimmedTitle });
+        },
+        (fullTitle: string) => {
+          const trimmedTitle = fullTitle.trim();
+          if (!trimmedTitle) return;
+
+          setArchives(archives.map((archive) =>
+            archive.archive_id === currentArchive.archive_id
+              ? { ...archive, archive_name: trimmedTitle }
+              : archive
+          ));
+
+          setCurrentArchive({ ...currentArchive, archive_name: trimmedTitle });
+        },
+        (error: Error) => {
+          console.warn('자동 타이틀 업데이트 실패:', error);
+        }
+      );
+    }
 
     try {
       let fullResponse: string;
