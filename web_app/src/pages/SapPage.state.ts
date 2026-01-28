@@ -67,13 +67,20 @@ export const useSapPageState = () => {
     if (!currentArchive) return;
 
     try {
-      await chatService.sendMessage(
-        currentArchive.archive_name,
+      const user = authService.getCurrentUser();
+      if (!user) {
+        setError('사용자 정보를 찾을 수 없습니다.');
+        return;
+      }
+
+      await chatService.sendMessage({
+        userId: user.userId,
+        archiveId: currentArchive.archive_id,
         message,
         aiModel,
-        'SAP',
-        selectedModule || ''
-      );
+        archiveName: currentArchive.archive_name,
+        module: selectedModule || '',
+      });
     } catch (err: any) {
       logger.error('메시지 전송 실패:', err);
       setError(err.message || '메시지 전송에 실패했습니다.');

@@ -212,19 +212,14 @@ export const useChatAreaState = () => {
           archiveType: currentArchive.archive_type,
         });
 
-        const stream = await chatService.sendMessage(
-          currentArchive.archive_id,
-          user.userId,
-          messageText,
-          selectedModel,
-          isModelSelectorArchive(),
-          currentArchive.archive_type || '',
-          moduleValue,
-          isWebSearchEnabled
-        );
-
-        fullResponse = await chatService.processStream({
-          stream,
+        fullResponse = await chatService.sendMessage({
+          userId: user.userId,
+          archiveId: currentArchive.archive_id,
+          message: messageText,
+          aiModel: selectedModel,
+          archiveName: currentArchive.archive_name,
+          isWebSearchEnabled,
+          module: moduleValue,
           onChunk: (chunk: string) => {
             appendStreamingMessage(chunk);
           },
