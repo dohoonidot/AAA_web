@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useSettingsPageState } from './SettingsPage.state';
 import {
   Box,
   Typography,
@@ -19,7 +19,6 @@ import {
   Alert,
   Chip,
   useTheme,
-  useMediaQuery,
   Paper,
   Grid,
 } from '@mui/material';
@@ -36,98 +35,28 @@ import {
 } from '@mui/icons-material';
 import MobileMainLayout from '../components/layout/MobileMainLayout';
 import PrivacyAgreementDialog from '../components/auth/PrivacyAgreementDialog';
-import authService from '../services/authService';
-import settingsService from '../services/settingsService';
-import { useThemeStore, AppThemeMode } from '../store/themeStore';
-import { createLogger } from '../utils/logger';
-
-const logger = createLogger('SettingsPage');
-import { useNavigate } from 'react-router-dom';
-
-// 테마 타입 정의
-type ThemeMode = 'light' | 'dark' | 'system';
 
 
 export default function SettingsPage() {
-  const navigate = useNavigate();
-  const { themeMode: currentThemeMode, setThemeMode } = useThemeStore();
-  const [notifications, setNotifications] = useState(true);
-  const [privacyAgreed, setPrivacyAgreed] = useState(false);
-  const [privacyDialogOpen, setPrivacyDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [userInfo, setUserInfo] = useState<any>(null);
-
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isDark = theme.palette.mode === 'dark';
 
-  // 테마 모드를 문자열로 변환
-  const themeMode = currentThemeMode === AppThemeMode.LIGHT
-    ? 'light'
-    : currentThemeMode === AppThemeMode.CODING_DARK
-      ? 'dark'
-      : 'system';
-
-  useEffect(() => {
-    loadUserInfo();
-    loadPrivacyStatus();
-  }, []);
-
-  const loadUserInfo = async () => {
-    try {
-      const user = authService.getCurrentUser();
-      if (user) {
-        setUserInfo(user);
-      }
-    } catch (err) {
-      logger.error('사용자 정보 로드 실패:', err);
-    }
-  };
-
-  const loadPrivacyStatus = async () => {
-    try {
-      const user = authService.getCurrentUser();
-      if (!user) return;
-
-      logger.dev('개인정보 동의 상태 확인:', user.userId);
-      const response = await settingsService.checkPrivacyAgreement(user.userId);
-
-      logger.dev('개인정보 동의 상태 응답:', response);
-      setPrivacyAgreed(response.is_agreed === 1);
-    } catch (err: any) {
-      logger.error('개인정보 동의 상태 로드 실패:', err);
-      logger.error('에러 상세:', err.response?.data);
-    }
-  };
-
-
-  const handleLogout = () => {
-    if (window.confirm('로그아웃 하시겠습니까?')) {
-      authService.logout();
-      window.location.href = '/login';
-    }
-  };
-
-  const handleThemeChange = (newTheme: ThemeMode) => {
-    // 문자열을 AppThemeMode로 변환
-    const appThemeMode = newTheme === 'light'
-      ? AppThemeMode.LIGHT
-      : newTheme === 'dark'
-        ? AppThemeMode.CODING_DARK
-        : AppThemeMode.SYSTEM;
-
-    setThemeMode(appThemeMode);
-    settingsService.updateThemeSettings(newTheme);
-    logger.dev('테마 변경:', newTheme);
-  };
-
-  const handleNotificationChange = (enabled: boolean) => {
-    setNotifications(enabled);
-    // TODO: 실제 알림 설정 로직 구현
-    logger.dev('알림 설정 변경:', enabled);
-  };
-
+  const { state, actions } = useSettingsPageState();
+  const {
+    notifications,
+    privacyAgreed,
+    privacyDialogOpen,
+    error,
+    userInfo,
+    themeMode,
+  } = state;
+  const {
+    setPrivacyDialogOpen,
+    handleLogout,
+    handleThemeChange,
+    handleNotificationChange,
+    navigate,
+  } = actions;
 
   return (
     <MobileMainLayout

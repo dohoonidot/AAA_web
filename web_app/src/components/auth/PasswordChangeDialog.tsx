@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -23,7 +22,7 @@ import {
   VisibilityOff,
   LockOpen as LockOpenIcon,
 } from '@mui/icons-material';
-import { API_BASE_URL } from '../../utils/apiConfig';
+import { usePasswordChangeDialogState } from './PasswordChangeDialog.state';
 
 interface PasswordChangeDialogProps {
   open: boolean;
@@ -33,111 +32,31 @@ interface PasswordChangeDialogProps {
 export default function PasswordChangeDialog({ open, onClose }: PasswordChangeDialogProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  // Form state
-  const [userId, setUserId] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
-  // Visibility state
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // UI state
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  // Validation
-  const validateForm = (): string | null => {
-    if (!userId.trim()) {
-      return '이메일을 입력해 주세요.';
-    }
-    if (!userId.includes('@')) {
-      return '유효한 이메일 형식이 아닙니다.';
-    }
-    if (!currentPassword) {
-      return '현재 비밀번호를 입력해 주세요.';
-    }
-    if (!newPassword) {
-      return '새 비밀번호를 입력해 주세요.';
-    }
-    if (!confirmPassword) {
-      return '새 비밀번호를 다시 입력해 주세요.';
-    }
-    if (newPassword !== confirmPassword) {
-      return '새 비밀번호가 일치하지 않습니다.';
-    }
-    return null;
-  };
-
-  // Handle password change
-  const handleChangePassword = async () => {
-    // Validate
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/updatePassword`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          user_id: userId.trim(),
-          password: currentPassword,
-          new_password: newPassword,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.status_code === 200) {
-        // Success
-        setSuccess(true);
-        setError(null);
-
-        // Close dialog after 2 seconds
-        setTimeout(() => {
-          handleClose();
-        }, 2000);
-      } else {
-        // Failure
-        setError('비밀번호 변경에 실패했습니다. 입력한 정보를 확인해주세요.');
-      }
-    } catch (err) {
-      console.error('Password change error:', err);
-      setError('서버 연결에 문제가 발생했습니다. 나중에 다시 시도해주세요.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle close
-  const handleClose = () => {
-    if (isLoading) return; // Prevent closing during loading
-
-    // Reset form
-    setUserId('');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-    setError(null);
-    setSuccess(false);
-    setIsLoading(false);
-
-    onClose();
-  };
+  const { state, actions } = usePasswordChangeDialogState({ onClose });
+  const {
+    userId,
+    currentPassword,
+    newPassword,
+    confirmPassword,
+    showCurrentPassword,
+    showNewPassword,
+    showConfirmPassword,
+    isLoading,
+    error,
+    success,
+  } = state;
+  const {
+    setUserId,
+    setCurrentPassword,
+    setNewPassword,
+    setConfirmPassword,
+    setShowCurrentPassword,
+    setShowNewPassword,
+    setShowConfirmPassword,
+    setError,
+    handleChangePassword,
+    handleClose,
+  } = actions;
 
   return (
     <Dialog

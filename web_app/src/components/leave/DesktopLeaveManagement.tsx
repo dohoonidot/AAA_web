@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -14,16 +13,9 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   FormControl,
   Select,
   MenuItem,
-  Alert,
-  Divider,
   Pagination,
   Stack,
   Badge,
@@ -48,56 +40,27 @@ import {
   HelpOutline as HelpOutlineIcon,
   SmartToy as SmartToyIcon,
 } from '@mui/icons-material';
-import LeaveCancelRequestDialog from './LeaveCancelRequestDialog';
 
-import dayjs, { type Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import type {
   LeaveManagementData,
-  YearlyDetail,
-  YearlyWholeStatus,
   LeaveStatus,
 } from '../../types/leave';
-import leaveService from '../../services/leaveService';
 import authService from '../../services/authService';
 import PersonalCalendar from '../calendar/PersonalCalendar';
-import TotalCalendar from '../calendar/TotalCalendar';
 import { useNavigate } from 'react-router-dom';
-import ApproverSelectionModal from './ApproverSelectionModal';
-import ReferenceSelectionModal from './ReferenceSelectionModal';
-import LeaveRequestModal from './LeaveRequestModal';
-import VacationRecommendationModal from './VacationRecommendationModal'; // Added VacationRecommendationModal
-import LeaveManualModal from './LeaveManualModal';
-import LeaveAIManualModal from './LeaveAIManualModal';
 import { useThemeStore } from '../../store/themeStore';
+import {
+  useDesktopLeaveManagementState,
+} from './DesktopLeaveManagement.state';
+import type { ManagementTableRow } from './DesktopLeaveManagement.types';
+import DesktopLeaveManagementModals from './DesktopLeaveManagement.modals';
 
 interface DesktopLeaveManagementProps {
   leaveData: LeaveManagementData;
   onRefresh: () => void;
   waitingCount?: number;
 }
-
-type ManagementTableRow = {
-  leaveType: string;
-  allowedDays: number;
-  usedByMonth: number[];
-  totalUsed: number;
-};
-
-type ExtendedYearlyDetail = YearlyDetail & {
-  originalReason?: string;
-};
-
-type LeaveRequestFormState = {
-  leaveType: string;
-  startDate: Dayjs;
-  endDate: Dayjs;
-  reason: string;
-  halfDaySlot: string;
-  approverIds: string[];
-  ccList: Array<{ name: string; department: string }>;
-  useHalfDay: boolean;
-  useNextYearLeave: boolean;
-};
 
 export default function DesktopLeaveManagement({
   leaveData,
@@ -116,396 +79,43 @@ export default function DesktopLeaveManagement({
   console.log('📍 [DesktopLeaveManagement] user:', user);
   console.log('📍 [DesktopLeaveManagement] isApprover:', isApprover);
 
-  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
-  const [aiModalOpen, setAiModalOpen] = useState(false); // Added aiModalOpen state
-  const [leaveManualOpen, setLeaveManualOpen] = useState(false);
-  const [leaveAIManualOpen, setLeaveAIManualOpen] = useState(false);
-  const [hideCanceled, setHideCanceled] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(dayjs().year()); // Changed to dayjs().year()
-  const [totalCalendarOpen, setTotalCalendarOpen] = useState(false);
-  const [detailPanelOpen, setDetailPanelOpen] = useState(false);
-  const [selectedLeaveDetail, setSelectedLeaveDetail] = useState<ExtendedYearlyDetail | null>(null);
-  const [managementTableDialogOpen, setManagementTableDialogOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // 사이드바 열림/닫힘 상태 (디폴트: 닫힘)
-
-  // 개인별 휴가 내역 페이지네이션
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  // 연도별 휴가 내역 (필터링된 데이터)
-  const [yearlyDetails, setYearlyDetails] = useState(leaveData.yearlyDetails || []);
-  const [yearlyLoading, setYearlyLoading] = useState(false);
-
-  // 연도별 휴가 현황 (휴가 관리 대장용)
-  const [yearlyWholeStatus, setYearlyWholeStatus] = useState(leaveData.yearlyWholeStatus || []);
-
-  // 휴가 관리 대장 데이터 (yearlyWholeStatus에서 변환)
-  const [managementTableData, setManagementTableData] = useState<ManagementTableRow[]>([]);
-  const [tableLoading, setTableLoading] = useState(false);
-
-  // 휴가 신청 폼 상태
-  const [requestForm, setRequestForm] = useState<LeaveRequestFormState>({
-    leaveType: '',
-    startDate: dayjs(),
-    endDate: dayjs(),
-    reason: '',
-    halfDaySlot: '',
-    approverIds: [] as string[],
-    ccList: [] as Array<{ name: string; department: string }>,
-    useHalfDay: false,
-    useNextYearLeave: false,
+  const { state, derived, actions } = useDesktopLeaveManagementState({
+    leaveData,
+    onRefresh,
   });
+  const {
+    hideCanceled,
+    selectedYear,
+    sidebarOpen,
+    currentPage,
+    itemsPerPage,
+    yearlyLoading,
+    managementTableData,
+    tableLoading,
+  } = state;
 
-  // 모달 상태
-  const [approverModalOpen, setApproverModalOpen] = useState(false);
-  const [referenceModalOpen, setReferenceModalOpen] = useState(false);
-  const [isSequentialApproval, setIsSequentialApproval] = useState(false); // 순차결재 모드
-  const [cancelRequestModalOpen, setCancelRequestModalOpen] = useState(false);
-  const [cancelRequestLeave, setCancelRequestLeave] = useState<YearlyDetail | null>(null);
-  // 승인자 목록 로드 (필요 시 ApproverSelectionModal에서 직접 로드)
+  const {
+    getFilteredYearlyDetails,
+    getPaginatedYearlyDetails,
+    filteredCount,
+    totalPages,
+    getStatusColor,
+  } = derived;
 
-  // 초기 로드 시 yearlyWholeStatus를 managementTableData로 변환
-  useEffect(() => {
-    if (leaveData.yearlyWholeStatus && leaveData.yearlyWholeStatus.length > 0) {
-      const tableData = leaveData.yearlyWholeStatus
-        .filter((item: YearlyWholeStatus) => item.leaveType !== '총계')
-        .map((item: YearlyWholeStatus) => ({
-          leaveType: item.leaveType || '',
-          allowedDays: item.totalDays || 0,
-          usedByMonth: [
-            item.m01 || 0,
-            item.m02 || 0,
-            item.m03 || 0,
-            item.m04 || 0,
-            item.m05 || 0,
-            item.m06 || 0,
-            item.m07 || 0,
-            item.m08 || 0,
-            item.m09 || 0,
-            item.m10 || 0,
-            item.m11 || 0,
-            item.m12 || 0,
-          ],
-          totalUsed: [
-            item.m01 || 0,
-            item.m02 || 0,
-            item.m03 || 0,
-            item.m04 || 0,
-            item.m05 || 0,
-            item.m06 || 0,
-            item.m07 || 0,
-            item.m08 || 0,
-            item.m09 || 0,
-            item.m10 || 0,
-            item.m11 || 0,
-            item.m12 || 0,
-          ].reduce((sum: number, val: number) => sum + val, 0),
-        }));
-      setManagementTableData(tableData);
-      setYearlyWholeStatus(leaveData.yearlyWholeStatus);
-    }
-  }, [leaveData.yearlyWholeStatus]);
-
-  // 연도 변경 시 연도별 휴가 내역 조회
-  useEffect(() => {
-    loadYearlyLeaveData(selectedYear);
-    loadManagementTable();
-  }, [selectedYear]);
-
-  // 연도별 휴가 내역 조회
-  const loadYearlyLeaveData = async (year: number) => {
-    try {
-      setYearlyLoading(true);
-      const user = authService.getCurrentUser();
-      if (!user) return;
-
-      console.log('연도별 휴가 내역 조회:', year);
-
-      const response = await leaveService.getYearlyLeave({
-        userId: user.userId,
-        year: year,
-      });
-
-      console.log('연도별 휴가 내역 응답:', response);
-
-      if (response.yearlyDetails) {
-        setYearlyDetails(response.yearlyDetails);
-      } else {
-        // API 응답이 없으면 기존 데이터에서 필터링
-        const filtered = leaveData.yearlyDetails.filter(detail => {
-          const detailYear = new Date(detail.startDate).getFullYear();
-          return detailYear === year;
-        });
-        setYearlyDetails(filtered);
-      }
-
-      // yearlyWholeStatus 업데이트 (휴가 관리 대장용)
-      if (response.yearlyWholeStatus && response.yearlyWholeStatus.length > 0) {
-        setYearlyWholeStatus(response.yearlyWholeStatus);
-        // yearlyWholeStatus를 managementTableData 형식으로 변환
-        const tableData = response.yearlyWholeStatus
-          .filter((item: YearlyWholeStatus) => item.leaveType !== '총계')
-          .map((item: YearlyWholeStatus) => ({
-            leaveType: item.leaveType || '',
-            allowedDays: item.totalDays || 0,
-            usedByMonth: [
-              item.m01 || 0,
-              item.m02 || 0,
-              item.m03 || 0,
-              item.m04 || 0,
-              item.m05 || 0,
-              item.m06 || 0,
-              item.m07 || 0,
-              item.m08 || 0,
-              item.m09 || 0,
-              item.m10 || 0,
-              item.m11 || 0,
-              item.m12 || 0,
-            ],
-            totalUsed: [
-              item.m01 || 0,
-              item.m02 || 0,
-              item.m03 || 0,
-              item.m04 || 0,
-              item.m05 || 0,
-              item.m06 || 0,
-              item.m07 || 0,
-              item.m08 || 0,
-              item.m09 || 0,
-              item.m10 || 0,
-              item.m11 || 0,
-              item.m12 || 0,
-            ].reduce((sum: number, val: number) => sum + val, 0),
-          }));
-        setManagementTableData(tableData);
-      } else if (leaveData.yearlyWholeStatus && leaveData.yearlyWholeStatus.length > 0) {
-        // API 응답이 없으면 기존 데이터 사용
-        setYearlyWholeStatus(leaveData.yearlyWholeStatus);
-        const tableData = leaveData.yearlyWholeStatus
-          .filter((item: YearlyWholeStatus) => item.leaveType !== '총계')
-          .map((item: YearlyWholeStatus) => ({
-            leaveType: item.leaveType || '',
-            allowedDays: item.totalDays || 0,
-            usedByMonth: [
-              item.m01 || 0,
-              item.m02 || 0,
-              item.m03 || 0,
-              item.m04 || 0,
-              item.m05 || 0,
-              item.m06 || 0,
-              item.m07 || 0,
-              item.m08 || 0,
-              item.m09 || 0,
-              item.m10 || 0,
-              item.m11 || 0,
-              item.m12 || 0,
-            ],
-            totalUsed: [
-              item.m01 || 0,
-              item.m02 || 0,
-              item.m03 || 0,
-              item.m04 || 0,
-              item.m05 || 0,
-              item.m06 || 0,
-              item.m07 || 0,
-              item.m08 || 0,
-              item.m09 || 0,
-              item.m10 || 0,
-              item.m11 || 0,
-              item.m12 || 0,
-            ].reduce((sum: number, val: number) => sum + val, 0),
-          }));
-        setManagementTableData(tableData);
-      }
-    } catch (err) {
-      console.error('연도별 휴가 내역 조회 실패:', err);
-      // 에러 발생 시 기존 데이터에서 필터링
-      const filtered = leaveData.yearlyDetails.filter(detail => {
-        const detailYear = new Date(detail.startDate).getFullYear();
-        return detailYear === selectedYear;
-      });
-      setYearlyDetails(filtered);
-
-      // yearlyWholeStatus도 기존 데이터 사용
-      if (leaveData.yearlyWholeStatus && leaveData.yearlyWholeStatus.length > 0) {
-        setYearlyWholeStatus(leaveData.yearlyWholeStatus);
-        const tableData = leaveData.yearlyWholeStatus
-          .filter((item: YearlyWholeStatus) => item.leaveType !== '총계')
-          .map((item: YearlyWholeStatus) => ({
-            leaveType: item.leaveType || '',
-            allowedDays: item.totalDays || 0,
-            usedByMonth: [
-              item.m01 || 0,
-              item.m02 || 0,
-              item.m03 || 0,
-              item.m04 || 0,
-              item.m05 || 0,
-              item.m06 || 0,
-              item.m07 || 0,
-              item.m08 || 0,
-              item.m09 || 0,
-              item.m10 || 0,
-              item.m11 || 0,
-              item.m12 || 0,
-            ],
-            totalUsed: [
-              item.m01 || 0,
-              item.m02 || 0,
-              item.m03 || 0,
-              item.m04 || 0,
-              item.m05 || 0,
-              item.m06 || 0,
-              item.m07 || 0,
-              item.m08 || 0,
-              item.m09 || 0,
-              item.m10 || 0,
-              item.m11 || 0,
-              item.m12 || 0,
-            ].reduce((sum: number, val: number) => sum + val, 0),
-          }));
-        setManagementTableData(tableData);
-      }
-    } finally {
-      setYearlyLoading(false);
-    }
-  };
-
-  // 휴가 관리 대장 데이터 조회 (yearlyWholeStatus 사용)
-  const loadManagementTable = async () => {
-    try {
-      setTableLoading(true);
-
-      // yearlyWholeStatus가 있으면 사용, 없으면 API 호출 시도
-      if (yearlyWholeStatus && yearlyWholeStatus.length > 0) {
-        const tableData = yearlyWholeStatus
-          .filter((item: YearlyWholeStatus) => item.leaveType !== '총계')
-          .map((item: YearlyWholeStatus) => ({
-            leaveType: item.leaveType || '',
-            allowedDays: item.totalDays || 0,
-            usedByMonth: [
-              item.m01 || 0,
-              item.m02 || 0,
-              item.m03 || 0,
-              item.m04 || 0,
-              item.m05 || 0,
-              item.m06 || 0,
-              item.m07 || 0,
-              item.m08 || 0,
-              item.m09 || 0,
-              item.m10 || 0,
-              item.m11 || 0,
-              item.m12 || 0,
-            ],
-            totalUsed: [
-              item.m01 || 0,
-              item.m02 || 0,
-              item.m03 || 0,
-              item.m04 || 0,
-              item.m05 || 0,
-              item.m06 || 0,
-              item.m07 || 0,
-              item.m08 || 0,
-              item.m09 || 0,
-              item.m10 || 0,
-              item.m11 || 0,
-              item.m12 || 0,
-            ].reduce((sum: number, val: number) => sum + val, 0),
-          }));
-        setManagementTableData(tableData);
-        return;
-      }
-
-      // yearlyWholeStatus가 없으면 기존 데이터 사용
-      if (leaveData.yearlyWholeStatus && leaveData.yearlyWholeStatus.length > 0) {
-        const tableData = leaveData.yearlyWholeStatus
-          .filter((item: YearlyWholeStatus) => item.leaveType !== '총계')
-          .map((item: YearlyWholeStatus) => ({
-            leaveType: item.leaveType || '',
-            allowedDays: item.totalDays || 0,
-            usedByMonth: [
-              item.m01 || 0,
-              item.m02 || 0,
-              item.m03 || 0,
-              item.m04 || 0,
-              item.m05 || 0,
-              item.m06 || 0,
-              item.m07 || 0,
-              item.m08 || 0,
-              item.m09 || 0,
-              item.m10 || 0,
-              item.m11 || 0,
-              item.m12 || 0,
-            ],
-            totalUsed: [
-              item.m01 || 0,
-              item.m02 || 0,
-              item.m03 || 0,
-              item.m04 || 0,
-              item.m05 || 0,
-              item.m06 || 0,
-              item.m07 || 0,
-              item.m08 || 0,
-              item.m09 || 0,
-              item.m10 || 0,
-              item.m11 || 0,
-              item.m12 || 0,
-            ].reduce((sum: number, val: number) => sum + val, 0),
-          }));
-        setManagementTableData(tableData);
-      }
-    } catch (err) {
-      console.error('휴가 관리 대장 조회 실패:', err);
-      setManagementTableData([]);
-    } finally {
-      setTableLoading(false);
-    }
-  };
-
-  const handleRequestDialogOpen = () => {
-    setRequestDialogOpen(true);
-  };
-
-  const handleRequestDialogClose = () => {
-    setRequestDialogOpen(false);
-    setIsSequentialApproval(false); // 순차결재 모드 초기화
-    setRequestForm({
-      leaveType: '',
-      startDate: dayjs(),
-      endDate: dayjs(),
-      reason: '',
-      halfDaySlot: '',
-      approverIds: [],
-      ccList: [],
-      useHalfDay: false,
-      useNextYearLeave: false,
-    });
-  };
-
-  // 취소 상신 성공 처리
-  const handleCancelSuccess = () => {
-    // 데이터 새로고침
-    onRefresh();
-    setCancelRequestModalOpen(false);
-    setCancelRequestLeave(null);
-  };
-
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-        return '#20C997';
-      case 'REJECTED':
-        return '#DC3545';
-      case 'REQUESTED':
-        return '#FF8C00';
-      case 'CANCEL_REQUESTED':
-        return '#F59E0B';
-      case 'CANCELLED':
-        return '#9CA3AF';
-      default:
-        return '#6B7280';
-    }
-  };
+  const {
+    setAiModalOpen,
+    setLeaveManualOpen,
+    setLeaveAIManualOpen,
+    setHideCanceled,
+    setSelectedYear,
+    setTotalCalendarOpen,
+    setDetailPanelOpen,
+    setSelectedLeaveDetail,
+    setManagementTableDialogOpen,
+    setSidebarOpen,
+    handleRequestDialogOpen,
+    handlePageChange,
+  } = actions;
 
   const getStatusIcon = (status: string) => {
     const colors = {
@@ -532,40 +142,6 @@ export default function DesktopLeaveManagement({
         return <ScheduleIcon sx={{ color: colors.default, fontSize: 20 }} />;
     }
   };
-
-  // 개인별 휴가 내역 페이지네이션 로직
-  const getFilteredYearlyDetails = () => {
-    if (!yearlyDetails || !Array.isArray(yearlyDetails)) {
-      console.log('⚠️ yearlyDetails가 배열이 아님:', yearlyDetails);
-      return [];
-    }
-    const filtered = yearlyDetails.filter((detail: YearlyDetail) => !hideCanceled || detail.status !== 'CANCELLED');
-    console.log('🔍 개인별 휴가 내역 - 전체:', yearlyDetails.length, '필터링 후:', filtered.length);
-    return filtered;
-  };
-
-  const getPaginatedYearlyDetails = () => {
-    const filtered = getFilteredYearlyDetails();
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginated = filtered.slice(startIndex, endIndex);
-    console.log('📄 페이지네이션 - 현재페이지:', currentPage, '시작:', startIndex, '끝:', endIndex, '결과:', paginated.length);
-    return paginated;
-  };
-
-  const filteredCount = getFilteredYearlyDetails().length;
-  const totalPages = Math.max(1, Math.ceil(filteredCount / itemsPerPage));
-  console.log('📊 총 페이지:', totalPages, '현재 페이지:', currentPage, '전체 항목:', filteredCount);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  // 필터 변경 시 페이지 1로 리셋
-  useEffect(() => {
-    console.log('🔄 페이지 리셋 - 연도:', selectedYear, '취소건숨김:', hideCanceled);
-    setCurrentPage(1);
-  }, [selectedYear, hideCanceled, yearlyDetails]);
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.backgroundColor }}>
@@ -1480,471 +1056,19 @@ export default function DesktopLeaveManagement({
           </Box>
 
 
-          {/* 휴가 신청 모달 - LeaveRequestModal 사용 */}
-          <LeaveRequestModal
-            open={requestDialogOpen}
-            onClose={handleRequestDialogClose}
-            onSubmit={async () => {
-              // 휴가 신청 성공 후 데이터 새로고침
-              onRefresh();
-            }}
-            userId={authService.getCurrentUser()?.userId || ''}
+          <DesktopLeaveManagementModals
+            state={state}
+            actions={actions}
+            colorScheme={colorScheme}
+            isDark={isDark}
             leaveStatusList={leaveData.leaveStatus}
+            userId={user?.userId || ''}
+            onRefresh={onRefresh}
+            getStatusIcon={getStatusIcon}
           />
-
-          {/* 휴가 상세 정보 다이얼로그 */}
-          <Dialog
-            open={detailPanelOpen}
-            onClose={() => setDetailPanelOpen(false)}
-            maxWidth="sm"
-            fullWidth
-            PaperProps={{
-              sx: {
-                bgcolor: colorScheme.surfaceColor,
-              },
-            }}
-          >
-            <DialogTitle sx={{ borderBottom: `1px solid ${colorScheme.textFieldBorderColor}`, color: colorScheme.textColor }}>휴가 상세 정보</DialogTitle>
-            <DialogContent>
-              {selectedLeaveDetail && (
-                <Box sx={{ pt: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    {getStatusIcon(selectedLeaveDetail.status)}
-                    <Typography variant="h6" sx={{ color: colorScheme.textColor }}>{selectedLeaveDetail.leaveType}</Typography>
-                    <Chip
-                      label={
-                        selectedLeaveDetail.status === 'APPROVED' ? '승인' :
-                          selectedLeaveDetail.status === 'REJECTED' ? '반려' :
-                            selectedLeaveDetail.status === 'REQUESTED' ? '대기' :
-                              selectedLeaveDetail.status === 'CANCEL_REQUESTED' ? '취소 대기' :
-                                selectedLeaveDetail.status === 'CANCELLED' ? '취소됨' :
-                                  '대기'
-                      }
-                      color={
-                        selectedLeaveDetail.status === 'APPROVED'
-                          ? 'success'
-                          : selectedLeaveDetail.status === 'REJECTED'
-                            ? 'error'
-                            : 'warning'
-                      }
-                      size="small"
-                    />
-                  </Box>
-
-                  <Divider sx={{ my: 2 }} />
-
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                    <Box>
-                      <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600 }}>
-                        휴가 기간
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: colorScheme.textColor }}>
-                        {dayjs(selectedLeaveDetail.startDate).format('YYYY-MM-DD')} ~{' '}
-                        {dayjs(selectedLeaveDetail.endDate).format('YYYY-MM-DD')}
-                      </Typography>
-                      {selectedLeaveDetail.workdaysCount && (
-                        <Typography variant="caption" sx={{ color: colorScheme.hintTextColor }}>
-                          ({selectedLeaveDetail.workdaysCount}일 사용)
-                        </Typography>
-                      )}
-                    </Box>
-
-                    <Box>
-                      <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600 }}>
-                        신청일
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: colorScheme.textColor }}>
-                        {dayjs(selectedLeaveDetail.requestedDate).format('YYYY-MM-DD')}
-                      </Typography>
-                    </Box>
-
-                    {/* 사유 - 일반 상신과 취소 상신 구분 */}
-                    {selectedLeaveDetail.isCancel === 1 ? (
-                      <>
-                        {/* 취소 상신인 경우: 원래 신청 사유와 취소 사유 구분 */}
-                        <Alert severity="warning" sx={{ mb: 2 }}>
-                          <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>
-                            이 항목은 취소 상신 건입니다.
-                          </Typography>
-                        </Alert>
-
-                        {/* 원래 휴가 신청 사유 */}
-                        {selectedLeaveDetail?.originalReason && (
-                          <Box sx={{
-                            p: 2,
-                            bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-                            borderRadius: 1,
-                            border: `1px solid ${colorScheme.textFieldBorderColor}`,
-                            mb: 1.5
-                          }}>
-                            <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600, display: 'block', mb: 0.5 }}>
-                              원래 휴가 신청 사유
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: colorScheme.textColor }}>
-                              {selectedLeaveDetail.originalReason}
-                            </Typography>
-                          </Box>
-                        )}
-
-                        {/* 취소 요청 사유 */}
-                        <Box sx={{
-                          p: 2,
-                          bgcolor: isDark ? 'rgba(237, 108, 2, 0.15)' : 'rgba(237, 108, 2, 0.08)',
-                          borderRadius: 1,
-                          border: '1px solid rgba(237, 108, 2, 0.3)'
-                        }}>
-                          <Typography variant="caption" sx={{ color: '#C77700', fontWeight: 600, display: 'block', mb: 0.5 }}>
-                            취소 요청 사유
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: colorScheme.textColor }}>
-                            {selectedLeaveDetail.reason || '-'}
-                          </Typography>
-                        </Box>
-                      </>
-                    ) : (
-                      /* 일반 상신인 경우 */
-                      <Box>
-                        <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600 }}>
-                          휴가 사유
-                        </Typography>
-                        <Typography variant="body1" sx={{ color: colorScheme.textColor, mt: 0.5 }}>
-                          {selectedLeaveDetail.reason || '-'}
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {/* 반려 사유 */}
-                    {selectedLeaveDetail.rejectMessage && (
-                      <Box sx={{
-                        p: 2,
-                        bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                        borderRadius: 1,
-                        border: `1px solid ${colorScheme.textFieldBorderColor}`
-                      }}>
-                        <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600, display: 'block', mb: 0.5 }}>
-                          반려 사유
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: colorScheme.textColor }}>
-                          {selectedLeaveDetail.rejectMessage}
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                </Box>
-              )}
-            </DialogContent>
-            <DialogActions sx={{ p: 2, gap: 1, justifyContent: 'space-between' }}>
-              {selectedLeaveDetail && selectedLeaveDetail.status === 'APPROVED' && (
-                <Button
-                  variant="contained"
-                  color="warning"
-                  startIcon={<CancelIcon />}
-                  onClick={() => {
-                    setDetailPanelOpen(false);
-                    setCancelRequestLeave(selectedLeaveDetail);
-                    setCancelRequestModalOpen(true);
-                  }}
-                >
-                  취소 상신
-                </Button>
-              )}
-              <Box sx={{ ml: 'auto' }}>
-                <Button onClick={() => setDetailPanelOpen(false)} variant="outlined">닫기</Button>
-              </Box>
-            </DialogActions>
-          </Dialog>
 
         </Box>
       </Box>
-
-      {/* 전체휴가 달력 모달 */}
-      <TotalCalendar
-        open={totalCalendarOpen}
-        onClose={() => setTotalCalendarOpen(false)}
-      />
-
-      {/* 승인자 선택 모달 */}
-      <ApproverSelectionModal
-        open={approverModalOpen}
-        onClose={() => setApproverModalOpen(false)}
-        onConfirm={(selectedIds) => {
-          setRequestForm((prev) => ({ ...prev, approverIds: selectedIds }));
-        }}
-        initialSelectedApproverIds={requestForm.approverIds}
-        sequentialApproval={isSequentialApproval}
-      />
-
-      {/* 참조자 선택 모달 */}
-      <ReferenceSelectionModal
-        open={referenceModalOpen}
-        onClose={() => setReferenceModalOpen(false)}
-        onConfirm={(selectedReferences) => {
-          setRequestForm((prev) => ({ ...prev, ccList: selectedReferences }));
-        }}
-        currentReferences={requestForm.ccList}
-      />
-
-      {/* 휴가 관리 대장 크게 보기 모달 */}
-      <Dialog
-        open={managementTableDialogOpen}
-        onClose={() => setManagementTableDialogOpen(false)}
-        maxWidth="xl"
-        fullWidth
-        PaperProps={{
-          sx: {
-            maxHeight: '90vh',
-            height: '90vh',
-            bgcolor: colorScheme.surfaceColor,
-          },
-        }}
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 2, borderBottom: `1px solid ${colorScheme.textFieldBorderColor}`, fontSize: '18px', fontWeight: 700, color: colorScheme.textColor }}>
-          <Box component="span">휴가 관리 대장</Box>
-          <IconButton
-            onClick={() => setManagementTableDialogOpen(false)}
-            size="small"
-            sx={{ p: 0.5 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3, overflow: 'auto' }}>
-          <TableContainer sx={{ maxHeight: '100%', overflowX: 'auto' }}>
-            <Table size="small" stickyHeader sx={{ borderCollapse: 'separate', minWidth: 800 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    sx={{
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB',
-                      color: colorScheme.textColor,
-                      px: 2,
-                      py: 1.5,
-                      borderRight: `1px solid ${colorScheme.textFieldBorderColor}`,
-                      position: 'sticky',
-                      left: 0,
-                      zIndex: 3,
-                    }}
-                  >
-                    휴가명
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB',
-                      color: colorScheme.textColor,
-                      px: 2,
-                      py: 1.5,
-                      textAlign: 'center',
-                    }}
-                  >
-                    허용일수
-                  </TableCell>
-                  <TableCell colSpan={12}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      <Typography sx={{ fontSize: '12px', fontWeight: 600, textAlign: 'center', color: colorScheme.textColor }}>월별 사용 현황</Typography>
-                      <Box sx={{ display: 'flex' }}>
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
-                          <Box
-                            key={month}
-                            sx={{
-                              flex: 1,
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              textAlign: 'center',
-                              px: 1,
-                              py: 0.5,
-                              color: colorScheme.hintTextColor,
-                              borderRight: month < 12 ? `1px solid ${colorScheme.textFieldBorderColor}` : 'none',
-                            }}
-                          >
-                            {month}월
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB',
-                      color: colorScheme.textColor,
-                      px: 2,
-                      py: 1.5,
-                      textAlign: 'center',
-                    }}
-                  >
-                    사용일수
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB',
-                      color: colorScheme.textColor,
-                      px: 2,
-                      py: 1.5,
-                      textAlign: 'center',
-                    }}
-                  >
-                    잔여일수
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {tableLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={16} align="center" sx={{ py: 4 }}>
-                      <CircularProgress size={24} />
-                    </TableCell>
-                  </TableRow>
-                ) : managementTableData && managementTableData.length > 0 ? (
-                  managementTableData.map((row: ManagementTableRow, index: number) => {
-                    const allowedDays = row.allowedDays || 0;
-                    const totalUsed = row.totalUsed || 0;
-                    const remainDays = allowedDays - totalUsed;
-                    const usedByMonth = row.usedByMonth || Array(12).fill(0);
-
-                    return (
-                      <TableRow
-                        key={index}
-                        hover
-                        sx={{
-                          '&:hover': {
-                            bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
-                            '& .sticky-cell': {
-                              bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
-                            },
-                          },
-                        }}
-                      >
-                        <TableCell
-                          className="sticky-cell"
-                          sx={{
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            px: 2,
-                            py: 1.5,
-                            borderRight: `1px solid ${colorScheme.textFieldBorderColor}`,
-                            position: 'sticky',
-                            left: 0,
-                            zIndex: 2,
-                            bgcolor: colorScheme.surfaceColor,
-                            color: colorScheme.textColor,
-                          }}
-                        >
-                          {row.leaveType || '-'}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            px: 2,
-                            py: 1.5,
-                            borderRight: `1px solid ${colorScheme.textFieldBorderColor}`,
-                            textAlign: 'center',
-                            color: colorScheme.textColor,
-                          }}
-                        >
-                          {allowedDays > 0 ? allowedDays : '-'}
-                        </TableCell>
-                        {usedByMonth.map((days: number, monthIndex: number) => (
-                          <TableCell
-                            key={monthIndex}
-                            sx={{
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              px: 1,
-                              py: 1.5,
-                              textAlign: 'center',
-                              borderRight: monthIndex < 11 ? `1px solid ${colorScheme.textFieldBorderColor}` : 'none',
-                              color: days > 0 ? colorScheme.textColor : colorScheme.hintTextColor,
-                            }}
-                          >
-                            {days > 0 ? days : '-'}
-                          </TableCell>
-                        ))}
-                        <TableCell
-                          sx={{
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            px: 2,
-                            py: 1.5,
-                            borderRight: `1px solid ${colorScheme.textFieldBorderColor}`,
-                            textAlign: 'center',
-                            color: colorScheme.textColor,
-                          }}
-                        >
-                          {totalUsed > 0 ? totalUsed : '-'}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            px: 2,
-                            py: 1.5,
-                            textAlign: 'center',
-                            color: remainDays > 0
-                              ? (isDark ? '#34D399' : '#059669')
-                              : (isDark ? '#F87171' : '#DC2626'),
-                          }}
-                        >
-                          {remainDays}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={16} align="center" sx={{ py: 4 }}>
-                      <Typography sx={{ color: colorScheme.hintTextColor }}>데이터가 없습니다</Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setManagementTableDialogOpen(false)} variant="contained">
-            닫기
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* 취소 상신 다이얼로그 (Flutter와 동일한 기능) */}
-      <LeaveCancelRequestDialog
-        open={cancelRequestModalOpen}
-        onClose={() => {
-          setCancelRequestModalOpen(false);
-          setCancelRequestLeave(null);
-        }}
-        onSuccess={handleCancelSuccess}
-        leave={cancelRequestLeave}
-        userId={authService.getCurrentUser()?.userId || ''}
-      />
-      {/* AI 휴가 추천 모달 */}
-      <VacationRecommendationModal
-        open={aiModalOpen}
-        onClose={() => setAiModalOpen(false)}
-        userId={authService.getCurrentUser()?.userId || ''}
-        year={selectedYear}
-      />
-
-      {/* 휴가관리 사용 가이드 모달 */}
-      <LeaveManualModal
-        open={leaveManualOpen}
-        onClose={() => setLeaveManualOpen(false)}
-      />
-
-      {/* 휴가 AI 작성 메뉴얼 모달 */}
-      <LeaveAIManualModal
-        open={leaveAIManualOpen}
-        onClose={() => setLeaveAIManualOpen(false)}
-      />
     </Box>
 
   );

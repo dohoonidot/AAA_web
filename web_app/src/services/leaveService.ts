@@ -32,6 +32,14 @@ import type { HolidayResponse } from '../types/holiday';
 
 const logger = createLogger('LeaveService');
 
+const normalizeDate = (value: any): string => {
+  if (!value) return '';
+  const text = String(value);
+  if (text.includes('T')) return text.split('T')[0];
+  if (text.includes(' ')) return text.split(' ')[0];
+  return text;
+};
+
 class LeaveService {
   // ===============================
   // 휴가관리 화면 API (Flutter와 동일)
@@ -56,7 +64,68 @@ class LeaveService {
         }
       );
 
-      return response.data;
+      const data: any = response.data || {};
+
+      const leaveStatus = (data.leave_status || data.leaveStatus || []).map((item: any) => ({
+        leaveType: item.leave_type || item.leaveType || '',
+        totalDays: item.total_days || item.totalDays || 0,
+        remainDays: item.remain_days || item.remainDays || 0,
+      }));
+
+      const approvalStatus = data.approval_status || data.approvalStatus || {
+        requested: 0,
+        approved: 0,
+        rejected: 0,
+      };
+
+      const yearlyDetails = (data.yearly_details || data.yearlyDetails || []).map((item: any) => ({
+        id: item.id || 0,
+        status: item.status || '',
+        leaveType: item.leave_type || item.leaveType || '',
+        startDate: normalizeDate(item.start_date || item.startDate || ''),
+        endDate: normalizeDate(item.end_date || item.endDate || ''),
+        workdaysCount: item.workdays_count || item.workdaysCount || 0,
+        requestedDate: item.requested_date || item.requestedDate || '',
+        reason: item.reason || '',
+        rejectMessage: item.reject_message || item.rejectMessage || '',
+        isCancel: item.is_cancel || item.isCancel || 0,
+      }));
+
+      const yearlyWholeStatus = (data.yearly_whole_status || data.yearlyWholeStatus || []).map((item: any) => ({
+        leaveType: item.leave_type || item.leaveType || '',
+        totalDays: item.total_days || item.totalDays || 0,
+        m01: item.m01 || 0,
+        m02: item.m02 || 0,
+        m03: item.m03 || 0,
+        m04: item.m04 || 0,
+        m05: item.m05 || 0,
+        m06: item.m06 || 0,
+        m07: item.m07 || 0,
+        m08: item.m08 || 0,
+        m09: item.m09 || 0,
+        m10: item.m10 || 0,
+        m11: item.m11 || 0,
+        m12: item.m12 || 0,
+        remainDays: item.remain_days || item.remainDays || 0,
+      }));
+
+      const monthlyLeaves = (data.monthly_leaves || data.monthlyLeaves || []).map((item: any) => ({
+        status: item.status || '',
+        leaveType: item.leave_type || item.leaveType || '',
+        startDate: normalizeDate(item.start_date || item.startDate || ''),
+        endDate: normalizeDate(item.end_date || item.endDate || ''),
+        halfDaySlot: item.half_day_slot || item.halfDaySlot || '',
+        reason: item.reason || '',
+        rejectMessage: item.reject_message || item.rejectMessage || '',
+      }));
+
+      return {
+        leaveStatus,
+        approvalStatus,
+        yearlyDetails,
+        yearlyWholeStatus,
+        monthlyLeaves,
+      };
     } catch (error: any) {
       logger.error('휴가관리 데이터 조회 실패:', error.message);
       throw error;
@@ -81,8 +150,8 @@ class LeaveService {
     const monthlyLeaves = (data.monthly_leaves || data.monthlyLeaves || []).map((item: any) => ({
       status: item.status || '',
       leaveType: item.leave_type || item.leaveType || '',
-      startDate: item.start_date || item.startDate || '',
-      endDate: item.end_date || item.endDate || '',
+      startDate: normalizeDate(item.start_date || item.startDate || ''),
+      endDate: normalizeDate(item.end_date || item.endDate || ''),
       halfDaySlot: item.half_day_slot || item.halfDaySlot || '',
       reason: item.reason || '',
       rejectMessage: item.reject_message || item.rejectMessage || '',
@@ -141,8 +210,8 @@ class LeaveService {
         id: item.id || 0,
         status: item.status || '',
         leaveType: item.leave_type || item.leaveType || '',
-        startDate: item.start_date || item.startDate || '',
-        endDate: item.end_date || item.endDate || '',
+        startDate: normalizeDate(item.start_date || item.startDate || ''),
+        endDate: normalizeDate(item.end_date || item.endDate || ''),
         workdaysCount: item.workdays_count || item.workdaysCount || 0,
         requestedDate: item.requested_date || item.requestedDate || '',
         reason: item.reason || '',
@@ -204,8 +273,8 @@ class LeaveService {
     const monthlyLeaves = (data.monthlyLeaves || data.monthly_leaves || []).map((item: any) => ({
       name: item.name || '',
       department: item.department || '',
-      startDate: item.start_date || item.startDate || '',
-      endDate: item.end_date || item.endDate || '',
+      startDate: normalizeDate(item.start_date || item.startDate || ''),
+      endDate: normalizeDate(item.end_date || item.endDate || ''),
       leaveType: item.leave_type || item.leaveType || '',
     }));
 
@@ -401,8 +470,8 @@ class LeaveService {
         department: item.department || '',
         jobPosition: item.job_position || item.jobPosition || '',
         leaveType: item.leave_type || item.leaveType || '',
-        startDate: item.start_date || item.startDate || '',
-        endDate: item.end_date || item.endDate || '',
+        startDate: normalizeDate(item.start_date || item.startDate || ''),
+        endDate: normalizeDate(item.end_date || item.endDate || ''),
         halfDaySlot: item.half_day_slot || item.halfDaySlot || '',
         totalDays: item.total_days || item.totalDays || 0,
         usedDays: item.used_days || item.usedDays || 0,
@@ -862,8 +931,8 @@ class LeaveService {
         applicantName: item.applicant_name || item.applicantName || '',
         department: item.department || '',
         vacationType: item.vacation_type || item.vacationType || '',
-        startDate: item.start_date || item.startDate || '',
-        endDate: item.end_date || item.endDate || '',
+        startDate: normalizeDate(item.start_date || item.startDate || ''),
+        endDate: normalizeDate(item.end_date || item.endDate || ''),
         days: item.days || 0,
         reason: item.reason || '',
         status: item.status || '',
@@ -932,8 +1001,8 @@ class LeaveService {
           applicantName: item.applicant_name || item.applicantName || '',
           department: item.department || '',
           vacationType: item.vacation_type || item.vacationType || '',
-          startDate: item.start_date || item.startDate || '',
-          endDate: item.end_date || item.endDate || '',
+          startDate: normalizeDate(item.start_date || item.startDate || ''),
+          endDate: normalizeDate(item.end_date || item.endDate || ''),
           days: item.days || 0,
           reason: item.reason || '',
           status: item.status || '',
@@ -1056,8 +1125,8 @@ class LeaveService {
         applicantName: item.applicant_name || item.applicantName || '',
         department: item.department || '',
         vacationType: item.vacation_type || item.vacationType || '',
-        startDate: item.start_date || item.startDate || '',
-        endDate: item.end_date || item.endDate || '',
+        startDate: normalizeDate(item.start_date || item.startDate || ''),
+        endDate: normalizeDate(item.end_date || item.endDate || ''),
         days: item.days || 0,
         reason: item.reason || '',
         status: item.status || '',
@@ -1107,8 +1176,8 @@ class LeaveService {
         department: item.department || '',
         jobPosition: item.job_position || item.jobPosition || '',
         leaveType: item.leave_type || item.leaveType || '',
-        startDate: item.start_date || item.startDate || '',
-        endDate: item.end_date || item.endDate || '',
+        startDate: normalizeDate(item.start_date || item.startDate || ''),
+        endDate: normalizeDate(item.end_date || item.endDate || ''),
         halfDaySlot: item.half_day_slot || item.halfDaySlot || '',
         totalDays: item.total_days || item.totalDays || 0,
         remainDays: item.remain_days || item.remainDays || 0,

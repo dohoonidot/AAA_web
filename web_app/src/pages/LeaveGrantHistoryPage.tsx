@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import {
     Box,
     Typography,
@@ -23,60 +23,17 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PendingIcon from '@mui/icons-material/Pending';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-
-import leaveService from '../services/leaveService';
-import authService from '../services/authService';
-import { createLogger } from '../utils/logger';
-import type { LeaveGrantRequestItem } from '../types/leave';
 import { useThemeStore } from '../store/themeStore';
-
-const logger = createLogger('LeaveGrantHistoryPage');
+import { useLeaveGrantHistoryPageState } from './LeaveGrantHistoryPage.state';
 
 const LeaveGrantHistoryPage: React.FC = () => {
-    const navigate = useNavigate();
     const { colorScheme } = useThemeStore();
     const isDark = colorScheme.name === 'Dark';
 
-    const [loading, setLoading] = useState(true);
-    const [history, setHistory] = useState<LeaveGrantRequestItem[]>([]);
-    const [selectedItem, setSelectedItem] = useState<LeaveGrantRequestItem | null>(null);
-    const [stats, setStats] = useState({
-        total: 0,
-        pending: 0,
-        managerGranted: 0,
-        approved: 0,
-        rejected: 0,
-    });
-
-    const fetchHistory = useCallback(async () => {
-        setLoading(true);
-        try {
-            const user = authService.getCurrentUser();
-            if (!user) return;
-
-            const response = await leaveService.getGrantRequestList(user.userId);
-            const data = response.leaveGrants || [];
-            setHistory(data);
-
-            setStats({
-                total: data.length,
-                pending: data.filter((item: any) => item.status === 'REQUESTED').length,
-                managerGranted: data.filter((item: any) => item.isManager === 1).length,
-                approved: data.filter((item: any) => item.status === 'APPROVED').length,
-                rejected: data.filter((item: any) => item.status === 'REJECTED').length,
-            });
-        } catch (error) {
-            logger.error('Failed to fetch history:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchHistory();
-    }, [fetchHistory]);
+    const { state, actions } = useLeaveGrantHistoryPageState();
+    const { loading, history, selectedItem, stats } = state;
+    const { setSelectedItem, fetchHistory, navigate } = actions;
 
     const getStatusInfo = (status: string) => {
         switch (status) {

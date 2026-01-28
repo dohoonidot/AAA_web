@@ -3,7 +3,7 @@
  * 우측 상단에 배지 아이콘으로 표시되며, 클릭 시 선물 목록 표시
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Badge,
   IconButton,
@@ -28,8 +28,6 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PhoneAndroidIcon from '@mui/icons-material/PhoneAndroid';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
-import giftService from '../../services/giftService';
-import authService from '../../services/authService';
 import type { Gift } from '../../types/gift';
 import dayjs from 'dayjs';
 import {
@@ -39,40 +37,18 @@ import {
   DialogActions,
   Snackbar,
 } from '@mui/material';
+import { useGiftButtonState, useGiftPanelState } from './GiftBox.state';
 
 /**
  * 선물함 아이콘 버튼
  * 헤더나 네비게이션 바에 배치
  */
 export function GiftButton() {
-  const [giftCount, setGiftCount] = useState(0);
-  const [isOpen, setIsOpen] = useState(false);
+  const { state, actions } = useGiftButtonState();
+  const { giftCount, isOpen } = state;
+  const { setIsOpen, setGiftCount } = actions;
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-
-  // 선물 개수 조회
-  useEffect(() => {
-    const loadGiftCount = async () => {
-      try {
-        const user = authService.getCurrentUser();
-        if (!user) return;
-
-        const response = await giftService.checkGifts(user.userId);
-        console.log('🎁 선물 응답:', response);
-        const newGiftCount = (response?.gifts || []).filter(g => g.is_new).length;
-        setGiftCount(newGiftCount);
-      } catch (error) {
-        console.error('🎁 선물 개수 조회 실패:', error);
-        setGiftCount(0); // 에러 시 개수 0으로 설정
-      }
-    };
-
-    loadGiftCount();
-
-    // 5분마다 선물 개수 새로고침
-    const interval = setInterval(loadGiftCount, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <>
@@ -112,152 +88,37 @@ interface GiftPanelProps {
  * 선물함 패널 Drawer
  */
 export function GiftPanel({ open, onClose, onGiftCountChange }: GiftPanelProps) {
-  const [gifts, setGifts] = useState<Gift[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { state, actions } = useGiftPanelState({ open, onGiftCountChange });
+  const {
+    gifts,
+    loading,
+    error,
+    mobileExportDialogOpen,
+    mobileExportLoading,
+    mobileExportGiftUrl,
+    deleteConfirmOpen,
+    giftToDelete,
+    snackbarOpen,
+    snackbarMessage,
+    snackbarSeverity,
+  } = state;
+  const {
+    loadGifts,
+    getCouponImageUrl,
+    handleOpenInBrowser,
+    handleOpenMobileExportDialog,
+    handleCloseMobileExportDialog,
+    handleSendToMobile,
+    handleOpenDeleteConfirm,
+    handleCloseDeleteConfirm,
+    handleDeleteGift,
+    handleCloseSnackbar,
+  } = actions;
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const panelBg = isDark ? '#0F172A' : '#F8F9FA';
   const panelSurface = isDark ? '#111827' : 'white';
   const panelBorder = isDark ? 'rgba(255,255,255,0.08)' : 'divider';
-  
-  // 모바일 내보내기 관련 상태
-  const [mobileExportDialogOpen, setMobileExportDialogOpen] = useState(false);
-  const [mobileExportLoading, setMobileExportLoading] = useState(false);
-  const [mobileExportGiftUrl, setMobileExportGiftUrl] = useState<string | null>(null);
-
-  // 삭제 관련 상태
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [giftToDelete, setGiftToDelete] = useState<Gift | null>(null);
-
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
-
-  // 선물 목록 로드
-  useEffect(() => {
-    if (open) {
-      loadGifts();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  const loadGifts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      const response = await giftService.checkGifts(user.userId);
-      setGifts(response.gifts || []);
-
-      // 새 선물 개수 업데이트
-      const newGiftCount = (response.gifts || []).filter(g => g.is_new).length;
-      onGiftCountChange(newGiftCount);
-    } catch (err: any) {
-      console.error('선물함 조회 실패:', err);
-      setError('선물함을 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 쿠폰 이미지 URL 가져오기 헬퍼 함수 (두 필드 모두 지원)
-  const getCouponImageUrl = (gift: Gift): string | undefined => {
-    return gift.coupon_img_url || gift.couponImgUrl;
-  };
-
-  // 브라우저에서 열기 핸들러
-  const handleOpenInBrowser = (url: string) => {
-    window.open(url, '_blank');
-  };
-
-  // 모바일로 내보내기 확인 다이얼로그 열기
-  const handleOpenMobileExportDialog = (url: string) => {
-    setMobileExportGiftUrl(url);
-    setMobileExportDialogOpen(true);
-  };
-
-  // 모바일로 내보내기 확인 다이얼로그 닫기
-  const handleCloseMobileExportDialog = () => {
-    setMobileExportDialogOpen(false);
-    setMobileExportGiftUrl(null);
-  };
-
-  // 모바일로 내보내기 실행
-  const handleSendToMobile = async () => {
-    if (!mobileExportGiftUrl) return;
-
-    try {
-      setMobileExportLoading(true);
-      const response = await giftService.sendToMobile(mobileExportGiftUrl);
-      
-      console.log('모바일 내보내기 성공:', response);
-      
-      setSnackbarMessage(response.message || '모바일로 전송되었습니다.');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      
-      handleCloseMobileExportDialog();
-    } catch (err: any) {
-      console.error('모바일 내보내기 실패:', err);
-      setSnackbarMessage(err.message || '모바일 내보내기에 실패했습니다.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    } finally {
-      setMobileExportLoading(false);
-    }
-  };
-
-  // 삭제 확인 모달 열기
-  const handleOpenDeleteConfirm = (gift: Gift) => {
-    setGiftToDelete(gift);
-    setDeleteConfirmOpen(true);
-  };
-
-  // 삭제 확인 모달 닫기
-  const handleCloseDeleteConfirm = () => {
-    setDeleteConfirmOpen(false);
-    setGiftToDelete(null);
-  };
-
-  // 선물 삭제 실행
-  const handleDeleteGift = async () => {
-    if (!giftToDelete) return;
-
-    try {
-      // 실제 삭제 API 호출 (필요시 구현)
-      // 예: await giftService.deleteGift(giftToDelete.id);
-
-      // 로컬 상태에서 제거
-      setGifts(prevGifts => prevGifts.filter(gift => gift.id !== giftToDelete.id));
-
-      // 새 선물 개수 업데이트
-      const newGiftCount = gifts.filter(g => g.id !== giftToDelete.id && g.is_new).length;
-      onGiftCountChange(newGiftCount);
-
-      setSnackbarMessage('선물이 삭제되었습니다.');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-
-      handleCloseDeleteConfirm();
-    } catch (error) {
-      console.error('선물 삭제 실패:', error);
-      setSnackbarMessage('선물 삭제에 실패했습니다.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    }
-  };
-
-  // Snackbar 닫기
-  const handleCloseSnackbar = () => {
-    setSnackbarOpen(false);
-  };
 
   return (
     <Drawer

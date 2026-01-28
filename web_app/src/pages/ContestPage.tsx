@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Container,
@@ -31,175 +31,39 @@ import {
   Comment as CommentIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import contestService from '../services/contestService';
-import authService from '../services/authService';
+import { useContestPageState } from './ContestPage.state';
 
 export default function ContestPage() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const [loading, setLoading] = useState(false);
-  const [listLoading, setListLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [viewType, setViewType] = useState<'random' | 'view_count' | 'votes'>('random');
-  const [category, setCategory] = useState('');
-  const [contestList, setContestList] = useState<any[]>([]);
-  const [remainingVotes, setRemainingVotes] = useState(0);
-  const [userInfo, setUserInfo] = useState<{ name: string; department: string; job_position: string } | null>(null);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [filePreviews, setFilePreviews] = useState<string[]>([]);
-
-  // 신청서 필드
-  const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-  });
-
-  // 부서 목록
-  const departments = [
-    '경영관리실',
-    'New Tech사업부',
-    '솔루션사업부',
-    'FCM사업부',
-    'SCM사업부',
-    'Innovation Center',
-    'Biz AI사업부',
-    'HRS사업부',
-    'DTE본부',
-    'PUBLIC CLOUD사업부',
-    'ITS사업부',
-    'BAC사업부',
-    'NGE본부',
-    'BDS사업부',
-    '남부지사',
-  ];
-
-  // 초기 데이터 로드
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  // 공모전 목록 로드
-  useEffect(() => {
-    loadContestList();
-  }, [viewType, category]);
-
-  const loadInitialData = async () => {
-    try {
-      const [votes, info] = await Promise.all([
-        contestService.getRemainingVotes(),
-        contestService.getUserInfo().catch(() => null),
-      ]);
-      setRemainingVotes(votes);
-      if (info) {
-        setUserInfo(info);
-      }
-    } catch (error) {
-      console.error('초기 데이터 로드 실패:', error);
-    }
-  };
-
-  const loadContestList = async () => {
-    try {
-      setListLoading(true);
-      const data = await contestService.getContestList({ viewType, category });
-      setContestList(data?.documents || []);
-    } catch (error: any) {
-      console.error('공모전 목록 로드 실패:', error);
-      setError(error.message || '공모전 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setListLoading(false);
-    }
-  };
-
-  // 파일 선택 핸들러
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    if (imageFiles.length !== files.length) {
-      setError('이미지 파일만 업로드 가능합니다.');
-      return;
-    }
-
-    const newFiles = [...selectedFiles, ...imageFiles];
-    setSelectedFiles(newFiles);
-
-    // 미리보기 생성
-    const newPreviews = [...filePreviews];
-    imageFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        newPreviews.push(e.target?.result as string);
-        setFilePreviews([...newPreviews]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // 파일 제거 핸들러
-  const handleFileRemove = (index: number) => {
-    const newFiles = selectedFiles.filter((_, i) => i !== index);
-    const newPreviews = filePreviews.filter((_, i) => i !== index);
-    setSelectedFiles(newFiles);
-    setFilePreviews(newPreviews);
-  };
-
-  // 좋아요/투표 핸들러
-  const handleVote = async (documentId: number, isLiked: boolean) => {
-    try {
-      await contestService.voteContest({
-        documentId,
-        action: isLiked ? 'unlike' : 'like',
-      });
-      await loadContestList();
-      await loadInitialData(); // 남은 투표 수 갱신
-    } catch (error: any) {
-      setError(error.message || '투표에 실패했습니다.');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(false);
-
-    // 유효성 검사
-    if (!formData.title || !formData.content) {
-      setError('제목과 내용을 입력해주세요.');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // 메시지 형식: 제목과 내용을 포함한 텍스트
-      const message = `제목: ${formData.title}\n\n내용:\n${formData.content}`;
-
-      await contestService.submitContest({
-        message,
-        files: selectedFiles,
-        fileNames: selectedFiles.map(f => f.name),
-      });
-
-      setSuccess(true);
-      setFormData({
-        title: '',
-        content: '',
-      });
-      setSelectedFiles([]);
-      setFilePreviews([]);
-      await loadContestList();
-      await loadInitialData();
-    } catch (err: any) {
-      setError(err.message || '신청서 제출에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { state, actions } = useContestPageState();
+  const {
+    loading,
+    listLoading,
+    error,
+    success,
+    viewType,
+    category,
+    contestList,
+    remainingVotes,
+    userInfo,
+    selectedFiles,
+    filePreviews,
+    formData,
+    departments,
+  } = state;
+  const {
+    setViewType,
+    setCategory,
+    setFormData,
+    setError,
+    handleFileSelect,
+    handleFileRemove,
+    handleVote,
+    handleSubmit,
+  } = actions;
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -453,4 +317,3 @@ export default function ContestPage() {
     </Box>
   );
 }
-

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -32,10 +32,8 @@ import {
   EventNote as EventNoteIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
-import leaveService from '../../services/leaveService';
-import authService from '../../services/authService';
 import type { MonthlyLeave, CalendarDay } from '../../types/leave';
-import type { Holiday } from '../../types/holiday';
+import { usePersonalCalendarState } from './PersonalCalendar.state';
 
 interface PersonalCalendarProps {
   monthlyLeaves?: MonthlyLeave[]; // 초기 데이터 (선택사항)
@@ -55,140 +53,33 @@ export default function PersonalCalendar({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isDark = theme.palette.mode === 'dark';
-  const [currentDate, setCurrentDate] = useState(dayjs());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedDateDetails, setSelectedDateDetails] = useState<MonthlyLeave[]>([]);
-  const [selectedHolidayName, setSelectedHolidayName] = useState<string | null>(null);
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [slidePanelOpen, setSlidePanelOpen] = useState(false);
-  const [fullCalendarOpen, setFullCalendarOpen] = useState(false);
-
-  // 월별 달력 데이터 상태
-  const [monthlyLeaves, setMonthlyLeaves] = useState<MonthlyLeave[]>(initialMonthlyLeaves);
-  const [loading, setLoading] = useState(initialLoading);
-  const [error, setError] = useState<string | null>(initialError);
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
-
-  // 월별 달력 데이터 로드
-  useEffect(() => {
-    loadMonthlyCalendar();
-    loadMonthlyHolidays();
-  }, [currentDate]);
-
-  // 초기 데이터가 변경되면 업데이트
-  useEffect(() => {
-    if (initialMonthlyLeaves.length > 0) {
-      setMonthlyLeaves(initialMonthlyLeaves);
-    }
-  }, [initialMonthlyLeaves]);
-
-  useEffect(() => {
-    if (selectedDate) {
-      setSelectedHolidayName(getHolidayName(selectedDate));
-    }
-  }, [holidays, selectedDate]);
-
-  const loadMonthlyCalendar = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      const month = currentDate.format('YYYY-MM');
-      console.log('월별 달력 데이터 로드:', month);
-
-      const response = await leaveService.getMonthlyCalendar({
-        userId: user.userId,
-        month: month,
-      });
-
-      console.log('월별 달력 응답:', response);
-
-      if (response.monthlyLeaves) {
-        setMonthlyLeaves(response.monthlyLeaves);
-        // 콜백 호출
-        onMonthChange?.(month, response.monthlyLeaves);
-      }
-    } catch (err: any) {
-      console.error('월별 달력 로드 실패:', err);
-      setError(err.response?.data?.message || '월별 달력 데이터를 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadMonthlyHolidays = async () => {
-    try {
-      const response = await leaveService.getHolidays(currentDate.year(), currentDate.month() + 1);
-      setHolidays(response.holidays || []);
-    } catch (err: any) {
-      console.error('공휴일 데이터 로드 실패:', err);
-      setHolidays([]);
-    }
-  };
-
-  const getHolidayName = (date: Date) => {
-    const holiday = holidays.find((item) => dayjs(item.locDate).isSame(dayjs(date), 'day'));
-    return holiday?.dateName || null;
-  };
-
-  // 달력 그리드 생성
-  const generateCalendarDays = (): CalendarDay[] => {
-    const startOfMonth = currentDate.startOf('month');
-    const endOfMonth = currentDate.endOf('month');
-    const startOfWeek = startOfMonth.startOf('week');
-    const endOfWeek = endOfMonth.endOf('week');
-
-    const days: CalendarDay[] = [];
-    let currentDay = startOfWeek;
-
-    while (currentDay.isBefore(endOfWeek) || currentDay.isSame(endOfWeek, 'day')) {
-      const dayDate = currentDay.toDate();
-      const isCurrentMonth = currentDay.isSame(currentDate, 'month');
-      const isToday = currentDay.isSame(dayjs(), 'day');
-
-      // 해당 날짜의 휴가 찾기 - Flutter와 동일한 로직 (날짜 부분만 비교)
-      const dayLeaves = monthlyLeaves.filter(leave => {
-        if (!leave.startDate || !leave.endDate) return false;
-
-        // 날짜 부분만 추출하여 비교 (타임존 문제 방지)
-        const startDate = dayjs(leave.startDate).startOf('day');
-        const endDate = dayjs(leave.endDate).startOf('day');
-        const currentDate = currentDay.startOf('day');
-
-        // endDate까지 포함하여 표시 (inclusive)
-        return (
-          currentDate.isSame(startDate, 'day') ||
-          currentDate.isSame(endDate, 'day') ||
-          (currentDate.isAfter(startDate, 'day') && currentDate.isBefore(endDate, 'day'))
-        );
-      });
-      // 승인된 건만 표시
-      const approvedLeaves = dayLeaves.filter(l => l.status?.toUpperCase() === 'APPROVED');
-
-      const holidayName = getHolidayName(dayDate);
-
-      days.push({
-        date: dayDate,
-        isCurrentMonth,
-        isToday,
-        leaves: approvedLeaves,
-        isHoliday: !!holidayName,
-        holidayName,
-      });
-
-      currentDay = currentDay.add(1, 'day');
-    }
-
-    return days;
-  };
-
-  const calendarDays = generateCalendarDays();
+  const { state, actions, derived } = usePersonalCalendarState({
+    initialMonthlyLeaves,
+    initialLoading,
+    initialError,
+    onMonthChange,
+  });
+  const {
+    currentDate,
+    selectedDate,
+    selectedDateDetails,
+    selectedHolidayName,
+    detailDialogOpen,
+    slidePanelOpen,
+    fullCalendarOpen,
+    loading,
+    error,
+    calendarDays,
+  } = state;
+  const {
+    setDetailDialogOpen,
+    setSlidePanelOpen,
+    setFullCalendarOpen,
+    handlePrevMonth,
+    handleNextMonth,
+    handleDateClick,
+  } = actions;
+  const { getStatusColor, getStatusLabel } = derived;
   const cardBg = isDark ? '#0F172A' : 'white';
   const panelBg = isDark ? '#111827' : 'white';
   const panelBorder = isDark ? 'rgba(255,255,255,0.08)' : '#F1F3F5';
@@ -196,71 +87,6 @@ export default function PersonalCalendar({
   const panelSubText = isDark ? '#9CA3AF' : '#6C757D';
   const emptyIcon = isDark ? '#374151' : '#E5E7EB';
 
-  const handlePrevMonth = () => {
-    setCurrentDate(prev => prev.subtract(1, 'month'));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate(prev => prev.add(1, 'month'));
-  };
-
-  const handleDateClick = (day: CalendarDay) => {
-    setSelectedDate(day.date);
-    setSelectedHolidayName(day.holidayName || null);
-
-    // 선택된 날짜의 모든 휴가 내역 표시 (승인/대기/반려 모두) - Flutter와 동일한 로직
-    const selectedDateDetails = monthlyLeaves.filter(leave => {
-      if (!leave.startDate || !leave.endDate) return false;
-
-      // 날짜 부분만 추출하여 비교 (타임존 문제 방지)
-      const startDate = dayjs(leave.startDate).startOf('day');
-      const endDate = dayjs(leave.endDate).startOf('day');
-      const clickedDate = dayjs(day.date).startOf('day');
-
-      // endDate까지 포함하여 표시 (inclusive)
-      return (
-        clickedDate.isSame(startDate, 'day') ||
-        clickedDate.isSame(endDate, 'day') ||
-        (clickedDate.isAfter(startDate, 'day') && clickedDate.isBefore(endDate, 'day'))
-      );
-    });
-
-    if (selectedDateDetails.length > 0 || day.holidayName) {
-      setSelectedDateDetails(selectedDateDetails);
-      setSlidePanelOpen(true);
-    } else {
-      setSelectedDateDetails([]);
-      setSlidePanelOpen(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    // Flutter와 동일한 우선순위: 대기중 > 승인됨 > 반려됨 > 취소됨
-    switch (status.toUpperCase()) {
-      case 'REQUESTED':
-      case 'PENDING':
-        return 'warning'; // 대기중 - 최우선
-      case 'APPROVED':
-        return 'success'; // 승인됨
-      case 'REJECTED':
-        return 'error'; // 반려됨
-      case 'CANCELLED':
-        return 'default'; // 취소됨 - 최하위
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: { [key: string]: string } = {
-      REQUESTED: '신청',
-      APPROVED: '승인',
-      REJECTED: '반려',
-      PENDING: '대기중',
-      CANCELLED: '취소됨',
-    };
-    return labels[status] || status;
-  };
 
   const renderCalendarDay = (day: CalendarDay) => {
     const hasLeaves = day.leaves.length > 0;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -39,168 +39,46 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
-import leaveService from '../../services/leaveService';
-import authService from '../../services/authService';
 import { useThemeStore } from '../../store/themeStore';
-import { createLogger } from '../../utils/logger';
-import type {
-  AdminWaitingLeave,
-  AdminManagementApiResponse,
-} from '../../types/leave';
-
-const logger = createLogger('AdminLeaveApprovalScreen');
+import type { AdminWaitingLeave } from '../../types/leave';
+import { useAdminLeaveApprovalScreenState } from './AdminLeaveApprovalScreen.state';
 
 export default function AdminLeaveApprovalScreen() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const navigate = useNavigate();
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme.name === 'Dark';
 
-  // 상태 관리
-  const [selectedTab, setSelectedTab] = useState<'pending' | 'all'>('pending');
-  const [statusFilter, setStatusFilter] = useState<string | null>('REQUESTED');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [adminData, setAdminData] = useState<AdminManagementApiResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // 페이지네이션 상태
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-
-  // 승인/반려 다이얼로그 상태
-  const [approvalDialog, setApprovalDialog] = useState(false);
-  const [selectedLeave, setSelectedLeave] = useState<AdminWaitingLeave | null>(null);
-  const [approvalAction, setApprovalAction] = useState<'approve' | 'reject' | null>(null);
-  const [rejectMessage, setRejectMessage] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
-
-  // 데이터 로드
-  useEffect(() => {
-    loadData();
-  }, [selectedYear]);
-
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      // 연도별 데이터 조회
-      const response = await leaveService.getAdminYearlyLeave({
-        approverId: user.userId,
-        year: selectedYear,
-      });
-
-      if (response.error) {
-        setError(response.error);
-      } else {
-        // AdminYearlyLeaveResponse를 AdminManagementApiResponse 형식으로 변환
-        const transformedData: AdminManagementApiResponse = {
-          error: response.error,
-          approval_status: response.approval_status || [],
-          waiting_leaves: response.waiting_leaves || [],
-        };
-        setAdminData(transformedData);
-      }
-    } catch (err: any) {
-      logger.error('관리자 데이터 로드 실패:', err);
-      setError('데이터를 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 승인 처리
-  const handleApprove = async () => {
-    if (!selectedLeave) return;
-
-    setActionLoading(true);
-    try {
-      const user = authService.getCurrentUser();
-      if (!user) return;
-
-      // 취소 상신인지 일반 상신인지 확인
-      const isCancel = selectedLeave.isCancel === 1;
-
-      if (isCancel) {
-        // 취소 상신 승인
-        await leaveService.processCancelApproval({
-          id: selectedLeave.id,
-          approverId: user.userId,
-          isApproved: 'APPROVED',
-        });
-      } else {
-        // 일반 휴가 승인
-        await leaveService.processAdminApproval({
-          id: selectedLeave.id,
-          approverId: user.userId,
-          isApproved: 'APPROVED',
-        });
-      }
-
-      setApprovalDialog(false);
-      setSelectedLeave(null);
-      loadData(); // 데이터 새로고침
-    } catch (err: any) {
-      logger.error('승인 처리 실패:', err);
-      setError('승인 처리에 실패했습니다.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // 반려 처리
-  const handleReject = async () => {
-    if (!selectedLeave || !rejectMessage.trim()) {
-      setError('반려 사유를 입력해주세요.');
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      const user = authService.getCurrentUser();
-      if (!user) return;
-
-      // 취소 상신인지 일반 상신인지 확인
-      const isCancel = selectedLeave.isCancel === 1;
-
-      if (isCancel) {
-        // 취소 상신 반려
-        await leaveService.processCancelApproval({
-          id: selectedLeave.id,
-          approverId: user.userId,
-          isApproved: 'REJECTED',
-          rejectMessage: rejectMessage.trim(),
-        });
-      } else {
-        // 일반 휴가 반려
-        await leaveService.processAdminApproval({
-          id: selectedLeave.id,
-          approverId: user.userId,
-          isApproved: 'REJECTED',
-          rejectMessage: rejectMessage.trim(),
-        });
-      }
-
-      setApprovalDialog(false);
-      setSelectedLeave(null);
-      setRejectMessage('');
-      loadData(); // 데이터 새로고침
-    } catch (err: any) {
-      logger.error('반려 처리 실패:', err);
-      setError('반려 처리에 실패했습니다.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  const { state, actions } = useAdminLeaveApprovalScreenState();
+  const {
+    selectedTab,
+    statusFilter,
+    selectedYear,
+    adminData,
+    loading,
+    error,
+    currentPage,
+    itemsPerPage,
+    approvalDialog,
+    selectedLeave,
+    approvalAction,
+    rejectMessage,
+    actionLoading,
+  } = state;
+  const {
+    setSelectedTab,
+    setStatusFilter,
+    setSelectedYear,
+    setCurrentPage,
+    setApprovalDialog,
+    setSelectedLeave,
+    setApprovalAction,
+    setRejectMessage,
+    setError,
+    handleApprove,
+    handleReject,
+    navigate,
+  } = actions;
 
   // 통계 카드 렌더링
   const renderStatsCards = () => {
@@ -337,11 +215,6 @@ export default function AdminLeaveApprovalScreen() {
   const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
     setCurrentPage(page);
   };
-
-  // 탭이나 필터, 연도가 변경될 때 페이지를 1로 리셋
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedTab, statusFilter, selectedYear]);
 
   // 상태 색상 반환
   const getStatusColor = (status: string) => {

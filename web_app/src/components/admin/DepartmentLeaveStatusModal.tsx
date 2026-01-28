@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Dialog,
   Box,
@@ -24,9 +24,8 @@ import {
   ErrorOutline as ErrorOutlineIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import authService from '../../services/authService';
-import leaveService from '../../services/leaveService';
-import type { EmployeeLeaveStatus, DepartmentLeaveStatusResponse } from '../../types/leave';
+import type { EmployeeLeaveStatus } from '../../types/leave';
+import { useDepartmentLeaveStatusModalState } from './DepartmentLeaveStatusModal.state';
 
 interface DepartmentLeaveStatusModalProps {
   open: boolean;
@@ -40,51 +39,10 @@ export const DepartmentLeaveStatusModal: React.FC<DepartmentLeaveStatusModalProp
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isDarkTheme = theme.palette.mode === 'dark';
-  const [loading, setLoading] = useState(true);
-  const [employees, setEmployees] = useState<EmployeeLeaveStatus[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      loadLeaveStatusData();
-    }
-  }, [open]);
-
-  const loadLeaveStatusData = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const user = authService.getCurrentUser();
-      if (!user || !user.userId) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        setLoading(false);
-        return;
-      }
-
-      const response = await leaveService.getDepartmentLeaveStatus(user.userId);
-
-      if (response.error) {
-        setError(response.error);
-      } else {
-        setEmployees(response.employees);
-      }
-    } catch (err: any) {
-      setError(err.message || '데이터 로딩 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 같은 부서/이름을 가진 직원들을 그룹화
-  const groupedEmployees = employees.reduce((acc, employee) => {
-    const key = `${employee.department}_${employee.name}`;
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(employee);
-    return acc;
-  }, {} as Record<string, EmployeeLeaveStatus[]>);
+  const { state, actions } = useDepartmentLeaveStatusModalState({ open });
+  const { loading, employees, error, groupedEmployees } = state;
+  const { loadLeaveStatusData } = actions;
 
   const renderContent = () => {
     if (loading) {
@@ -711,4 +669,3 @@ export const DepartmentLeaveStatusModal: React.FC<DepartmentLeaveStatusModalProp
     </Dialog>
   );
 };
-

@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
 import {
   Box,
   Paper,
@@ -36,509 +35,51 @@ import {
 } from '@mui/icons-material';
 import { useChatStore, isDefaultArchive } from '../../store/chatStore';
 import { useThemeStore } from '../../store/themeStore';
-import { useLeaveRequestDraftStore } from '../../store/leaveRequestDraftStore';
-import { useElectronicApprovalStore } from '../../store/electronicApprovalStore';
-import chatService from '../../services/chatService';
-import authService from '../../services/authService';
-import FileService, { type FileAttachment } from '../../services/fileService';
-import type { ChatMessage } from '../../types';
-import type { LeaveTriggerData } from '../../types/leaveRequest';
 import MessageRenderer from './MessageRenderer';
 import AiModelSelector from './AiModelSelector';
+import { useChatAreaState } from './ChatArea.state';
 
 export default function ChatArea() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme.name === 'Dark';
-  const { openPanel } = useLeaveRequestDraftStore();
-  const { openPanel: openElectronicApproval } = useElectronicApprovalStore();
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textFieldRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // 파일 첨부 상태
-  const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
-
-  // 이미지 파일 미리보기 URL 상태
-  const [imagePreviews, setImagePreviews] = useState<Record<string, string>>({});
-
-  // 모바일 설정 메뉴 상태
-  const [settingsAnchorEl, setSettingsAnchorEl] = useState<HTMLElement | null>(null);
-  const settingsMenuOpen = Boolean(settingsAnchorEl);
-
+  const { state, actions, refs, derived } = useChatAreaState();
   const {
     currentArchive,
-    archives,
     messages,
     inputMessage,
     selectedModel,
-    isWebSearchEnabled,
     selectedSapModule,
+    isWebSearchEnabled,
     isStreaming,
     streamingMessage,
+    attachedFiles,
+    imagePreviews,
+    settingsAnchorEl,
+    isSpecialChatRoom,
+    isAIChatbot,
+    SAP_MODULES,
+  } = state;
+
+  const {
     setInputMessage,
     setSelectedModel,
-    setWebSearchEnabled,
     setSelectedSapModule,
-    setStreaming,
-    setStreamingMessage,
-    appendStreamingMessage,
-    addMessage,
-    setMessages,
-    setCurrentArchive,
-  } = useChatStore();
+    handleSend,
+    handleKeyPress,
+    handleFileAttach,
+    handleFileSelect,
+    handleFileRemove,
+    handleSettingsMenuOpen,
+    handleSettingsMenuClose,
+    handleWebSearchToggle,
+    handleBackToDefault,
+  } = actions;
 
-  const user = authService.getCurrentUser();
-
-  // 아카이브 메시지 로드
-  const loadArchiveMessages = async (archive: any) => {
-    try {
-      const messages = await chatService.getArchiveDetail(archive.archive_id);
-      setMessages(messages);
-    } catch (error) {
-      console.error('ChatArea: 메시지 로드 실패:', error);
-      setMessages([]);
-    }
-  };
-
-  // 자동 스크롤
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamingMessage]);
-
-  // 컴포넌트 마운트 시 텍스트 필드에 포커스
-  useEffect(() => {
-    const focusTextField = () => {
-      try {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          // 커서를 텍스트 끝으로 이동 (값이 있는 경우에만)
-          if (inputRef.current.value !== undefined && inputRef.current.value !== null) {
-            const length = inputRef.current.value.length || 0;
-            inputRef.current.setSelectionRange(length, length);
-          }
-        }
-      } catch (error) {
-        console.warn('초기 포커스 설정 중 에러 (무시 가능):', error);
-      }
-    };
-
-    const timer = setTimeout(() => {
-      focusTextField();
-      // UI가 완전히 렌더링된 후 다시 포커스
-      setTimeout(focusTextField, 100);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [currentArchive]);
-
-  // 현재 아카이브가 변경될 때마다 메시지 로드
-  useEffect(() => {
-    if (currentArchive) {
-      loadArchiveMessages(currentArchive);
-    }
-  }, [currentArchive]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 컴포넌트 언마운트 시 미리보기 URL 정리
-  useEffect(() => {
-    return () => {
-      // 모든 미리보기 URL 정리
-      Object.values(imagePreviews).forEach(url => {
-        URL.revokeObjectURL(url);
-      });
-    };
-  }, []);
-
-  // 메시지 전송
-  const handleSend = async () => {
-    if (!inputMessage.trim() || isStreaming || !currentArchive || !user) return;
-
-    const userMessage: ChatMessage = {
-      chat_id: Date.now(),
-      archive_id: currentArchive.archive_id,
-      message: inputMessage.trim(),
-      role: 0, // 사용자
-      timestamp: new Date().toISOString(),
-    };
-
-    // 사용자 메시지 추가
-    addMessage(userMessage);
-    const messageText = inputMessage.trim();
-    setInputMessage('');
-
-    // 스트리밍 시작
-    setStreaming(true);
-    setStreamingMessage('');
-
-    try {
-      let fullResponse: string;
-      const handleLeaveTrigger = (triggerData: LeaveTriggerData) => {
-        console.log('[ChatArea] 휴가 트리거 수신:', triggerData);
-
-        const formatDate = (isoDate: string): string => {
-          if (!isoDate) return '';
-          return isoDate.split('T')[0];
-        };
-
-        openPanel({
-          userId: triggerData.user_id,
-          startDate: formatDate(triggerData.start_date),
-          endDate: formatDate(triggerData.end_date),
-          leaveType: triggerData.leave_type,
-          reason: triggerData.reason || '',
-          halfDaySlot: triggerData.half_day_slot || 'ALL',
-          approvalLine: triggerData.approval_line?.map(approver => ({
-            approverId: approver.approver_id,
-            approverName: approver.approver_name,
-            approvalSeq: approver.approval_seq,
-          })) || [],
-          ccList: triggerData.cc_list?.map(cc => ({
-            name: cc.name,
-            userId: cc.user_id,
-            department: '',
-          })) || [],
-          leaveStatus: triggerData.leave_status?.map(status => ({
-            leaveType: status.leave_type,
-            totalDays: status.total_days,
-            remainDays: status.remain_days,
-          })) || [],
-        });
-      };
-
-      const handleApprovalTrigger = (approvalData: any) => {
-        if (!approvalData?.approval_type) return;
-        console.log('[ChatArea] 전자결재 트리거 수신:', approvalData);
-        openElectronicApproval(approvalData);
-      };
-
-      // 파일 첨부가 있는 경우
-      if (attachedFiles.length > 0) {
-
-        // SAP 모듈 값 가져오기 (소문자로 변환)
-        const moduleValue = isSapArchive() && selectedSapModule ? selectedSapModule.toLowerCase() : '';
-        
-        // 모듈 선택 상태 로그 (파일 첨부)
-        console.log('📎 파일 첨부 메시지 전송 - 모듈 상태:', {
-          isSapArchive: isSapArchive(),
-          selectedSapModule,
-          moduleValue,
-          archiveName: currentArchive.archive_name,
-          archiveType: currentArchive.archive_type,
-        });
-        
-        const stream = isModelSelectorArchive()
-          ? await FileService.sendMessageWithModelAndFiles(
-              currentArchive.archive_id,
-              user.userId,
-              messageText,
-              attachedFiles,
-              selectedModel,
-              currentArchive.archive_type || '',
-              moduleValue,
-              isWebSearchEnabled
-            )
-          : await FileService.sendMessageWithFiles(
-              currentArchive.archive_id,
-              user.userId,
-              messageText,
-              attachedFiles,
-              currentArchive.archive_type || '',
-              moduleValue,
-              isWebSearchEnabled
-            );
-
-        fullResponse = await chatService.processStream({
-          stream,
-          onChunk: (chunk: string) => {
-            appendStreamingMessage(chunk);
-          },
-          onLeaveTrigger: handleLeaveTrigger,
-          onApprovalTrigger: handleApprovalTrigger,
-        });
-        
-        // 파일 목록 초기화 및 미리보기 URL 정리
-        setAttachedFiles([]);
-        Object.values(imagePreviews).forEach(url => URL.revokeObjectURL(url));
-        setImagePreviews({});
-      } else {
-        // 일반 메시지 전송
-        // SAP 모듈 값 가져오기 (chatService에서 소문자로 변환하므로 원본 값 전달)
-        const moduleValue = isSapArchive() && selectedSapModule ? selectedSapModule : '';
-        
-        // 모듈 선택 상태 로그
-        console.log('💬 메시지 전송 - 모듈 상태:', {
-          isSapArchive: isSapArchive(),
-          selectedSapModule,
-          moduleValue,
-          archiveName: currentArchive.archive_name,
-          archiveType: currentArchive.archive_type,
-        });
-        
-        fullResponse = await chatService.sendMessage({
-          userId: user.userId,
-          archiveId: currentArchive.archive_id,
-          message: messageText,
-          aiModel: selectedModel,
-          archiveName: currentArchive.archive_name,
-          isWebSearchEnabled: isWebSearchEnabled,
-          module: moduleValue,
-          onChunk: (chunk: string) => {
-            appendStreamingMessage(chunk);
-          },
-          onLeaveTrigger: handleLeaveTrigger,
-          onApprovalTrigger: handleApprovalTrigger,
-        });
-      }
-
-      // 스트리밍 완료 후 AI 메시지 추가
-      const aiMessage: ChatMessage = {
-        chat_id: Date.now() + 1,
-        archive_id: currentArchive.archive_id,
-        message: fullResponse,
-        role: 1, // AI
-        timestamp: new Date().toISOString(),
-      };
-
-      addMessage(aiMessage);
-
-      // 자동 타이틀 업데이트 (Flutter와 동일한 로직)
-      // 첫 번째 사용자 메시지인 경우에만 실행
-      const userMessagesCount = [...messages, userMessage].filter(m => m.role === 0).length;
-      const isFirstUserMessage = userMessagesCount === 1;
-
-      // 자동 타이틀 생성 기능 활성화
-      const AUTO_TITLE_ENABLED = true;
-
-      if (AUTO_TITLE_ENABLED && isFirstUserMessage && !isDefaultArchive(currentArchive)) {
-        console.log('🎯 첫 메시지 감지: 자동 타이틀 업데이트 시작', {
-          archiveId: currentArchive.archive_id,
-          message: messageText
-        });
-
-        // 자동 타이틀 생성 API 호출 (비동기, 백그라운드 실행)
-        // 에러 발생 시에도 채팅은 정상 동작
-        chatService.getAutoTitleStream(
-          user.userId,
-          currentArchive.archive_id,
-          messageText,
-          (chunk) => {
-            // 타이틀 조각 수신 (로그만 출력)
-            console.log('🔄 타이틀 조각 수신:', chunk);
-          },
-          (fullTitle) => {
-            // 타이틀 생성 완료
-            console.log('✅ 자동 타이틀 생성 완료:', fullTitle);
-
-            // 아카이브 목록에서 현재 아카이브의 제목 업데이트
-            const updatedArchives = archives.map(archive =>
-              archive.archive_id === currentArchive.archive_id
-                ? { ...archive, archive_name: fullTitle }
-                : archive
-            );
-
-            // 상태 업데이트
-            useChatStore.setState({
-              archives: updatedArchives,
-              currentArchive: { ...currentArchive, archive_name: fullTitle }
-            });
-          },
-          (error) => {
-            console.warn('⚠️ 자동 타이틀 생성 실패 (무시됨):', error.message);
-            // 에러 발생 시 조용히 무시 - 채팅 기능에는 영향 없음
-          }
-        ).catch(err => {
-          console.warn('⚠️ 자동 타이틀 스트림 예외 (무시됨):', err.message);
-          // 에러 발생 시 조용히 무시 - 채팅 기능에는 영향 없음
-        });
-      }
-    } catch (error) {
-      console.error('메시지 전송 실패:', error);
-      // 에러 메시지 추가
-      const errorMessage: ChatMessage = {
-        chat_id: Date.now() + 1,
-        archive_id: currentArchive.archive_id,
-        message: '죄송합니다. 메시지 전송 중 오류가 발생했습니다.',
-        role: 1,
-        timestamp: new Date().toISOString(),
-      };
-      addMessage(errorMessage);
-    } finally {
-      setStreaming(false);
-      setStreamingMessage('');
-
-      // 메시지 전송 완료 후 텍스트 필드에 포커스 (여러 번 시도)
-      const focusTextField = () => {
-        try {
-          if (inputRef.current) {
-            inputRef.current.focus();
-            // 커서를 텍스트 끝으로 이동 (값이 있는 경우에만)
-            if (inputRef.current.value !== undefined && inputRef.current.value !== null) {
-              const length = inputRef.current.value.length || 0;
-              inputRef.current.setSelectionRange(length, length);
-            }
-          }
-        } catch (error) {
-          console.warn('포커스 설정 중 에러 (무시 가능):', error);
-        }
-      };
-
-      // 즉시 포커스 시도
-      focusTextField();
-
-      // UI 업데이트 후 다시 포커스 시도
-      setTimeout(focusTextField, 50);
-      setTimeout(focusTextField, 150);
-    }
-  };
-
-  // Enter 키로 전송
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      handleSend();
-
-      // 엔터 키 입력 직후 포커스 재설정 (더 빠른 반응을 위해)
-      setTimeout(() => {
-        try {
-          if (inputRef.current) {
-            inputRef.current.focus();
-          }
-        } catch (error) {
-          console.warn('엔터 키 포커스 설정 중 에러 (무시 가능):', error);
-        }
-      }, 10);
-    }
-  };
-
-  // 파일 첨부 핸들러
-  const handleFileAttach = () => {
-    fileInputRef.current?.click();
-  };
-
-  // 파일 선택 핸들러
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    const newFiles: FileAttachment[] = [];
-    const newPreviews: Record<string, string> = {};
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const fileAttachment = FileService.createFileAttachment(file);
-      newFiles.push(fileAttachment);
-
-      // 이미지 파일인 경우 미리보기 URL 생성
-      if (file.type.startsWith('image/')) {
-        const previewUrl = URL.createObjectURL(file);
-        newPreviews[fileAttachment.id] = previewUrl;
-      }
-    }
-
-    // 파일 검증
-    const validation = isModelSelectorArchive()
-      ? FileService.validateModelFiles(newFiles)
-      : FileService.validateInternalFiles(newFiles);
-
-    if (!validation.valid) {
-      alert(validation.error);
-      // 생성된 미리보기 URL 정리
-      Object.values(newPreviews).forEach(url => URL.revokeObjectURL(url));
-      return;
-    }
-
-    setAttachedFiles(prev => [...prev, ...newFiles]);
-    setImagePreviews(prev => ({ ...prev, ...newPreviews }));
-
-    // 파일 입력 초기화
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // 파일 제거 핸들러
-  const handleFileRemove = (fileId: string) => {
-    setAttachedFiles(prev => prev.filter(file => file.id !== fileId));
-
-    // 이미지 미리보기 URL 정리
-    if (imagePreviews[fileId]) {
-      URL.revokeObjectURL(imagePreviews[fileId]);
-      setImagePreviews(prev => {
-        const newPreviews = { ...prev };
-        delete newPreviews[fileId];
-        return newPreviews;
-      });
-    }
-  };
-
-  // 아카이브 타입 확인 (AI 모델 선택 여부)
-  const isModelSelectorArchive = () => {
-    if (!currentArchive) return false;
-
-    const archiveName = currentArchive.archive_name.toLowerCase();
-    const archiveType = currentArchive.archive_type?.toLowerCase() || '';
-
-    return (
-      archiveName.includes('코딩') ||
-      archiveName.includes('sap') ||
-      archiveName.includes('ai chatbot') ||
-      archiveType === 'code' ||
-      archiveType === 'sap'
-    );
-  };
-
-  // SAP 어시스턴트 여부 확인
-  const isSapArchive = () => {
-    if (!currentArchive) return false;
-    const archiveName = currentArchive.archive_name;
-    const archiveType = currentArchive.archive_type;
-    return archiveType === 'sap' || archiveName === 'SAP어시스턴트' || archiveName === 'SAP 어시스턴트';
-  };
-
-  // SAP 모듈 목록 (Flutter와 동일)
-  const SAP_MODULES = ['BC', 'CO', 'FI', 'HR', 'IS', 'MM', 'PM', 'PP', 'PS', 'QM', 'SD', 'TR', 'WF', 'General'];
-
-  // 모바일 설정 메뉴 열기
-  const handleSettingsMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setSettingsAnchorEl(event.currentTarget);
-  };
-
-  // 모바일 설정 메뉴 닫기
-  const handleSettingsMenuClose = () => {
-    setSettingsAnchorEl(null);
-  };
-
-  // 웹검색 토글 핸들러
-  const handleWebSearchToggle = () => {
-    const newState = !isWebSearchEnabled;
-    setWebSearchEnabled(newState);
-    console.log(`🌐 웹검색 토글: ${newState ? 'ON' : 'OFF'}`);
-  };
-
-  // 뒤로가기 버튼 핸들러 - "사내업무" 아카이브로 이동
-  const handleBackToDefault = () => {
-    const defaultArchive = archives.find(
-      (archive) => archive.archive_name === '사내업무'
-    );
-
-    if (defaultArchive) {
-      setCurrentArchive(defaultArchive);
-    } else {
-      // "사내업무" 아카이브가 없으면 첫 번째 아카이브로 이동
-      if (archives.length > 0) {
-        setCurrentArchive(archives[0]);
-      }
-    }
-  };
-
-  // 특수 채팅방인지 확인 (코딩어시스턴트, SAP어시스턴트, AI Chatbot)
-  const isSpecialChatRoom =
-    currentArchive?.archive_name === '코딩어시스턴트' ||
-    currentArchive?.archive_name === 'SAP어시스턴트' ||
-    currentArchive?.archive_name === 'AI Chatbot';
+  const { messagesEndRef, fileInputRef, textFieldRef, inputRef } = refs;
+  const { isModelSelectorArchive, isSapArchive } = derived;
+  const settingsMenuOpen = Boolean(settingsAnchorEl);
 
   // 아카이브가 선택되지 않은 경우
   if (!currentArchive) {
@@ -558,9 +99,6 @@ export default function ChatArea() {
       </Box>
     );
   }
-
-  // AI Chatbot 아카이브 여부 확인 (Flutter와 동일한 로직)
-  const isAIChatbot = currentArchive.archive_name === 'AI Chatbot';
 
   return (
     <Box

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -49,20 +49,11 @@ import DesktopLeaveManagement from '../components/leave/DesktopLeaveManagement';
 import TotalCalendar from '../components/calendar/TotalCalendar';
 import LeaveRequestModal from '../components/leave/LeaveRequestModal';
 import VacationRecommendationModal from '../components/leave/VacationRecommendationModal';
-import leaveService from '../services/leaveService';
-import authService from '../services/authService';
 import LeaveManualModal from '../components/leave/LeaveManualModal';
 import LeaveAIManualModal from '../components/leave/LeaveAIManualModal';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useThemeStore } from '../store/themeStore';
-import { createLogger } from '../utils/logger';
-import type {
-  LeaveManagementData,
-  LeaveCancelRequest,
-  ApprovalStatus,
-} from '../types/leave';
-
-const logger = createLogger('LeaveManagementPage');
+import { useLeaveManagementPageState } from './LeaveManagementPage.state';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -88,263 +79,56 @@ function TabPanel(props: TabPanelProps) {
 
 export default function LeaveManagementPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // < 900px = 모바일
-  const user = authService.getCurrentUser(); // 사용자 정보
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme.name === 'Dark';
 
-  // 관리자 화면에서 넘어왔는지 확인
-  const fromAdmin = (location.state as any)?.fromAdmin || false;
-  const [tabValue, setTabValue] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [leaveData, setLeaveData] = useState<LeaveManagementData | null>(null);
-  const [waitingCount, setWaitingCount] = useState(0); // 관리자 대기 건수
-
-  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
-  const [cancelRequestModalOpen, setCancelRequestModalOpen] = useState(false);
-  const [cancelRequestLeave, setCancelRequestLeave] = useState<any>(null);
-  const [detailModalOpen, setDetailModalOpen] = useState(false); // 휴가 상세 모달
-  const [selectedLeave, setSelectedLeave] = useState<any>(null); // 선택된 휴가
-  const [cancelReasonDialogOpen, setCancelReasonDialogOpen] = useState(false); // 취소 사유 입력 다이얼로그
-  const [cancelReason, setCancelReason] = useState(''); // 취소 사유
-  const [recommendationOpen, setRecommendationOpen] = useState(false);
-  const [hideCanceled, setHideCanceled] = useState(false);
-  const [leaveManualOpen, setLeaveManualOpen] = useState(false);
-  const [leaveAIManualOpen, setLeaveAIManualOpen] = useState(false);
-
-  // 모바일 드롭다운 메뉴 상태
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const menuOpen = Boolean(menuAnchorEl);
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setMenuAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchorEl(null);
-  };
-
-  // is_approver 확인
-  const isApprover = user?.isApprover || false;
-
-  // 승인자인 경우 관리자 휴가관리 화면으로 리다이렉트 (관리자 화면에서 온 경우 제외)
-  useEffect(() => {
-    if (isApprover && !fromAdmin) {
-      logger.dev('승인자이므로 관리자 화면으로 리다이렉트');
-      navigate('/admin-leave', { replace: true });
-    }
-  }, [isApprover, fromAdmin, navigate]);
-
-  useEffect(() => {
-    loadLeaveData();
-  }, []);
-
-  const loadLeaveData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      logger.dev('휴가관리 데이터 로드 시작:', user.userId);
-
-      // Flutter와 동일한 API 호출
-      const data = await leaveService.getLeaveManagement(user.userId) as any;
-      logger.dev('휴가관리 데이터 응답 (전체):', data);
-      logger.dev('응답 타입:', typeof data);
-      logger.dev('응답 키들:', Object.keys(data || {}));
-
-      // 실제 API 응답 구조 확인
-      logger.dev('data.leave_status:', data.leave_status);
-      logger.dev('data.approval_status:', data.approval_status);
-      logger.dev('data.yearly_whole_status:', data.yearly_whole_status);
-      logger.dev('data.monthly_leaves:', data.monthly_leaves);
-      logger.dev('data.yearly_details:', data.yearly_details);
-
-      // camelCase 필드도 확인
-      logger.dev('data.leaveStatus:', data.leaveStatus);
-      logger.dev('data.approvalStatus:', data.approvalStatus);
-      logger.dev('data.yearlyWholeStatus:', data.yearlyWholeStatus);
-      logger.dev('data.monthlyLeaves:', data.monthlyLeaves);
-      logger.dev('data.yearlyDetails:', data.yearlyDetails);
-
-      // API 응답 구조에 맞게 데이터 처리
-      // 실제 API 응답에서 사용되는 필드명 확인 후 매핑
-      const actualLeaveStatus = data.leave_status || data.leaveStatus || [];
-      const actualApprovalStatus = data.approval_status || data.approvalStatus;
-      const actualYearlyDetails = data.yearly_details || data.yearlyDetails || [];
-      const actualYearlyWholeStatus = data.yearly_whole_status || data.yearlyWholeStatus || [];
-      const actualMonthlyLeaves = data.monthly_leaves || data.monthlyLeaves || [];
-
-      logger.dev('실제 데이터 매핑 결과:');
-      logger.dev('actualLeaveStatus:', actualLeaveStatus);
-      logger.dev('actualApprovalStatus:', actualApprovalStatus);
-      logger.dev('actualYearlyDetails:', actualYearlyDetails);
-      logger.dev('actualYearlyWholeStatus:', actualYearlyWholeStatus);
-      logger.dev('actualMonthlyLeaves:', actualMonthlyLeaves);
-
-      // API 응답 구조에 맞게 approval_status 처리 (배열 형태)
-      let approvalStatus: ApprovalStatus;
-      if (Array.isArray(actualApprovalStatus)) {
-        // 배열 형태: [{ status: "REQUESTED", count: 2 }, { status: "APPROVED", count: 5 }, { status: "REJECTED", count: 1 }]
-        const statusArray = actualApprovalStatus as any[];
-        approvalStatus = {
-          requested: statusArray.find(item => item.status === 'REQUESTED')?.count || 0,
-          approved: statusArray.find(item => item.status === 'APPROVED')?.count || 0,
-          rejected: statusArray.find(item => item.status === 'REJECTED')?.count || 0,
-        };
-      } else if (actualApprovalStatus && typeof actualApprovalStatus === 'object') {
-        // 객체 형태: { "REQUESTED": 2, "APPROVED": 5, "REJECTED": 1 }
-        approvalStatus = {
-          requested: (actualApprovalStatus as any).REQUESTED || 0,
-          approved: (actualApprovalStatus as any).APPROVED || 0,
-          rejected: (actualApprovalStatus as any).REJECTED || 0,
-        };
-      } else {
-        // 기본값
-        approvalStatus = { requested: 0, approved: 0, rejected: 0 };
-      }
-
-      // 데이터 구조 확인 및 기본값 설정 (Flutter와 동일)
-      const safeData: LeaveManagementData = {
-        leaveStatus: actualLeaveStatus,
-        approvalStatus: approvalStatus,
-        yearlyDetails: actualYearlyDetails,
-        yearlyWholeStatus: actualYearlyWholeStatus,
-        monthlyLeaves: actualMonthlyLeaves,
-      };
-
-      setLeaveData(safeData);
-
-      // 메인 API에서 이미 leaveStatus 데이터를 제공하므로 별도 호출 불필요
-      logger.dev('휴가관리 데이터 로드 완료 - leaveStatus:', safeData.leaveStatus);
-
-      // 관리자 대기 건수 조회
-      if (user && user.userId) {
-        try {
-          logger.dev('[LeaveManagementPage] 대기 건수 조회 시작, userId:', user.userId);
-          const count = await leaveService.getWaitingLeavesCount(user.userId);
-          logger.dev('[LeaveManagementPage] 대기 건수 조회 완료:', count);
-          setWaitingCount(count);
-          logger.dev('[LeaveManagementPage] waitingCount state 설정 완료:', count);
-        } catch (err) {
-          logger.error('[LeaveManagementPage] 대기 건수 조회 실패:', err);
-          setWaitingCount(0);
-        }
-      }
-
-    } catch (err: any) {
-      logger.error('휴가관리 데이터 로드 실패:', err);
-      logger.error('에러 상세:', err.response?.data);
-      setError(err.response?.data?.message || err.message || '휴가관리 데이터를 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
-
-  const handleRequestDialogOpen = () => {
-    setRequestDialogOpen(true);
-  };
-
-  const handleRequestDialogClose = () => {
-    setRequestDialogOpen(false);
-  };
-
-
-  // 휴가 취소 상신 다이얼로그 열기
-  const handleOpenCancelDialog = () => {
-    setCancelReasonDialogOpen(true);
-  };
-
-  // 휴가 취소 상신 처리 (Flutter와 동일 - detail modal용)
-  const handleDetailModalCancelRequest = async () => {
-    // 취소 사유는 선택사항으로 변경
-    // if (!cancelReason.trim()) {
-    //   alert('취소 사유를 입력해주세요.');
-    //   return;
-    // }
-
-    if (!user?.userId) {
-      alert('사용자 정보를 찾을 수 없습니다.');
-      return;
-    }
-
-    if (!selectedLeave?.id) {
-      alert('휴가 정보를 찾을 수 없습니다.');
-      return;
-    }
-
-    try {
-      const response = await leaveService.requestLeaveCancel({
-        id: selectedLeave.id,
-        userId: user.userId,
-        reason: cancelReason.trim(),
-      });
-
-      if (response.error) {
-        alert(`취소 상신 실패: ${response.error}`);
-        return;
-      }
-
-      alert('휴가 취소 상신이 완료되었습니다.');
-      setCancelReasonDialogOpen(false);
-      setDetailModalOpen(false);
-      setCancelReason('');
-      loadLeaveData(); // 데이터 새로고침
-    } catch (error: any) {
-      alert(`취소 상신 중 오류가 발생했습니다: ${error.message}`);
-    }
-  };
-
-
-
-  // 취소 상신 처리
-  const handleCancelRequest = async () => {
-    if (!cancelRequestLeave) return;
-
-    try {
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      const cancelRequest: LeaveCancelRequest = {
-        id: cancelRequestLeave.id,
-        userId: user.userId,
-      };
-
-      const response = await leaveService.cancelLeaveRequestNew(cancelRequest);
-
-      if (response.error) {
-        setError(`취소 상신 실패: ${response.error}`);
-        return;
-      }
-
-      // 성공 시 데이터 갱신
-      loadLeaveData();
-      setCancelRequestModalOpen(false);
-      setCancelRequestLeave(null);
-      setError(null);
-      alert('취소 상신이 완료되었습니다.');
-    } catch (error: any) {
-      logger.error('취소 상신 실패:', error);
-      setError(error.message || '취소 상신에 실패했습니다.');
-    }
-  };
-
+  const { state, actions } = useLeaveManagementPageState();
+  const {
+    user,
+    isApprover,
+    tabValue,
+    loading,
+    error,
+    leaveData,
+    waitingCount,
+    requestDialogOpen,
+    cancelRequestModalOpen,
+    cancelRequestLeave,
+    detailModalOpen,
+    selectedLeave,
+    cancelReasonDialogOpen,
+    cancelReason,
+    recommendationOpen,
+    hideCanceled,
+    leaveManualOpen,
+    leaveAIManualOpen,
+    menuAnchorEl,
+    menuOpen,
+  } = state;
+  const {
+    setRequestDialogOpen,
+    setCancelRequestModalOpen,
+    setCancelRequestLeave,
+    setDetailModalOpen,
+    setSelectedLeave,
+    setCancelReasonDialogOpen,
+    setCancelReason,
+    setRecommendationOpen,
+    setHideCanceled,
+    setLeaveManualOpen,
+    setLeaveAIManualOpen,
+    loadLeaveData,
+    handleMenuOpen,
+    handleMenuClose,
+    handleTabChange,
+    handleRequestDialogOpen,
+    handleRequestDialogClose,
+    handleOpenCancelDialog,
+    handleDetailModalCancelRequest,
+    handleCancelRequest,
+  } = actions;
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'APPROVED':

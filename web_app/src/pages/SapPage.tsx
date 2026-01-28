@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -15,91 +15,12 @@ import {
 } from '@mui/icons-material';
 import MobileMainLayout from '../components/layout/MobileMainLayout';
 import ChatArea from '../components/chat/ChatArea';
-import chatService from '../services/chatService';
-import authService from '../services/authService';
-import { useChatStore } from '../store/chatStore';
-import { createLogger } from '../utils/logger';
-import type { Archive } from '../services/chatService';
-
-const logger = createLogger('SapPage');
+import { useSapPageState } from './SapPage.state';
 
 export default function SapPage() {
-  const [currentArchive, setCurrentArchive] = useState<Archive | null>(null);
-  const [archives, setArchives] = useState<Archive[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [aiModel, setAiModel] = useState('gemini-flash-2.5');
-  const [selectedModule, setSelectedModule] = useState<string>('');
-  const { setCurrentArchive: setGlobalCurrentArchive } = useChatStore();
-
-  // SAP 아카이브 로드 및 생성
-  useEffect(() => {
-    loadArchives();
-  }, []);
-
-  const loadArchives = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      logger.dev('SAP 아카이브 로드 시작:', user.userId);
-
-      // 기존 아카이브 목록 조회
-      const archiveList = await chatService.getArchiveList(user.userId);
-      logger.dev('로드된 아카이브 목록:', archiveList);
-
-      // SAP 관련 아카이브 찾기
-      let sapArchive = archiveList.find(archive =>
-        archive.archive_name.toLowerCase().includes('sap') ||
-        archive.archive_name.toLowerCase().includes('sap 어시스턴트')
-      );
-
-      // SAP 아카이브가 없으면 생성
-      if (!sapArchive) {
-        logger.dev('SAP 아카이브가 없어서 생성합니다.');
-        sapArchive = await chatService.createArchive(
-          user.userId,
-          'SAP 어시스턴트',
-          'sap'
-        );
-        logger.dev('생성된 SAP 아카이브:', sapArchive);
-      }
-
-      setArchives(archiveList);
-      setCurrentArchive(sapArchive);
-      // 전역 상태에도 반영하여 사이드바에서 선택 상태 표시
-      setGlobalCurrentArchive(sapArchive);
-
-    } catch (err: any) {
-      logger.error('SAP 아카이브 로드 실패:', err);
-      setError(err.message || 'SAP 아카이브를 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendMessage = async (message: string) => {
-    if (!currentArchive) return;
-
-    try {
-      await chatService.sendMessage(
-        currentArchive.archive_name,
-        message,
-        aiModel,
-        'SAP',
-        selectedModule || ''
-      );
-    } catch (err: any) {
-      logger.error('메시지 전송 실패:', err);
-      setError(err.message || '메시지 전송에 실패했습니다.');
-    }
-  };
+  const { state, actions } = useSapPageState();
+  const { currentArchive, loading, error, aiModel, selectedModule } = state;
+  const { setAiModel, setSelectedModule, handleSendMessage } = actions;
 
   return (
     <MobileMainLayout>

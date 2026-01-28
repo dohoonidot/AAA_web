@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -13,88 +13,12 @@ import {
 } from '@mui/icons-material';
 import MobileMainLayout from '../components/layout/MobileMainLayout';
 import ChatArea from '../components/chat/ChatArea';
-import chatService from '../services/chatService';
-import authService from '../services/authService';
-import { useChatStore } from '../store/chatStore';
-import type { Archive } from '../services/chatService';
+import { useCodingAssistantPageState } from './CodingAssistantPage.state';
 
 export default function CodingAssistantPage() {
-  const [currentArchive, setCurrentArchive] = useState<Archive | null>(null);
-  const [archives, setArchives] = useState<Archive[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [aiModel, setAiModel] = useState('gemini-flash-2.5');
-  const { setCurrentArchive: setGlobalCurrentArchive } = useChatStore();
-
-  // 코딩 어시스턴트 아카이브 로드 및 생성
-  useEffect(() => {
-    loadArchives();
-  }, []);
-
-  const loadArchives = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError('사용자 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      console.log('코딩 어시스턴트 아카이브 로드 시작:', user.userId);
-      
-      // 기존 아카이브 목록 조회
-      const archiveList = await chatService.getArchiveList(user.userId);
-      console.log('로드된 아카이브 목록:', archiveList);
-      
-      // 코딩 관련 아카이브 찾기
-      let codingArchive = archiveList.find(archive => 
-        archive.archive_name.toLowerCase().includes('코딩') || 
-        archive.archive_name.toLowerCase().includes('coding') ||
-        archive.archive_name.toLowerCase().includes('코딩 어시스턴트')
-      );
-      
-      // 코딩 아카이브가 없으면 생성
-      if (!codingArchive) {
-        console.log('코딩 어시스턴트 아카이브가 없어서 생성합니다.');
-        codingArchive = await chatService.createArchive(
-          user.userId,
-          '코딩 어시스턴트',
-          'coding'
-        );
-        console.log('생성된 코딩 어시스턴트 아카이브:', codingArchive);
-      }
-      
-      setArchives(archiveList);
-      setCurrentArchive(codingArchive);
-      // 전역 상태에도 반영하여 사이드바에서 선택 상태 표시
-      setGlobalCurrentArchive(codingArchive);
-      
-    } catch (err: any) {
-      console.error('코딩 어시스턴트 아카이브 로드 실패:', err);
-      setError(err.message || '코딩 어시스턴트 아카이브를 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendMessage = async (message: string) => {
-    if (!currentArchive) return;
-    
-    try {
-      await chatService.sendMessage(
-        currentArchive.archive_name,
-        message,
-        aiModel,
-        'CODING',
-        ''
-      );
-    } catch (err: any) {
-      console.error('메시지 전송 실패:', err);
-      setError(err.message || '메시지 전송에 실패했습니다.');
-    }
-  };
+  const { state, actions } = useCodingAssistantPageState();
+  const { currentArchive, loading, error, aiModel } = state;
+  const { setAiModel, handleSendMessage } = actions;
 
   return (
     <MobileMainLayout>

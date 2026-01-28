@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -37,10 +37,8 @@ import {
   Menu as MenuIcon,
   Person as PersonIcon,
 } from '@mui/icons-material';
-import authService from '../../services/authService';
-import chatService from '../../services/chatService';
-import { useChatStore } from '../../store/chatStore';
 import type { Archive } from '../../types';
+import { useSidebarState } from './Sidebar.state';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -56,100 +54,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, isMobile = false })
   const location = useLocation();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('md'));
 
+  const { state, actions, derived } = useSidebarState({ isOpen, onToggle, isMobileScreen });
+  const { archives, currentArchive, expandedSections, isLoading, userInfo } = state;
   const {
-    archives,
-    currentArchive,
-    setArchives,
-    setCurrentArchive,
-    setMessages,
-  } = useChatStore();
-
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['chat']));
-  const [isLoading, setIsLoading] = useState(false);
-  const [userInfo, setUserInfo] = useState<any>(null);
-
-  // 사용자 정보 로드
-  useEffect(() => {
-    const user = authService.getCurrentUser();
-    setUserInfo(user);
-  }, []);
-
-  // is_approver에 따라 휴가관리 경로 분기
-  const isApprover = userInfo?.isApprover || false;
-
-  // 아카이브 목록 로드
-  useEffect(() => {
-    if (isOpen && userInfo?.userId) {
-      loadArchives();
-    }
-  }, [isOpen, userInfo]);
-
-  const loadArchives = async () => {
-    try {
-      const archiveList = await chatService.getArchiveList(userInfo.userId);
-      setArchives(archiveList);
-    } catch (error) {
-      console.error('아카이브 목록 로드 실패:', error);
-    }
-  };
-
-  const toggleSection = (section: string) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(section)) {
-      newExpanded.delete(section);
-    } else {
-      newExpanded.add(section);
-    }
-    setExpandedSections(newExpanded);
-  };
-
-  const handleArchiveClick = async (archive: Archive) => {
-    try {
-      setIsLoading(true);
-      setCurrentArchive(archive);
-
-      // 채팅 내역 로드
-      const messages = await chatService.getArchiveDetail(archive.archive_id);
-      setMessages(messages);
-
-      // 채팅 페이지로 이동
-      navigate('/chat');
-    } catch (error) {
-      console.error('아카이브 로드 실패:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCreateArchive = async (archiveType: string, archiveName: string) => {
-    try {
-      setIsLoading(true);
-      const response = await chatService.createArchive(userInfo.userId, archiveName, archiveType);
-      await loadArchives(); // 목록 새로고침
-      setCurrentArchive(response.archive);
-      navigate('/chat');
-    } catch (error) {
-      console.error('아카이브 생성 실패:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleMenuClick = (path: string) => {
-    navigate(path);
-    if (isMobileScreen) {
-      onToggle(); // 모바일에서는 메뉴 클릭 후 사이드바 닫기
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('로그아웃 실패:', error);
-    }
-  };
+    toggleSection,
+    handleArchiveClick,
+    handleCreateArchive,
+    handleMenuClick,
+    handleLogout,
+  } = actions;
+  const { isApprover } = derived;
 
   const menuItems = [
     {

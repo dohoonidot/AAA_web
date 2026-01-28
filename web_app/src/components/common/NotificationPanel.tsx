@@ -3,7 +3,7 @@
  * 우측 상단에 배지 아이콘으로 표시되며, 클릭 시 알림 목록 표시
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Badge,
   IconButton,
@@ -32,12 +32,10 @@ import DoneAllIcon from '@mui/icons-material/DoneAll';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useNotificationStore, extractNotificationDetails } from '../../store/notificationStore';
-import { useNavigate } from 'react-router-dom';
-import { ackSseNotifications } from '../../services/sseService';
-import type { NotificationDisplay } from '../../types/notification';
+import { extractNotificationDetails } from '../../store/notificationStore';
 import LeaveAnalyzeNotificationContent from '../leave/LeaveAnalyzeNotificationContent';
 import { sanitizeNotificationPreview } from '../../utils/notificationHelpers';
+import { useNotificationPanelState } from './NotificationPanel.state';
 
 /**
  * 알림 패널 아이콘 버튼
@@ -74,113 +72,31 @@ export function NotificationButton() {
  * App 컴포넌트에 배치
  */
 export function NotificationPanel() {
-  const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const panelBg = isDark ? '#0F172A' : '#F8F9FA';
   const panelSurface = isDark ? '#111827' : 'white';
   const panelBorder = isDark ? 'rgba(255,255,255,0.08)' : 'divider';
   const headerBg = isDark ? '#1E3A8A' : '#1D4487';
+  const { state, actions } = useNotificationPanelState();
   const {
     isNotificationPanelOpen,
-    setNotificationPanelOpen,
     notifications,
     unreadCount,
-    markAsRead,
+    selectedNotification,
+    notificationModalOpen,
+  } = state;
+  const {
     markAllAsRead,
-    removeNotification,
-    clearAllNotifications,
     refreshNotificationMessages,
-  } = useNotificationStore();
-
-  // 컴포넌트 마운트 시 기존 알림 메시지 재생성 (JSON → 사용자 친화적)
-  useEffect(() => {
-    refreshNotificationMessages();
-  }, [refreshNotificationMessages]);
-
-  // 알림 상세 모달 상태
-  const [selectedNotification, setSelectedNotification] = React.useState<NotificationDisplay | null>(null);
-  const [notificationModalOpen, setNotificationModalOpen] = React.useState(false);
-
-  // 모든 알림 삭제 및 ACK
-  const handleClearAll = async () => {
-    // 모든 알림 ID 수집
-    const eventIds = notifications.map((n) => n.id);
-
-    if (eventIds.length === 0) return;
-
-    // ACK 전송 (배치)
-    try {
-      await ackSseNotifications(eventIds);
-      console.log('[NotificationPanel] 모든 알림 ACK 완료:', eventIds.length);
-    } catch (error) {
-      console.error('[NotificationPanel] 모든 알림 ACK 실패:', error);
-    }
-
-    // UI에서 모든 알림 제거
-    clearAllNotifications();
-  };
-
-  const handleClose = () => {
-    setNotificationPanelOpen(false);
-  };
-
-  const handleNotificationClick = async (notificationId: string, _link?: string) => {
-    // 읽음 처리만 수행 (페이지 이동 없이 패널에서 내용 확인)
-    markAsRead(notificationId);
-
-    // ACK 전송 (서버에서 알림 삭제)
-    try {
-      await ackSseNotifications(notificationId);
-      console.log('[NotificationPanel] 알림 ACK 완료:', notificationId);
-    } catch (error) {
-      console.error('[NotificationPanel] 알림 ACK 실패:', error);
-    }
-
-    // 클릭한 알림 찾기
-    const clickedNotification = notifications.find(n => n.id === notificationId);
-    if (clickedNotification) {
-      setSelectedNotification(clickedNotification);
-      setNotificationModalOpen(true);
-    }
-  };
-
-  const handleDelete = async (notificationId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-
-    // ACK 전송 (서버에서 알림 삭제)
-    try {
-      await ackSseNotifications(notificationId);
-      console.log('[NotificationPanel] 알림 삭제 및 ACK 완료:', notificationId);
-    } catch (error) {
-      console.error('[NotificationPanel] 알림 ACK 실패:', error);
-    }
-
-    // UI에서 알림 제거
-    removeNotification(notificationId);
-  };
-
-  const formatTime = (date: Date) => {
-    try {
-      const now = new Date();
-      const diff = now.getTime() - date.getTime();
-      const minutes = Math.floor(diff / 60000);
-      const hours = Math.floor(diff / 3600000);
-      const days = Math.floor(diff / 86400000);
-
-      if (minutes < 1) return '방금 전';
-      if (minutes < 60) return `${minutes}분 전`;
-      if (hours < 24) return `${hours}시간 전`;
-      if (days < 7) return `${days}일 전`;
-
-      // 날짜 포맷 (M월 d일)
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-      return `${month}월 ${day}일`;
-    } catch (error) {
-      return '';
-    }
-  };
+    handleClearAll,
+    handleClose,
+    handleNotificationClick,
+    handleDelete,
+    handleNavigateToLink,
+    handleCloseModal,
+    formatTime,
+  } = actions;
 
   return (
     <Drawer
@@ -408,10 +324,7 @@ export function NotificationPanel() {
       {/* 알림 상세 모달 */}
       <Dialog
         open={notificationModalOpen}
-        onClose={() => {
-          setNotificationModalOpen(false);
-          setSelectedNotification(null);
-        }}
+        onClose={handleCloseModal}
         maxWidth="sm"
         fullWidth
         PaperProps={{
@@ -554,23 +467,12 @@ export function NotificationPanel() {
         </DialogContent>
 
         <DialogActions>
-          <Button
-            onClick={() => {
-              setNotificationModalOpen(false);
-              setSelectedNotification(null);
-            }}
-            variant="outlined"
-          >
+          <Button onClick={handleCloseModal} variant="outlined">
             닫기
           </Button>
           {selectedNotification?.link && (
             <Button
-              onClick={() => {
-                navigate(selectedNotification.link!);
-                setNotificationModalOpen(false);
-                setSelectedNotification(null);
-                setNotificationPanelOpen(false);
-              }}
+              onClick={() => handleNavigateToLink(selectedNotification.link!)}
               variant="contained"
             >
               해당 페이지로 이동

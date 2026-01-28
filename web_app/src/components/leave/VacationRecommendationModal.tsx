@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   Dialog,
   Box,
@@ -19,7 +19,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import { fetchVacationRecommendation } from '../../services/vacationRecommendationService';
 import type { VacationRecommendationResponse } from '../../types/leave';
 import MonthlyDistributionChart from './charts/MonthlyDistributionChart';
 import WeekdayDistributionChart from './charts/WeekdayDistributionChart';
@@ -31,6 +30,7 @@ import {
   VacationUISpacing,
   VacationUIShadows,
 } from './vacation/vacationUIConstants';
+import { useVacationRecommendationState } from './VacationRecommendationModal.state';
 
 interface VacationRecommendationModalProps {
   open: boolean;
@@ -330,87 +330,13 @@ const VacationRecommendationModal: React.FC<VacationRecommendationModalProps> = 
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
-  const [state, setState] = useState<VacationRecommendationResponse>({
-    reasoningContents: '',
-    finalResponseContents: '',
-    recommendedDates: [],
-    monthlyDistribution: {},
-    consecutivePeriods: [],
-    isComplete: false,
-    streamingProgress: 0,
+  const { state: recommendationState, actions } = useVacationRecommendationState({
+    open,
+    userId,
+    year,
   });
-
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [animatedProgress, setAnimatedProgress] = useState(0);
-  const [targetProgress, setTargetProgress] = useState(0);
-  const progressTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    progressTimerRef.current = window.setInterval(() => {
-      setAnimatedProgress((prev) => {
-        if (prev < targetProgress) {
-          return Math.min(targetProgress, prev + 0.01);
-        }
-        if (prev > targetProgress) {
-          return targetProgress;
-        }
-        return prev;
-      });
-    }, 500);
-
-    return () => {
-      if (progressTimerRef.current) {
-        window.clearInterval(progressTimerRef.current);
-        progressTimerRef.current = null;
-      }
-    };
-  }, [open, targetProgress]);
-
-  useEffect(() => {
-    if (!open || !userId) return;
-    startRecommendation();
-  }, [open, userId, year]);
-
-  useEffect(() => {
-    if (state.isComplete) {
-      setTargetProgress(1.0);
-      return;
-    }
-    if (isLoading) {
-      setTargetProgress(0.3);
-      return;
-    }
-    setTargetProgress(state.streamingProgress || 0.0);
-  }, [state.isComplete, state.streamingProgress, isLoading]);
-
-  const startRecommendation = async () => {
-    setError(null);
-    setIsLoading(true);
-    setAnimatedProgress(0);
-    setTargetProgress(0);
-    setState({
-      reasoningContents: '',
-      finalResponseContents: '',
-      recommendedDates: [],
-      monthlyDistribution: {},
-      consecutivePeriods: [],
-      isComplete: false,
-      streamingProgress: 0,
-    });
-
-    try {
-      const generator = fetchVacationRecommendation(userId, year);
-      for await (const update of generator) {
-        setIsLoading(false);
-        setState(update);
-      }
-    } catch (err: any) {
-      setIsLoading(false);
-      setError(err.message || '추천 데이터를 가져오는 중 에러가 발생했습니다.');
-    }
-  };
+  const { state, error, isLoading, animatedProgress, targetProgress } = recommendationState;
+  const { startRecommendation } = actions;
 
   const parseLoadingStatusMessages = (text: string) => {
     const lines = text.split('\n');

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import {
   Box,
   Drawer,
@@ -24,8 +23,8 @@ import {
   Cancel as CancelIcon,
   HourglassEmpty as HourglassEmptyIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useThemeStore } from '../../store/themeStore';
+import { useApprovalPanelState } from './ApprovalPanel.state';
 
 const PANEL_WIDTH = 360;
 
@@ -48,8 +47,9 @@ interface ApprovalPanelProps {
 
 export default function ApprovalPanel({ open, onClose, requests = [] }: ApprovalPanelProps) {
   const { colorScheme } = useThemeStore();
-  const navigate = useNavigate();
-  const [isPinned, setIsPinned] = useState(false);
+  const { state, actions } = useApprovalPanelState({ onClose });
+  const { isPinned } = state;
+  const { setIsPinned, handleRequestClick } = actions;
 
   // 상태별 필터링
   const pendingRequests = requests.filter((r) => r.status === 'pending');
@@ -107,14 +107,6 @@ export default function ApprovalPanel({ open, onClose, requests = [] }: Approval
         return <CancelIcon sx={{ fontSize: 16, color: '#DC2626' }} />;
       default:
         return <HourglassEmptyIcon sx={{ fontSize: 16, color: '#F59E0B' }} />;
-    }
-  };
-
-  const handleRequestClick = (request: ApprovalRequest) => {
-    // 결재 상세 페이지로 이동
-    navigate(`/approval/${request.id}`);
-    if (!isPinned) {
-      onClose();
     }
   };
 

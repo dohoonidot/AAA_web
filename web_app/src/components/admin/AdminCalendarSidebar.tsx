@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   IconButton,
@@ -15,6 +15,7 @@ import {
   PushPinOutlined as PushPinOutlinedIcon,
 } from '@mui/icons-material';
 import { DepartmentLeaveStatusModal } from './DepartmentLeaveStatusModal';
+import { useAdminCalendarSidebarState } from './AdminCalendarSidebar.state';
 
 interface AdminCalendarSidebarProps {
   isExpanded: boolean;
@@ -34,7 +35,9 @@ export const AdminCalendarSidebar: React.FC<AdminCalendarSidebarProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isDarkTheme = theme.palette.mode === 'dark';
-  const [modalOpen, setModalOpen] = useState(false);
+  const { state, actions } = useAdminCalendarSidebarState();
+  const { modalOpen } = state;
+  const { setModalOpen } = actions;
 
   // 모바일에서는 사이드바를 렌더링하지 않음
   if (isMobile) {
