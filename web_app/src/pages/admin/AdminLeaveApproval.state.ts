@@ -43,6 +43,9 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
   const [approvalAction, setApprovalAction] = useState<'approve' | 'reject' | null>(null);
   const [rejectMessage, setRejectMessage] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'warning' | 'info'>('success');
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentPage, setCurrentPage] = useState(1);
@@ -487,8 +490,8 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
 
     for (const itemId of selectedItems) {
       try {
-        await leaveService.approveLeaveRequest({
-          id: itemId,
+        await leaveService.processAdminApproval({
+          id: Number(itemId),
           approverId: authService.getCurrentUser()?.userId || '',
           isApproved: 'APPROVED',
         });
@@ -502,6 +505,9 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
       await loadAdminData();
       setSelectedItems(new Set());
       setIsBatchMode(false);
+      setSnackbarMessage(`일괄 승인 ${successCount}건 처리 완료`);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
     }
 
     setIsBatchProcessing(false);
@@ -515,8 +521,8 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
 
     for (const itemId of selectedItems) {
       try {
-        await leaveService.approveLeaveRequest({
-          id: itemId,
+        await leaveService.processAdminApproval({
+          id: Number(itemId),
           approverId: authService.getCurrentUser()?.userId || '',
           isApproved: 'REJECTED',
           rejectMessage: reason,
@@ -531,6 +537,9 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
       await loadAdminData();
       setSelectedItems(new Set());
       setIsBatchMode(false);
+      setSnackbarMessage(`일괄 반려 ${successCount}건 처리 완료`);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
     }
 
     setIsBatchProcessing(false);
@@ -543,22 +552,41 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
     }
   };
 
-  const handleApprove = async (leave: any) => {
-    if (!leave?.id) return;
+  const handleApprove = async (leave?: any) => {
+    const targetLeave = leave ?? selectedLeave;
+    logger.dev('[AdminLeaveApproval] handleApprove 호출:', {
+      hasLeave: Boolean(leave),
+      hasSelectedLeave: Boolean(selectedLeave),
+      targetId: targetLeave?.id,
+      targetStatus: targetLeave?.status,
+      targetIsCancel: targetLeave?.isCancel,
+    });
+    if (!targetLeave?.id) {
+      logger.error('[AdminLeaveApproval] 승인 실패: 대상 휴가 ID 없음');
+      return;
+    }
 
     setActionLoading(true);
     try {
-      if (leave.status === 'CANCEL_REQUESTED' || leave.isCancel === 1) {
+      if (targetLeave.status === 'CANCEL_REQUESTED' || targetLeave.isCancel === 1) {
+        logger.dev('[AdminLeaveApproval] 취소 승인 요청 전송');
         await leaveService.processCancelApproval({
-          id: leave.id,
-          approver_id: authService.getCurrentUser()?.userId || '',
+          id: targetLeave.id,
+          approverId: authService.getCurrentUser()?.userId || '',
         });
+        setSnackbarMessage('취소 승인이 완료되었습니다.');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
       } else {
+        logger.dev('[AdminLeaveApproval] 일반 승인 요청 전송');
         await leaveService.processAdminApproval({
-          id: leave.id,
-          approver_id: authService.getCurrentUser()?.userId || '',
-          status: 'APPROVED',
+          id: targetLeave.id,
+          approverId: authService.getCurrentUser()?.userId || '',
+          isApproved: 'APPROVED',
         });
+        setSnackbarMessage('승인이 완료되었습니다.');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
       }
       setApprovalDialog(false);
       setSelectedLeave(null);
@@ -567,22 +595,45 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
     } catch (err: any) {
       logger.error('승인 실패:', err);
       alert('승인 처리에 실패했습니다.');
+      setSnackbarMessage('승인 처리에 실패했습니다.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleReject = async (leave: any) => {
-    if (!leave?.id || !rejectMessage.trim()) return;
+  const handleReject = async (leave?: any) => {
+    const targetLeave = leave ?? selectedLeave;
+    logger.dev('[AdminLeaveApproval] handleReject 호출:', {
+      hasLeave: Boolean(leave),
+      hasSelectedLeave: Boolean(selectedLeave),
+      targetId: targetLeave?.id,
+      targetStatus: targetLeave?.status,
+      targetIsCancel: targetLeave?.isCancel,
+      rejectMessageLength: rejectMessage.trim().length,
+    });
+    if (!targetLeave?.id) {
+      logger.error('[AdminLeaveApproval] 반려 실패: 대상 휴가 ID 없음');
+      return;
+    }
+    if (!rejectMessage.trim()) {
+      logger.error('[AdminLeaveApproval] 반려 실패: 반려 사유 없음');
+      return;
+    }
 
     setActionLoading(true);
     try {
+      logger.dev('[AdminLeaveApproval] 반려 요청 전송');
       await leaveService.processAdminApproval({
-        id: leave.id,
-        approver_id: authService.getCurrentUser()?.userId || '',
-        status: 'REJECTED',
-        reject_message: rejectMessage,
+        id: targetLeave.id,
+        approverId: authService.getCurrentUser()?.userId || '',
+        isApproved: 'REJECTED',
+        rejectMessage: rejectMessage,
       });
+      setSnackbarMessage('반려 처리가 완료되었습니다.');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
       setApprovalDialog(false);
       setSelectedLeave(null);
       setRejectMessage('');
@@ -590,6 +641,9 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
     } catch (err: any) {
       logger.error('반려 실패:', err);
       alert('반려 처리에 실패했습니다.');
+      setSnackbarMessage('반려 처리에 실패했습니다.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     } finally {
       setActionLoading(false);
     }
@@ -601,15 +655,21 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
     try {
       for (const id of selectedItems) {
         await leaveService.processAdminApproval({
-          id,
-          approver_id: authService.getCurrentUser()?.userId || '',
-          status: 'APPROVED',
+          id: Number(id),
+          approverId: authService.getCurrentUser()?.userId || '',
+          isApproved: 'APPROVED',
         });
       }
       await loadAdminData();
+      setSnackbarMessage('일괄 승인이 완료되었습니다.');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
     } catch (err: any) {
       logger.error('일괄 승인 실패:', err);
       alert('일괄 승인 처리에 실패했습니다.');
+      setSnackbarMessage('일괄 승인 처리에 실패했습니다.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     }
   };
 
@@ -619,16 +679,22 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
     try {
       for (const id of selectedItems) {
         await leaveService.processAdminApproval({
-          id,
-          approver_id: authService.getCurrentUser()?.userId || '',
-          status: 'REJECTED',
-          reject_message: message,
+          id: Number(id),
+          approverId: authService.getCurrentUser()?.userId || '',
+          isApproved: 'REJECTED',
+          rejectMessage: message,
         });
       }
       await loadAdminData();
+      setSnackbarMessage('일괄 반려가 완료되었습니다.');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
     } catch (err: any) {
       logger.error('일괄 반려 실패:', err);
       alert('일괄 반려 처리에 실패했습니다.');
+      setSnackbarMessage('일괄 반려 처리에 실패했습니다.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     }
   };
 
@@ -654,6 +720,9 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
       approvalAction,
       rejectMessage,
       actionLoading,
+      snackbarOpen,
+      snackbarMessage,
+      snackbarSeverity,
       selectedDate,
       currentPage,
       itemsPerPage,
@@ -704,6 +773,9 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
       setApprovalAction,
       setRejectMessage,
       setActionLoading,
+      setSnackbarOpen,
+      setSnackbarMessage,
+      setSnackbarSeverity,
       setSelectedDate,
       setCurrentPage,
       setCurrentCalendarDate,

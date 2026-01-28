@@ -110,6 +110,7 @@ class LeaveService {
       }));
 
       const monthlyLeaves = (data.monthly_leaves || data.monthlyLeaves || []).map((item: any) => ({
+        id: item.id ?? item.leave_id ?? item.leaveId,
         status: item.status || '',
         leaveType: item.leave_type || item.leaveType || '',
         startDate: normalizeDate(item.start_date || item.startDate || ''),
@@ -148,6 +149,7 @@ class LeaveService {
     // API 응답이 snake_case로 오므로 camelCase로 변환
     const data = response.data;
     const monthlyLeaves = (data.monthly_leaves || data.monthlyLeaves || []).map((item: any) => ({
+      id: item.id ?? item.leave_id ?? item.leaveId,
       status: item.status || '',
       leaveType: item.leave_type || item.leaveType || '',
       startDate: normalizeDate(item.start_date || item.startDate || ''),
@@ -358,11 +360,6 @@ class LeaveService {
   async submitLeaveRequest(request: LeaveRequestRequest): Promise<LeaveRequestResponse> {
     logger.dev('휴가 상신 API 요청 (원본):', request);
 
-    // half_day_slot이 'ALL'이거나 undefined인 경우 null로 처리 (Flutter와 동일)
-    const halfDaySlot = request.halfDaySlot && request.halfDaySlot !== 'ALL'
-      ? request.halfDaySlot
-      : null;
-
     const flutterRequest: any = {
       user_id: request.userId,
       leave_type: request.leaveType,
@@ -374,6 +371,8 @@ class LeaveService {
       })),
       reason: request.reason,
       is_next_year: request.isNextYear || 0,
+      // Flutter는 half_day_slot을 항상 포함(ALL/AM/PM/null)하므로 동일하게 전송
+      half_day_slot: request.halfDaySlot ?? 'ALL',
     };
 
     // 순차결재 모드인 경우 approval_line 사용
@@ -392,11 +391,6 @@ class LeaveService {
         : [request.userId];
       flutterRequest.approver_ids = approverIds;
       logger.dev('일반 모드 - approver_ids:', flutterRequest.approver_ids);
-    }
-
-    // half_day_slot이 null이 아닐 때만 추가 (Flutter와 동일)
-    if (halfDaySlot !== null) {
-      flutterRequest.half_day_slot = halfDaySlot;
     }
 
     logger.dev('휴가 상신 API 요청 (Flutter 형식):', flutterRequest);

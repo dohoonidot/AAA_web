@@ -193,7 +193,13 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
             취소
           </Button>
           <Button
-            onClick={approvalAction === 'approve' ? handleApprove : handleReject}
+            onClick={() => {
+              console.debug('[AdminLeaveApproval] 승인/반려 버튼 클릭', {
+                approvalAction,
+                selectedLeaveId: selectedLeave?.id,
+              });
+              (approvalAction === 'approve' ? handleApprove : handleReject)();
+            }}
             variant="contained"
             color={approvalAction === 'approve' ? 'success' : 'error'}
             disabled={actionLoading}

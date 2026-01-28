@@ -44,6 +44,7 @@ export interface YearlyWholeStatus {
 }
 
 export interface MonthlyLeave {
+  id?: number;
   status: string;
   leaveType: string;
   startDate: string;

@@ -38,6 +38,7 @@ import { useThemeStore } from '../../store/themeStore';
 import MessageRenderer from './MessageRenderer';
 import AiModelSelector from './AiModelSelector';
 import { useChatAreaState } from './ChatArea.state';
+import FileService from '../../services/fileService';
 
 export default function ChatArea() {
   const theme = useTheme();

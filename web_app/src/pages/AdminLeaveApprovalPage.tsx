@@ -12,6 +12,7 @@ import {
   Divider,
   useMediaQuery,
   useTheme,
+  Snackbar,
   Select,
   MenuItem,
   FormControl,
@@ -82,6 +83,9 @@ const AdminLeaveApprovalPage: React.FC = () => {
     approvalAction,
     rejectMessage,
     actionLoading,
+    snackbarOpen,
+    snackbarMessage,
+    snackbarSeverity,
     selectedDate,
     currentPage,
     itemsPerPage,
@@ -137,6 +141,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
     setApprovalAction,
     setRejectMessage,
     setActionLoading,
+    setSnackbarOpen,
     setSelectedDate,
     setCurrentPage,
     setCurrentCalendarDate,
@@ -1718,6 +1723,22 @@ const AdminLeaveApprovalPage: React.FC = () => {
         modalSelectedHolidayName={modalSelectedHolidayName}
         onConfirmYearMonth={handleYearMonthConfirm}
       />
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
 
     </Box>
   );

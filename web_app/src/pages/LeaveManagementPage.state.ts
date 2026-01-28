@@ -84,6 +84,48 @@ export const useLeaveManagementPageState = () => {
       const actualYearlyWholeStatus = data.yearly_whole_status || data.yearlyWholeStatus || [];
       const actualMonthlyLeaves = data.monthly_leaves || data.monthlyLeaves || [];
 
+      const normalizeDate = (value: any): string => {
+        if (!value) return '';
+        const text = String(value);
+        if (text.includes('T')) return text.split('T')[0];
+        if (text.includes(' ')) return text.split(' ')[0];
+        return text;
+      };
+
+      const resolveLeaveId = (leave: any): number | undefined => {
+        const directId = leave?.id ?? leave?.leave_id ?? leave?.leaveId;
+        if (directId) return Number(directId);
+
+        const leaveStart = normalizeDate(leave?.start_date || leave?.startDate || '');
+        const leaveEnd = normalizeDate(leave?.end_date || leave?.endDate || '');
+        const leaveType = String(leave?.leave_type || leave?.leaveType || '').trim();
+        const leaveReason = String(leave?.reason || '').trim();
+        const leaveStatus = String(leave?.status || '').toUpperCase();
+
+        const matched = (actualYearlyDetails || []).find((detail: any) => {
+          const detailStart = normalizeDate(detail?.start_date || detail?.startDate || '');
+          const detailEnd = normalizeDate(detail?.end_date || detail?.endDate || '');
+          const detailType = String(detail?.leave_type || detail?.leaveType || '').trim();
+          const detailReason = String(detail?.reason || '').trim();
+          const detailStatus = String(detail?.status || '').toUpperCase();
+
+          if (leaveStart && detailStart && leaveStart !== detailStart) return false;
+          if (leaveEnd && detailEnd && leaveEnd !== detailEnd) return false;
+          if (leaveType && detailType && leaveType !== detailType) return false;
+          if (leaveStatus && detailStatus && leaveStatus !== detailStatus) return false;
+          if (leaveReason && detailReason && leaveReason !== detailReason) return false;
+          return true;
+        });
+
+        const matchedId = matched?.id ?? matched?.leave_id ?? matched?.leaveId;
+        return matchedId ? Number(matchedId) : undefined;
+      };
+
+      const actualMonthlyLeavesWithId = actualMonthlyLeaves.map((leave: any) => {
+        const resolvedId = resolveLeaveId(leave);
+        return resolvedId ? { ...leave, id: resolvedId } : leave;
+      });
+
       logger.dev('실제 데이터 매핑 결과:');
       logger.dev('actualLeaveStatus:', actualLeaveStatus);
       logger.dev('actualApprovalStatus:', actualApprovalStatus);
@@ -114,7 +156,7 @@ export const useLeaveManagementPageState = () => {
         approvalStatus: approvalStatus,
         yearlyDetails: actualYearlyDetails,
         yearlyWholeStatus: actualYearlyWholeStatus,
-        monthlyLeaves: actualMonthlyLeaves,
+        monthlyLeaves: actualMonthlyLeavesWithId,
       };
 
       setLeaveData(safeData);

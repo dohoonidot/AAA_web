@@ -137,8 +137,9 @@ export default function LeaveManagementPage() {
         return <CancelIcon sx={{ color: 'error.main' }} />;
       case 'REQUESTED':
         return <PendingIcon sx={{ color: 'warning.main' }} />;
-      case 'CANCELLED':
       case 'CANCEL_REQUESTED':
+        return <PendingIcon sx={{ color: 'warning.main' }} />;
+      case 'CANCELLED':
         return <CancelIcon sx={{ color: 'grey.500' }} />;
       default:
         return <PendingIcon sx={{ color: 'grey.500' }} />;
@@ -153,8 +154,9 @@ export default function LeaveManagementPage() {
         return 'error';
       case 'REQUESTED':
         return 'warning';
-      case 'CANCELLED':
       case 'CANCEL_REQUESTED':
+        return 'warning';
+      case 'CANCELLED':
         return 'grey';
       default:
         return 'default';
