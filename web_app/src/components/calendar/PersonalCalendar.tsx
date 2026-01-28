@@ -41,6 +41,7 @@ interface PersonalCalendarProps {
   error?: string | null;
   onTotalCalendarOpen?: () => void;
   onMonthChange?: (month: string, leaves: MonthlyLeave[]) => void; // 월 변경 콜백
+  title?: string; // 달력 제목 (선택사항)
 }
 
 export default function PersonalCalendar({
@@ -48,7 +49,8 @@ export default function PersonalCalendar({
   loading: initialLoading = false,
   error: initialError = null,
   onTotalCalendarOpen,
-  onMonthChange
+  onMonthChange,
+  title,
 }: PersonalCalendarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -103,7 +105,6 @@ export default function PersonalCalendar({
         sx={{
           width: '100%',
           height: '100%',
-          minHeight: isMobile ? '28px' : '40px', // 데스크톱뷰에서 최소 높이 40px
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -128,8 +129,8 @@ export default function PersonalCalendar({
             color: 'primary.contrastText',
           } : {},
           position: 'relative',
-          p: isMobile ? 0.5 : 0.75, // 데스크톱뷰에서 패딩 조정
-          overflow: 'visible',
+          p: 0.25,
+          overflow: 'hidden',
         }}
         onClick={() => handleDateClick(day)}
       >
@@ -199,7 +200,7 @@ export default function PersonalCalendar({
 
   return (
     <>
-      <Card sx={{ borderRadius: 2, position: 'relative', bgcolor: cardBg }}>
+      <Card sx={{ borderRadius: 2, position: 'relative', bgcolor: cardBg, height: '100%', display: 'flex', flexDirection: 'column' }}>
         {/* 배경 오버레이 (패널이 열려있을 때) */}
         {slidePanelOpen && (
           <Box
@@ -221,10 +222,11 @@ export default function PersonalCalendar({
           sx={{
             p: 0.75,
             '&:last-child': { pb: 0.75 },
-            height: '100%',
+            flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            minHeight: 0
+            minHeight: 0,
+            overflow: 'hidden',
           }}
           onClick={(e) => {
             // 패널이 열려있고, 패널이 아닌 영역을 클릭한 경우 패널 닫기
@@ -233,7 +235,7 @@ export default function PersonalCalendar({
             }
           }}
         >
-          {/* 달력 헤더 */}
+          {/* 달력 헤더 - 제목, 년월, 버튼을 같은 행에 배치 */}
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
@@ -241,14 +243,20 @@ export default function PersonalCalendar({
             mb: 0.75,
             flexShrink: 0
           }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <CalendarIcon color="primary" sx={{ fontSize: 14 }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.75rem', color: panelText }}>
-              {currentDate.format('YYYY년 MM월')}
-            </Typography>
-            </Box>
+            {/* 왼쪽: 제목 */}
+            {title && (
+              <Typography sx={{ fontSize: '14px', fontWeight: 700, color: panelText }}>
+                {title}
+              </Typography>
+            )}
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+            {/* 오른쪽: 년월 + 네비게이션 + 전체보기 */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
+              <CalendarIcon color="primary" sx={{ fontSize: 14 }} />
+              <Typography sx={{ fontWeight: 600, fontSize: '0.75rem', color: panelText }}>
+                {currentDate.format('YYYY년 MM월')}
+              </Typography>
+
               <IconButton
                 onClick={handlePrevMonth}
                 size="small"
@@ -297,19 +305,18 @@ export default function PersonalCalendar({
             ))}
           </Grid>
 
-          {/* 달력 그리드 */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {/* 달력 그리드 - 6행을 균등 배분하여 영역 최대 활용 */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
             <Box sx={{
               flex: 1,
               minHeight: 0,
               display: 'grid',
               gridTemplateColumns: 'repeat(7, 1fr)',
-              gridAutoRows: isMobile ? '1fr' : 'minmax(40px, 1fr)', // 데스크톱뷰에서 최소 높이 40px
+              gridTemplateRows: 'repeat(6, 1fr)', // 6주를 균등 배분
               gap: 0,
-              alignContent: 'stretch',
             }}>
               {calendarDays.map((day, index) => (
-                <Box key={index} sx={{ display: 'flex', minHeight: 0, width: '100%' }}>
+                <Box key={index} sx={{ display: 'flex', minHeight: 0, height: '100%', width: '100%' }}>
                   {renderCalendarDay(day)}
                 </Box>
               ))}

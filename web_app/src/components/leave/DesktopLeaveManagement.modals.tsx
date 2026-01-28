@@ -351,30 +351,26 @@ const DesktopLeaveManagementModals: React.FC<DesktopLeaveManagementModalsProps> 
                   >
                     허용일수
                   </TableCell>
-                  <TableCell colSpan={12}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      <Typography sx={{ fontSize: '12px', fontWeight: 600, textAlign: 'center', color: colorScheme.textColor }}>월별 사용 현황</Typography>
-                      <Box sx={{ display: 'flex' }}>
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
-                          <Box
-                            key={month}
-                            sx={{
-                              flex: 1,
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              textAlign: 'center',
-                              px: 1,
-                              py: 0.5,
-                              color: colorScheme.hintTextColor,
-                              borderRight: month < 12 ? `1px solid ${colorScheme.textFieldBorderColor}` : 'none',
-                            }}
-                          >
-                            {month}월
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
-                  </TableCell>
+                  {/* 월별 사용 현황 헤더 - 각 월별로 개별 셀 사용 */}
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
+                    <TableCell
+                      key={month}
+                      sx={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB',
+                        color: colorScheme.hintTextColor,
+                        px: 1,
+                        py: 1.5,
+                        borderRight: month < 12 ? `1px solid ${colorScheme.textFieldBorderColor}` : 'none',
+                        textAlign: 'center',
+                        minWidth: '50px',
+                        width: '50px',
+                      }}
+                    >
+                      {month}월
+                    </TableCell>
+                  ))}
                   <TableCell
                     sx={{
                       fontSize: '12px',
@@ -471,6 +467,8 @@ const DesktopLeaveManagementModals: React.FC<DesktopLeaveManagementModalsProps> 
                               textAlign: 'center',
                               borderRight: monthIndex < 11 ? `1px solid ${colorScheme.textFieldBorderColor}` : 'none',
                               color: days > 0 ? colorScheme.textColor : colorScheme.hintTextColor,
+                              minWidth: '50px',
+                              width: '50px',
                             }}
                           >
                             {days > 0 ? days : '-'}

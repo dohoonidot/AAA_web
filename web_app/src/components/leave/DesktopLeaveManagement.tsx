@@ -802,13 +802,13 @@ export default function DesktopLeaveManagement({
                   <Box sx={{ flex: 5.5, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                     <Card sx={{ height: '100%', borderRadius: '16px', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.surfaceColor, border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
                       <CardContent sx={{ p: 1, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0, '&:last-child': { pb: 1 } }}>
-                        <Typography sx={{ fontSize: '14px', fontWeight: 700, mb: 0.75, flexShrink: 0, color: colorScheme.textColor }}>휴가 일정 달력</Typography>
                         <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                           <PersonalCalendar
                             monthlyLeaves={leaveData.monthlyLeaves || []}
                             loading={false}
                             error={null}
                             onTotalCalendarOpen={() => setTotalCalendarOpen(true)}
+                            title="휴가 일정 달력"
                           />
                         </Box>
                       </CardContent>
@@ -865,43 +865,26 @@ export default function DesktopLeaveManagement({
                                   >
                                     허용일수
                                   </TableCell>
-                                  {/* 월별 사용 현황 헤더 */}
-                                  <TableCell
-                                    colSpan={12}
-                                    sx={{
-                                      fontSize: '11px',
-                                      fontWeight: 600,
-                                      bgcolor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F9FAFB',
-                                      color: colorScheme.textColor,
-                                      px: 0,
-                                      py: 1,
-                                      borderRight: `1px solid ${colorScheme.textFieldBorderColor}`,
-                                      textAlign: 'center',
-                                    }}
-                                  >
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                      <Typography sx={{ fontSize: '11px', fontWeight: 600, color: colorScheme.textColor }}>
-                                        월별 사용 현황
-                                      </Typography>
-                                      <Box sx={{ display: 'flex' }}>
-                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
-                                          <Box
-                                            key={month}
-                                            sx={{
-                                              flex: 1,
-                                              fontSize: '10px',
-                                              fontWeight: 500,
-                                              color: colorScheme.hintTextColor,
-                                              borderRight: month < 12 ? `1px solid ${colorScheme.textFieldBorderColor}` : 'none',
-                                              py: 0.5,
-                                            }}
-                                          >
-                                            {month}월
-                                          </Box>
-                                        ))}
-                                      </Box>
-                                    </Box>
-                                  </TableCell>
+                                  {/* 월별 사용 현황 헤더 - 각 월별로 개별 셀 사용 */}
+                                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
+                                    <TableCell
+                                      key={month}
+                                      sx={{
+                                        fontSize: '10px',
+                                        fontWeight: 500,
+                                        bgcolor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F9FAFB',
+                                        color: colorScheme.hintTextColor,
+                                        px: 0.5,
+                                        py: 1,
+                                        borderRight: month < 12 ? `1px solid ${colorScheme.textFieldBorderColor}` : 'none',
+                                        textAlign: 'center',
+                                        minWidth: '40px',
+                                        width: '40px',
+                                      }}
+                                    >
+                                      {month}월
+                                    </TableCell>
+                                  ))}
                                   <TableCell
                                     sx={{
                                       fontSize: '11px',
@@ -999,6 +982,8 @@ export default function DesktopLeaveManagement({
                                               textAlign: 'center',
                                               borderRight: monthIndex < 11 ? `1px solid ${colorScheme.textFieldBorderColor}` : 'none',
                                               color: days > 0 ? colorScheme.textColor : colorScheme.hintTextColor,
+                                              minWidth: '40px',
+                                              width: '40px',
                                             }}
                                           >
                                             {days > 0 ? days : '-'}
