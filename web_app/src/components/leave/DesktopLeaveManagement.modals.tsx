@@ -17,9 +17,18 @@ import {
   DialogContent,
   DialogActions,
   Alert,
-  Divider,
+  Paper,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Cancel as CancelIcon } from '@mui/icons-material';
+import {
+  ArrowBack as ArrowBackIcon,
+  Cancel as CancelIcon,
+  Close as CloseIcon,
+  CalendarMonth as CalendarIcon,
+  AccessTime as TimeIcon,
+  Description as DescriptionIcon,
+  Info as InfoIcon,
+  Warning as WarningIcon,
+} from '@mui/icons-material';
 import dayjs from 'dayjs';
 import type { LeaveManagementData } from '../../types/leave';
 import type { useThemeStore } from '../../store/themeStore';
@@ -118,168 +127,300 @@ const DesktopLeaveManagementModals: React.FC<DesktopLeaveManagementModalsProps> 
         PaperProps={{
           sx: {
             bgcolor: colorScheme.surfaceColor,
+            borderRadius: '16px',
+            overflow: 'hidden',
           },
         }}
       >
-        <DialogTitle sx={{ borderBottom: `1px solid ${colorScheme.textFieldBorderColor}`, color: colorScheme.textColor }}>휴가 상세 정보</DialogTitle>
-        <DialogContent>
-          {selectedLeaveDetail && (
-            <Box sx={{ pt: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                {getStatusIcon(selectedLeaveDetail.status)}
-                <Typography variant="h6" sx={{ color: colorScheme.textColor }}>{selectedLeaveDetail.leaveType}</Typography>
-                <Chip
-                  label={
-                    selectedLeaveDetail.status === 'APPROVED' ? '승인' :
-                      selectedLeaveDetail.status === 'REJECTED' ? '반려' :
-                        selectedLeaveDetail.status === 'REQUESTED' ? '대기' :
-                          selectedLeaveDetail.status === 'CANCEL_REQUESTED' ? '취소 대기' :
-                            selectedLeaveDetail.status === 'CANCELLED' ? '취소됨' :
-                              '대기'
-                  }
-                  color={
-                    selectedLeaveDetail.status === 'APPROVED'
-                      ? 'success'
-                      : selectedLeaveDetail.status === 'REJECTED'
-                        ? 'error'
-                        : 'warning'
-                  }
-                  size="small"
-                />
-              </Box>
+        {selectedLeaveDetail && (
+          <>
+            {/* 헤더 - 그라데이션 배경 */}
+            <Box
+              sx={{
+                background: selectedLeaveDetail.status === 'APPROVED'
+                  ? 'linear-gradient(135deg, #059669 0%, #34D399 100%)'
+                  : selectedLeaveDetail.status === 'REJECTED'
+                    ? 'linear-gradient(135deg, #DC2626 0%, #F87171 100%)'
+                    : selectedLeaveDetail.status === 'CANCELLED'
+                      ? 'linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%)'
+                      : 'linear-gradient(135deg, #D97706 0%, #FBBF24 100%)',
+                px: 3,
+                py: 2.5,
+                position: 'relative',
+              }}
+            >
+              <IconButton
+                onClick={() => setDetailPanelOpen(false)}
+                sx={{
+                  position: 'absolute',
+                  right: 8,
+                  top: 8,
+                  color: 'white',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
 
-              <Divider sx={{ my: 2 }} />
-
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '12px',
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {getStatusIcon(selectedLeaveDetail.status)}
+                </Box>
                 <Box>
-                  <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600 }}>
+                  <Typography sx={{ color: 'white', fontSize: '18px', fontWeight: 700 }}>
+                    {selectedLeaveDetail.leaveType}
+                  </Typography>
+                  <Chip
+                    label={
+                      selectedLeaveDetail.status === 'APPROVED' ? '승인 완료' :
+                        selectedLeaveDetail.status === 'REJECTED' ? '반려됨' :
+                          selectedLeaveDetail.status === 'REQUESTED' ? '승인 대기' :
+                            selectedLeaveDetail.status === 'CANCEL_REQUESTED' ? '취소 대기' :
+                              selectedLeaveDetail.status === 'CANCELLED' ? '취소됨' : '대기'
+                    }
+                    size="small"
+                    sx={{
+                      mt: 0.5,
+                      bgcolor: 'rgba(255,255,255,0.25)',
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                    }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+
+            <DialogContent sx={{ p: 3 }}>
+              {/* 취소 상신 알림 */}
+              {selectedLeaveDetail.isCancel === 1 && (
+                <Alert
+                  severity="warning"
+                  icon={<WarningIcon />}
+                  sx={{ mb: 3, borderRadius: '12px' }}
+                >
+                  <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>
+                    이 항목은 취소 상신 건입니다.
+                  </Typography>
+                </Alert>
+              )}
+
+              {/* 기간 정보 카드 */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2.5,
+                  mb: 2,
+                  borderRadius: '12px',
+                  bgcolor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+                  border: `1px solid ${isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'}`,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                  <CalendarIcon sx={{ fontSize: 20, color: isDark ? '#60A5FA' : '#3B82F6' }} />
+                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: isDark ? '#60A5FA' : '#3B82F6' }}>
                     휴가 기간
                   </Typography>
-                  <Typography variant="body1" sx={{ color: colorScheme.textColor, fontWeight: 600 }}>
-                    {dayjs(selectedLeaveDetail.startDate).format('YYYY년 MM월 DD일')} ~{' '}
-                    {dayjs(selectedLeaveDetail.endDate).format('YYYY년 MM월 DD일')}
-                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+                  <Box>
+                    <Typography sx={{ fontSize: '15px', fontWeight: 600, color: colorScheme.textColor }}>
+                      {dayjs(selectedLeaveDetail.startDate).format('YYYY년 MM월 DD일 (ddd)')}
+                    </Typography>
+                    <Typography sx={{ fontSize: '13px', color: colorScheme.hintTextColor, mt: 0.5 }}>
+                      ~ {dayjs(selectedLeaveDetail.endDate).format('YYYY년 MM월 DD일 (ddd)')}
+                    </Typography>
+                  </Box>
                   {selectedLeaveDetail.workdaysCount && (
                     <Box
                       sx={{
-                        mt: 1,
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: isDark ? 'rgba(109, 99, 181, 0.2)' : 'rgba(156, 136, 212, 0.12)',
-                        border: `1px solid ${colorScheme.textFieldBorderColor}`,
-                        display: 'inline-flex',
-                        alignItems: 'baseline',
-                        gap: 1,
+                        px: 2,
+                        py: 1,
+                        borderRadius: '8px',
+                        bgcolor: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)',
+                        textAlign: 'center',
                       }}
                     >
-                      <Typography sx={{ fontSize: 28, fontWeight: 800, color: isDark ? '#B8B2F2' : '#6D63B5' }}>
+                      <Typography sx={{ fontSize: '24px', fontWeight: 800, color: isDark ? '#60A5FA' : '#3B82F6', lineHeight: 1 }}>
                         {selectedLeaveDetail.workdaysCount}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600 }}>
+                      <Typography sx={{ fontSize: '11px', color: colorScheme.hintTextColor, fontWeight: 600 }}>
                         일 사용
                       </Typography>
                     </Box>
                   )}
                 </Box>
+              </Paper>
 
-                <Box>
-                  <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600 }}>
-                    신청일
-                  </Typography>
-                  <Typography variant="body1" sx={{ color: colorScheme.textColor }}>
-                    {dayjs(selectedLeaveDetail.requestedDate).format('YYYY-MM-DD')}
+              {/* 신청 정보 카드 */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2.5,
+                  mb: 2,
+                  borderRadius: '12px',
+                  bgcolor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                  border: `1px solid ${colorScheme.textFieldBorderColor}`,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                  <TimeIcon sx={{ fontSize: 20, color: colorScheme.hintTextColor }} />
+                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: colorScheme.hintTextColor }}>
+                    신청 정보
                   </Typography>
                 </Box>
+                <Box sx={{ display: 'flex', gap: 4 }}>
+                  <Box>
+                    <Typography sx={{ fontSize: '11px', color: colorScheme.hintTextColor, mb: 0.5 }}>신청일</Typography>
+                    <Typography sx={{ fontSize: '14px', fontWeight: 500, color: colorScheme.textColor }}>
+                      {dayjs(selectedLeaveDetail.requestedDate).format('YYYY.MM.DD')}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Paper>
 
-                {/* 사유 - 일반 상신과 취소 상신 구분 */}
-                {selectedLeaveDetail.isCancel === 1 ? (
-                  <>
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                      <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>
-                        이 항목은 취소 상신 건입니다.
-                      </Typography>
-                    </Alert>
-
-                    {selectedLeaveDetail?.originalReason && (
-                      <Box sx={{
-                        p: 2,
-                        bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-                        borderRadius: 1,
+              {/* 사유 카드 */}
+              {selectedLeaveDetail.isCancel === 1 ? (
+                <>
+                  {/* 원래 휴가 사유 */}
+                  {selectedLeaveDetail?.originalReason && (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 2.5,
+                        mb: 2,
+                        borderRadius: '12px',
+                        bgcolor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
                         border: `1px solid ${colorScheme.textFieldBorderColor}`,
-                        mb: 1.5,
-                      }}>
-                        <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600, display: 'block', mb: 0.5 }}>
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                        <DescriptionIcon sx={{ fontSize: 20, color: colorScheme.hintTextColor }} />
+                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: colorScheme.hintTextColor }}>
                           원래 휴가 신청 사유
                         </Typography>
-                        <Typography variant="body2" sx={{ color: colorScheme.textColor }}>
-                          {selectedLeaveDetail.originalReason}
-                        </Typography>
                       </Box>
-                    )}
+                      <Typography sx={{ fontSize: '14px', color: colorScheme.textColor, lineHeight: 1.6 }}>
+                        {selectedLeaveDetail.originalReason}
+                      </Typography>
+                    </Paper>
+                  )}
 
-                    <Box sx={{
-                      p: 2,
-                      bgcolor: isDark ? 'rgba(237, 108, 2, 0.15)' : 'rgba(237, 108, 2, 0.08)',
-                      borderRadius: 1,
-                      border: '1px solid rgba(237, 108, 2, 0.3)',
-                    }}>
-                      <Typography variant="caption" sx={{ color: '#C77700', fontWeight: 600, display: 'block', mb: 0.5 }}>
+                  {/* 취소 요청 사유 */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.5,
+                      mb: 2,
+                      borderRadius: '12px',
+                      bgcolor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.05)',
+                      border: `1px solid ${isDark ? 'rgba(245, 158, 11, 0.3)' : 'rgba(245, 158, 11, 0.2)'}`,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                      <WarningIcon sx={{ fontSize: 20, color: '#F59E0B' }} />
+                      <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#F59E0B' }}>
                         취소 요청 사유
                       </Typography>
-                      <Typography variant="body2" sx={{ color: colorScheme.textColor }}>
-                        {selectedLeaveDetail.reason || '-'}
-                      </Typography>
                     </Box>
-                  </>
-                ) : (
-                  <Box>
-                    <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600 }}>
-                      휴가 사유
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: colorScheme.textColor, mt: 0.5 }}>
+                    <Typography sx={{ fontSize: '14px', color: colorScheme.textColor, lineHeight: 1.6 }}>
                       {selectedLeaveDetail.reason || '-'}
                     </Typography>
-                  </Box>
-                )}
-
-                {selectedLeaveDetail.rejectMessage && (
-                  <Box sx={{
-                    p: 2,
-                    bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                    borderRadius: 1,
+                  </Paper>
+                </>
+              ) : (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    mb: 2,
+                    borderRadius: '12px',
+                    bgcolor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
                     border: `1px solid ${colorScheme.textFieldBorderColor}`,
-                  }}>
-                    <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600, display: 'block', mb: 0.5 }}>
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                    <DescriptionIcon sx={{ fontSize: 20, color: colorScheme.hintTextColor }} />
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600, color: colorScheme.hintTextColor }}>
+                      휴가 사유
+                    </Typography>
+                  </Box>
+                  <Typography sx={{ fontSize: '14px', color: colorScheme.textColor, lineHeight: 1.6 }}>
+                    {selectedLeaveDetail.reason || '-'}
+                  </Typography>
+                </Paper>
+              )}
+
+              {/* 반려 사유 (있을 경우) */}
+              {selectedLeaveDetail.rejectMessage && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    borderRadius: '12px',
+                    bgcolor: isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)',
+                    border: `1px solid ${isDark ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.2)'}`,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                    <InfoIcon sx={{ fontSize: 20, color: '#EF4444' }} />
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#EF4444' }}>
                       반려 사유
                     </Typography>
-                    <Typography variant="body2" sx={{ color: colorScheme.textColor }}>
-                      {selectedLeaveDetail.rejectMessage}
-                    </Typography>
                   </Box>
-                )}
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 2, gap: 1, justifyContent: 'space-between' }}>
-          {selectedLeaveDetail && selectedLeaveDetail.status === 'APPROVED' && (
-            <Button
-              variant="contained"
-              color="warning"
-              startIcon={<CancelIcon />}
-              onClick={() => {
-                setDetailPanelOpen(false);
-                setCancelRequestLeave(selectedLeaveDetail);
-                setCancelRequestModalOpen(true);
+                  <Typography sx={{ fontSize: '14px', color: colorScheme.textColor, lineHeight: 1.6 }}>
+                    {selectedLeaveDetail.rejectMessage}
+                  </Typography>
+                </Paper>
+              )}
+            </DialogContent>
+
+            <DialogActions
+              sx={{
+                px: 3,
+                py: 2,
+                borderTop: `1px solid ${colorScheme.textFieldBorderColor}`,
+                gap: 1,
+                justifyContent: 'space-between',
               }}
             >
-              취소 상신
-            </Button>
-          )}
-          <Box sx={{ ml: 'auto' }}>
-            <Button onClick={() => setDetailPanelOpen(false)} variant="outlined">닫기</Button>
-          </Box>
-        </DialogActions>
+              {selectedLeaveDetail.status === 'APPROVED' && (
+                <Button
+                  variant="contained"
+                  color="warning"
+                  startIcon={<CancelIcon />}
+                  onClick={() => {
+                    setDetailPanelOpen(false);
+                    setCancelRequestLeave(selectedLeaveDetail);
+                    setCancelRequestModalOpen(true);
+                  }}
+                  sx={{ borderRadius: '8px' }}
+                >
+                  취소 상신
+                </Button>
+              )}
+              <Box sx={{ ml: 'auto' }}>
+                <Button
+                  onClick={() => setDetailPanelOpen(false)}
+                  variant="outlined"
+                  sx={{ borderRadius: '8px' }}
+                >
+                  닫기
+                </Button>
+              </Box>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
 
       {/* 전체휴가 달력 모달 */}
