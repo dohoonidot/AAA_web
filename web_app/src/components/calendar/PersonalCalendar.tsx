@@ -95,9 +95,24 @@ export default function PersonalCalendar({
     const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
     const isHoliday = !!day.isHoliday;
 
-    // Flutter와 동일한 상태별 우선순위 색상 결정
-    // 승인된 건만 표시하므로 색상은 승인 색상만 사용
-    const leaveColor = hasLeaves ? '#20C997' : '';
+    // 상태별 우선순위에 따른 마커 색상 결정: 대기/취소대기(주황) > 승인(초록) > 반려(빨강)
+    const getLeaveMarkerColor = () => {
+      if (!hasLeaves) return '';
+      
+      const hasPending = day.leaves.some(l => {
+        const status = l.status?.toUpperCase();
+        return status === 'REQUESTED' || status === 'PENDING' || status === 'CANCEL_REQUESTED';
+      });
+      const hasApproved = day.leaves.some(l => l.status?.toUpperCase() === 'APPROVED');
+      const hasRejected = day.leaves.some(l => l.status?.toUpperCase() === 'REJECTED');
+      
+      if (hasPending) return '#FF8C00'; // 대기/취소대기 - 주황색
+      if (hasApproved) return '#20C997'; // 승인 - 초록색
+      if (hasRejected) return '#DC3545'; // 반려 - 빨간색
+      return '#20C997';
+    };
+    
+    const leaveColor = getLeaveMarkerColor();
 
     return (
       <Box
@@ -432,12 +447,14 @@ export default function PersonalCalendar({
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {selectedDateDetails
                       .sort((a, b) => {
-                        // Flutter와 동일한 상태별 우선순위 정렬: 대기중 → 승인됨 → 반려됨 → 취소됨
+                        // Flutter와 동일한 상태별 우선순위 정렬: 대기중/취소대기 → 승인됨 → 반려됨 → 취소됨
                         const statusPriority: { [key: string]: number } = {
                           'REQUESTED': 1,
                           'PENDING': 1,
+                          'CANCEL_REQUESTED': 1,
                           '대기': 1,
                           '대기중': 1,
+                          '취소 대기': 1,
                           'APPROVED': 2,
                           '승인': 2,
                           '승인됨': 2,
@@ -456,7 +473,7 @@ export default function PersonalCalendar({
                       })
                       .map((leave, index) => {
                         const status = (leave.status || '').toUpperCase();
-                        const isPending = status === 'REQUESTED' || status === 'PENDING' || status === '대기' || status === '대기중';
+                        const isPending = status === 'REQUESTED' || status === 'PENDING' || status === 'CANCEL_REQUESTED' || status === '대기' || status === '대기중' || status === '취소 대기';
                         const isApproved = status === 'APPROVED' || status === '승인' || status === '승인됨';
                         const isRejected = status === 'REJECTED' || status === '반려' || status === '반려됨';
                         const isCancelled = status === 'CANCELLED' || status === '취소' || status === '취소됨';

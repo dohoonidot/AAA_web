@@ -27,6 +27,9 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  FormControl,
+  Select,
+  type SelectChangeEvent,
 } from '@mui/material';
 import {
   Event as EventIcon,
@@ -93,6 +96,9 @@ export default function LeaveManagementPage() {
     error,
     leaveData,
     waitingCount,
+    selectedYear,
+    yearlyLeaves,
+    yearlyLoading,
     requestDialogOpen,
     cancelRequestModalOpen,
     cancelRequestLeave,
@@ -116,6 +122,7 @@ export default function LeaveManagementPage() {
     setCancelReasonDialogOpen,
     setCancelReason,
     setRecommendationOpen,
+    setSelectedYear,
     setHideCanceled,
     setLeaveManualOpen,
     setLeaveAIManualOpen,
@@ -432,7 +439,53 @@ export default function LeaveManagementPage() {
 
               {/* 휴가내역 탭 */}
               <TabPanel value={tabValue} index={0}>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  {/* 연도 선택 드롭다운 */}
+                  <FormControl size="small" sx={{ minWidth: 100 }}>
+                    <Select
+                      value={selectedYear}
+                      onChange={(e: SelectChangeEvent<number>) => setSelectedYear(e.target.value as number)}
+                      sx={{
+                        fontSize: '13px',
+                        bgcolor: colorScheme.surfaceColor,
+                        color: colorScheme.textColor,
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: colorScheme.textFieldBorderColor,
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: colorScheme.textFieldBorderColor,
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: colorScheme.primaryColor,
+                        },
+                        '& .MuiSelect-icon': {
+                          color: colorScheme.textColor,
+                        },
+                      }}
+                    >
+                      {[2026, 2025, 2024].map((year) => (
+                        <MenuItem
+                          key={year}
+                          value={year}
+                          sx={{
+                            color: colorScheme.textColor,
+                            bgcolor: colorScheme.surfaceColor,
+                            '&:hover': {
+                              bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+                            },
+                            '&.Mui-selected': {
+                              bgcolor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+                              '&:hover': {
+                                bgcolor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)',
+                              },
+                            },
+                          }}
+                        >
+                          {year}년
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                   <Button
                     variant="outlined"
                     size="small"
@@ -443,16 +496,20 @@ export default function LeaveManagementPage() {
                   </Button>
                 </Box>
 
-                {!leaveData.monthlyLeaves || leaveData.monthlyLeaves.length === 0 ? (
+                {yearlyLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : !yearlyLeaves || yearlyLeaves.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <EventIcon sx={{ fontSize: 80, color: 'grey.300', mb: 2 }} />
                     <Typography variant="h6" color="text.secondary">
-                      휴가 내역이 없습니다
+                      {selectedYear}년 휴가 내역이 없습니다
                     </Typography>
                   </Box>
                 ) : (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {[...leaveData.monthlyLeaves]
+                    {[...yearlyLeaves]
                       .filter((leave: any) => !hideCanceled || leave.status !== 'CANCELLED')
                       .reverse()
                       .map((leave: any, index) => (
@@ -600,7 +657,7 @@ export default function LeaveManagementPage() {
           open={recommendationOpen}
           onClose={() => setRecommendationOpen(false)}
           userId={user?.userId || ''}
-          year={new Date().getFullYear()}
+          year={selectedYear}
         />
 
         {/* 휴가관리 사용 가이드 모달 */}

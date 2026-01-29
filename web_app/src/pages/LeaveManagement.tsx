@@ -366,7 +366,7 @@ export default function LeaveManagement() {
                     onChange={(e) => setSelectedYear(e.target.value as number)}
                     sx={{ fontSize: '13px' }}
                   >
-                    {[2024, 2025, 2026].map((year) => (
+                    {[2026, 2025, 2024].map((year) => (
                       <MenuItem key={year} value={year}>
                         {year}년
                       </MenuItem>

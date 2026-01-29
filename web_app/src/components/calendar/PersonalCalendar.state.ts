@@ -124,7 +124,11 @@ export const usePersonalCalendarState = ({
         );
       });
 
-      const approvedLeaves = dayLeaves.filter(l => l.status?.toUpperCase() === 'APPROVED');
+      // 취소된 건은 제외하고, 승인/대기/반려/취소대기 건은 모두 표시
+      const visibleLeaves = dayLeaves.filter(l => {
+        const status = l.status?.toUpperCase();
+        return status === 'APPROVED' || status === 'REQUESTED' || status === 'PENDING' || status === 'REJECTED' || status === 'CANCEL_REQUESTED';
+      });
 
       const holidayName = getHolidayName(dayDate);
 
@@ -132,7 +136,7 @@ export const usePersonalCalendarState = ({
         date: dayDate,
         isCurrentMonth,
         isToday,
-        leaves: approvedLeaves,
+        leaves: visibleLeaves,
         isHoliday: !!holidayName,
         holidayName,
       });
@@ -184,6 +188,7 @@ export const usePersonalCalendarState = ({
     switch (status.toUpperCase()) {
       case 'REQUESTED':
       case 'PENDING':
+      case 'CANCEL_REQUESTED':
         return 'warning';
       case 'APPROVED':
         return 'success';
@@ -202,6 +207,7 @@ export const usePersonalCalendarState = ({
       APPROVED: '승인',
       REJECTED: '반려',
       PENDING: '대기중',
+      CANCEL_REQUESTED: '취소 대기',
       CANCELLED: '취소됨',
     };
     return labels[status] || status;

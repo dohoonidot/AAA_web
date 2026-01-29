@@ -237,7 +237,7 @@ const DesktopLeaveManagementModals: React.FC<DesktopLeaveManagementModalsProps> 
                     <Typography sx={{ fontSize: '15px', fontWeight: 600, color: colorScheme.textColor }}>
                       {dayjs(selectedLeaveDetail.startDate).format('YYYY년 MM월 DD일 (ddd)')}
                     </Typography>
-                    <Typography sx={{ fontSize: '13px', color: colorScheme.hintTextColor, mt: 0.5 }}>
+                    <Typography sx={{ fontSize: '13px', color: colorScheme.textColor, mt: 0.5 }}>
                       ~ {dayjs(selectedLeaveDetail.endDate).format('YYYY년 MM월 DD일 (ddd)')}
                     </Typography>
                   </Box>
@@ -516,7 +516,7 @@ const DesktopLeaveManagementModals: React.FC<DesktopLeaveManagementModalsProps> 
                         fontSize: '11px',
                         fontWeight: 600,
                         bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB',
-                        color: colorScheme.hintTextColor,
+                        color: colorScheme.textColor,
                         px: 1,
                         py: 1.5,
                         borderRight: month < 12 ? `1px solid ${colorScheme.textFieldBorderColor}` : 'none',

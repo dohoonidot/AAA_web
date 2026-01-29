@@ -632,7 +632,7 @@ export default function DesktopLeaveManagement({
                                 },
                               }}
                             >
-                              {[2024, 2025, 2026].map((year) => (
+                              {[2026, 2025, 2024].map((year) => (
                                 <MenuItem
                                   key={year}
                                   value={year}
@@ -830,8 +830,44 @@ export default function DesktopLeaveManagement({
                             <FullscreenIcon />
                           </IconButton>
                         </Box>
-                        <Box sx={{ flex: 1, overflow: 'auto' }}>
-                          <TableContainer sx={{ maxHeight: '100%', overflowX: 'auto' }}>
+                        <Box sx={{ 
+                          flex: 1, 
+                          overflow: 'auto',
+                          '&::-webkit-scrollbar': {
+                            width: '8px',
+                            height: '8px',
+                          },
+                          '&::-webkit-scrollbar-track': {
+                            bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F1F1',
+                            borderRadius: '4px',
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            bgcolor: isDark ? 'rgba(255, 255, 255, 0.3)' : '#C1C1C1',
+                            borderRadius: '4px',
+                            '&:hover': {
+                              bgcolor: isDark ? 'rgba(255, 255, 255, 0.4)' : '#A8A8A8',
+                            },
+                          },
+                        }}>
+                          <TableContainer sx={{ 
+                            maxHeight: '100%', 
+                            overflowX: 'auto',
+                            '&::-webkit-scrollbar': {
+                              width: '8px',
+                              height: '8px',
+                            },
+                            '&::-webkit-scrollbar-track': {
+                              bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F1F1',
+                              borderRadius: '4px',
+                            },
+                            '&::-webkit-scrollbar-thumb': {
+                              bgcolor: isDark ? 'rgba(255, 255, 255, 0.3)' : '#C1C1C1',
+                              borderRadius: '4px',
+                              '&:hover': {
+                                bgcolor: isDark ? 'rgba(255, 255, 255, 0.4)' : '#A8A8A8',
+                              },
+                            },
+                          }}>
                             <Table size="small" stickyHeader sx={{ borderCollapse: 'separate', minWidth: 800 }}>
                               <TableHead>
                                 <TableRow>

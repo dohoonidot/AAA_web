@@ -537,7 +537,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                         onChange={(e) => setSelectedYear(e.target.value as number)}
                         sx={{ fontSize: '13px', height: '32px' }}
                       >
-                        {[2024, 2025, 2026].map((year) => (
+                        {[2026, 2025, 2024].map((year) => (
                           <MenuItem key={year} value={year}>
                             {year}년
                           </MenuItem>
@@ -1120,7 +1120,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                           onChange={(e) => setSelectedYear(e.target.value as number)}
                           sx={{ fontSize: '13px', height: '32px' }}
                         >
-                          {[2024, 2025, 2026].map((year) => (
+                          {[2026, 2025, 2024].map((year) => (
                             <MenuItem key={year} value={year}>
                               {year}년
                             </MenuItem>

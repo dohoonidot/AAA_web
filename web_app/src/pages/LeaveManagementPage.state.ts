@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, SyntheticEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import authService from '../services/authService';
 import leaveService from '../services/leaveService';
 import { createLogger } from '../utils/logger';
@@ -21,6 +22,9 @@ export const useLeaveManagementPageState = () => {
   const [error, setError] = useState<string | null>(null);
   const [leaveData, setLeaveData] = useState<LeaveManagementData | null>(null);
   const [waitingCount, setWaitingCount] = useState(0);
+  const [selectedYear, setSelectedYear] = useState(dayjs().year());
+  const [yearlyLeaves, setYearlyLeaves] = useState<any[]>([]);
+  const [yearlyLoading, setYearlyLoading] = useState(false);
 
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [cancelRequestModalOpen, setCancelRequestModalOpen] = useState(false);
@@ -47,6 +51,52 @@ export const useLeaveManagementPageState = () => {
   useEffect(() => {
     loadLeaveData();
   }, []);
+
+  // 연도 변경 시 연도별 휴가 데이터 로드
+  useEffect(() => {
+    loadYearlyLeaveData(selectedYear);
+  }, [selectedYear]);
+
+  const loadYearlyLeaveData = async (year: number) => {
+    try {
+      setYearlyLoading(true);
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser) return;
+
+      logger.dev('연도별 휴가 내역 조회:', year);
+      const response = await leaveService.getYearlyLeave({ userId: currentUser.userId, year });
+      logger.dev('연도별 휴가 내역 응답:', response);
+
+      if (response && response.yearlyDetails) {
+        setYearlyLeaves(response.yearlyDetails);
+      } else {
+        // API 응답이 없으면 기존 monthlyLeaves에서 연도로 필터링
+        if (leaveData?.monthlyLeaves) {
+          const filtered = leaveData.monthlyLeaves.filter((leave: any) => {
+            const leaveYear = dayjs(leave.start_date || leave.startDate).year();
+            return leaveYear === year;
+          });
+          setYearlyLeaves(filtered);
+        } else {
+          setYearlyLeaves([]);
+        }
+      }
+    } catch (err) {
+      logger.error('연도별 휴가 내역 조회 실패:', err);
+      // 실패 시 기존 데이터에서 필터링
+      if (leaveData?.monthlyLeaves) {
+        const filtered = leaveData.monthlyLeaves.filter((leave: any) => {
+          const leaveYear = dayjs(leave.start_date || leave.startDate).year();
+          return leaveYear === year;
+        });
+        setYearlyLeaves(filtered);
+      } else {
+        setYearlyLeaves([]);
+      }
+    } finally {
+      setYearlyLoading(false);
+    }
+  };
 
   const loadLeaveData = async () => {
     try {
@@ -162,6 +212,14 @@ export const useLeaveManagementPageState = () => {
       setLeaveData(safeData);
 
       logger.dev('휴가관리 데이터 로드 완료 - leaveStatus:', safeData.leaveStatus);
+
+      // 초기 yearlyLeaves 설정 - 현재 연도 데이터로 필터링
+      const currentYearLeaves = actualMonthlyLeavesWithId.filter((leave: any) => {
+        const leaveYear = dayjs(leave.start_date || leave.startDate).year();
+        return leaveYear === selectedYear;
+      });
+      setYearlyLeaves(currentYearLeaves);
+      logger.dev('초기 연도별 휴가 내역 설정:', currentYearLeaves.length, '건');
 
       if (currentUser && currentUser.userId) {
         try {
@@ -285,6 +343,9 @@ export const useLeaveManagementPageState = () => {
       error,
       leaveData,
       waitingCount,
+      selectedYear,
+      yearlyLeaves,
+      yearlyLoading,
       requestDialogOpen,
       cancelRequestModalOpen,
       cancelRequestLeave,
@@ -305,6 +366,9 @@ export const useLeaveManagementPageState = () => {
       setError,
       setLeaveData,
       setWaitingCount,
+      setSelectedYear,
+      setYearlyLeaves,
+      setYearlyLoading,
       setRequestDialogOpen,
       setCancelRequestModalOpen,
       setCancelRequestLeave,
@@ -318,6 +382,7 @@ export const useLeaveManagementPageState = () => {
       setLeaveAIManualOpen,
       setMenuAnchorEl,
       loadLeaveData,
+      loadYearlyLeaveData,
       handleMenuOpen,
       handleMenuClose,
       handleTabChange,
