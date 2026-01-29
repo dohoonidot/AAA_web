@@ -27,7 +27,6 @@ export const useChatAreaState = () => {
     selectedModel,
     selectedSapModule,
     isWebSearchEnabled,
-    isLoading,
     isStreaming,
     streamingMessage,
     setInputMessage,
@@ -159,6 +158,11 @@ export const useChatAreaState = () => {
 
     try {
       let fullResponse: string;
+      const normalizeHalfDaySlot = (value?: string): 'ALL' | 'AM' | 'PM' => {
+        if (value === 'AM' || value === 'PM' || value === 'ALL') return value;
+        return 'ALL';
+      };
+
       const handleLeaveTrigger = (triggerData: LeaveTriggerData) => {
         console.log('[ChatArea] 휴가 트리거 수신:', triggerData);
 
@@ -173,7 +177,7 @@ export const useChatAreaState = () => {
           endDate: formatDate(triggerData.end_date),
           leaveType: triggerData.leave_type,
           reason: triggerData.reason || '',
-          halfDaySlot: triggerData.half_day_slot || 'ALL',
+          halfDaySlot: normalizeHalfDaySlot(triggerData.half_day_slot),
           approvalLine: triggerData.approval_line?.map((approver) => ({
             approverId: approver.approver_id,
             approverName: approver.approver_name,
@@ -445,7 +449,6 @@ export const useChatAreaState = () => {
       selectedModel,
       selectedSapModule,
       isWebSearchEnabled,
-      isLoading,
       isStreaming,
       streamingMessage,
       attachedFiles,
