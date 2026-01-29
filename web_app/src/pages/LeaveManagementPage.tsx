@@ -708,14 +708,32 @@ export default function LeaveManagementPage() {
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                     휴가 기간
                   </Typography>
-                  <Typography variant="body1" sx={{ mt: 0.5 }}>
-                    {formatDate(selectedLeave.start_date || selectedLeave.startDate)} ~ {formatDate(selectedLeave.end_date || selectedLeave.endDate)}
+                  <Typography variant="body1" sx={{ mt: 0.5, fontWeight: 600 }}>
+                    {dayjs(selectedLeave.start_date || selectedLeave.startDate).format('YYYY년 MM월 DD일')} ~{' '}
+                    {dayjs(selectedLeave.end_date || selectedLeave.endDate).format('YYYY년 MM월 DD일')}
                   </Typography>
                   {selectedLeave.half_day_slot && selectedLeave.half_day_slot !== 'ALL' && (
                     <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
                       ({selectedLeave.half_day_slot === 'AM' ? '오전반차' : '오후반차'})
                     </Typography>
                   )}
+                </Box>
+
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: 'rgba(156, 136, 212, 0.08)',
+                    border: '1px solid rgba(156, 136, 212, 0.25)',
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 1,
+                  }}
+                >
+                  <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#6D63B5' }}>
+                    {selectedLeave.workdays_count ?? selectedLeave.workdaysCount ?? calculateDays(selectedLeave.start_date || selectedLeave.startDate, selectedLeave.end_date || selectedLeave.endDate)}
+                  </Typography>
+                  <Typography sx={{ fontWeight: 600, color: 'text.secondary' }}>일 사용</Typography>
                 </Box>
 
                 <Box>

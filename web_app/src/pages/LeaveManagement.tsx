@@ -677,10 +677,28 @@ export default function LeaveManagement() {
               <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
                 휴가 기간
               </Typography>
-              <Typography variant="body1" gutterBottom>
-                {dayjs(selectedLeave.startDate).format('YYYY-MM-DD')} ~{' '}
-                {dayjs(selectedLeave.endDate).format('YYYY-MM-DD')} ({selectedLeave.workdaysCount}일)
+              <Typography variant="body1" fontWeight={600} gutterBottom>
+                {dayjs(selectedLeave.startDate).format('YYYY년 MM월 DD일')} ~{' '}
+                {dayjs(selectedLeave.endDate).format('YYYY년 MM월 DD일')}
               </Typography>
+
+              <Box
+                sx={{
+                  mt: 1,
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(30, 136, 229, 0.08)',
+                  border: '1px solid rgba(30, 136, 229, 0.2)',
+                  display: 'inline-flex',
+                  alignItems: 'baseline',
+                  gap: 1,
+                }}
+              >
+                <Typography sx={{ fontSize: 26, fontWeight: 800, color: '#1E88E5' }}>
+                  {selectedLeave.workdaysCount}
+                </Typography>
+                <Typography sx={{ fontWeight: 600, color: 'text.secondary' }}>일 사용</Typography>
+              </Box>
 
               <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
                 신청 사유

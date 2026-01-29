@@ -155,14 +155,30 @@ const DesktopLeaveManagementModals: React.FC<DesktopLeaveManagementModalsProps> 
                   <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600 }}>
                     휴가 기간
                   </Typography>
-                  <Typography variant="body1" sx={{ color: colorScheme.textColor }}>
-                    {dayjs(selectedLeaveDetail.startDate).format('YYYY-MM-DD')} ~{' '}
-                    {dayjs(selectedLeaveDetail.endDate).format('YYYY-MM-DD')}
+                  <Typography variant="body1" sx={{ color: colorScheme.textColor, fontWeight: 600 }}>
+                    {dayjs(selectedLeaveDetail.startDate).format('YYYY년 MM월 DD일')} ~{' '}
+                    {dayjs(selectedLeaveDetail.endDate).format('YYYY년 MM월 DD일')}
                   </Typography>
                   {selectedLeaveDetail.workdaysCount && (
-                    <Typography variant="caption" sx={{ color: colorScheme.hintTextColor }}>
-                      ({selectedLeaveDetail.workdaysCount}일 사용)
-                    </Typography>
+                    <Box
+                      sx={{
+                        mt: 1,
+                        p: 1.5,
+                        borderRadius: 2,
+                        bgcolor: isDark ? 'rgba(109, 99, 181, 0.2)' : 'rgba(156, 136, 212, 0.12)',
+                        border: `1px solid ${colorScheme.textFieldBorderColor}`,
+                        display: 'inline-flex',
+                        alignItems: 'baseline',
+                        gap: 1,
+                      }}
+                    >
+                      <Typography sx={{ fontSize: 28, fontWeight: 800, color: isDark ? '#B8B2F2' : '#6D63B5' }}>
+                        {selectedLeaveDetail.workdaysCount}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: colorScheme.hintTextColor, fontWeight: 600 }}>
+                        일 사용
+                      </Typography>
+                    </Box>
                   )}
                 </Box>
 
