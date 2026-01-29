@@ -192,10 +192,17 @@ export const useElectronicApprovalDraftState = () => {
           return;
         }
 
+        const now = new Date();
+        const pad2 = (value: number) => String(value).padStart(2, '0');
+        // Match Flutter behavior: local time string without milliseconds, then append 'Z'
+        const approvalDate =
+          `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}` +
+          `T${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}Z`;
+
         await submitLeaveGrantRequest({
           userId: user?.userId || '',
           department: draftingDepartment,
-          approvalDate: new Date().toISOString().split('.')[0] + 'Z',
+          approvalDate,
           approvalType: getApprovalTypeValue(approvalType),
           approvalLine: approvers.map((item) => ({
             approverId: item.approverId,
