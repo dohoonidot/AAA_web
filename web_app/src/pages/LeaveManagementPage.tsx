@@ -178,6 +178,31 @@ export default function LeaveManagementPage() {
     return dayjs(endDate).diff(dayjs(startDate), 'day') + 1;
   };
 
+  const getLeaveSortTime = (leave: any) => {
+    const raw =
+      leave?.requested_date ??
+      leave?.requestedDate ??
+      leave?.request_date ??
+      leave?.requestDate ??
+      leave?.start_date ??
+      leave?.startDate ??
+      '';
+    const text = String(raw).trim();
+    if (!text) return 0;
+
+    if (/^\d{8}$/.test(text)) {
+      const normalized = `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
+      return dayjs(normalized).valueOf();
+    }
+
+    const normalized = text.replace(/\./g, '-').replace(/\//g, '-');
+    const parsed = dayjs(normalized);
+    if (parsed.isValid()) return parsed.valueOf();
+
+    const isoParsed = dayjs(normalized.replace(' ', 'T'));
+    return isoParsed.isValid() ? isoParsed.valueOf() : 0;
+  };
+
 
   // 데스크톱 UI
   if (!isMobile) {
@@ -511,7 +536,7 @@ export default function LeaveManagementPage() {
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {[...yearlyLeaves]
                       .filter((leave: any) => !hideCanceled || leave.status !== 'CANCELLED')
-                      .reverse()
+                      .sort((a: any, b: any) => getLeaveSortTime(b) - getLeaveSortTime(a))
                       .map((leave: any, index) => (
                       <Card
                         key={index}

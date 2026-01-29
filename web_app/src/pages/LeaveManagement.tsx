@@ -120,6 +120,17 @@ export default function LeaveManagement() {
       filtered = filtered.filter((leave) => leave.status !== 'CANCELLED');
     }
 
+    if (isMobile) {
+      const getSortTime = (leave: YearlyDetail) => {
+        const requestedTime = leave.requestedDate ? new Date(leave.requestedDate).getTime() : NaN;
+        if (!Number.isNaN(requestedTime)) return requestedTime;
+        const startTime = leave.startDate ? new Date(leave.startDate).getTime() : NaN;
+        return Number.isNaN(startTime) ? 0 : startTime;
+      };
+
+      return [...filtered].sort((a, b) => getSortTime(b) - getSortTime(a));
+    }
+
     return filtered;
   };
 
