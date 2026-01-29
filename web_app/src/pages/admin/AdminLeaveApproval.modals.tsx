@@ -547,7 +547,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
             </Box>
 
             {/* 상세 내용 */}
-            <Box sx={{ flex: 1, overflow: 'auto' }}>
+            <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
               {modalSelectedHolidayName && (
                 <Box
                   sx={{
@@ -597,6 +597,12 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
               ) : (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   {getLeavesForDate(modalSelectedDate).map((leave: any, index: number) => {
+                    const department = leave.department;
+                    const jobPosition = leave.job_position ?? leave.jobPosition;
+                    const leaveType = leave.leave_type ?? leave.leaveType;
+                    const startDate = leave.start_date ?? leave.startDate;
+                    const endDate = leave.end_date ?? leave.endDate;
+                    const workdays = Math.floor(leave.workdays_count ?? leave.workdaysCount ?? 0);
                     const statusColor =
                       leave.status === 'APPROVED'
                         ? '#20C997'
@@ -626,7 +632,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
                         }}
                       >
                         <CardContent sx={{ p: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Box
                                 sx={{
@@ -652,53 +658,31 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
                               }}
                             />
                           </Box>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography sx={{ fontSize: '12px', color: '#9E9E9E', minWidth: 60 }}>
-                                부서/직급
-                              </Typography>
-                              <Typography sx={{ fontSize: '13px', fontWeight: 500 }}>
-                                {leave.department} | {leave.job_position}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography sx={{ fontSize: '12px', color: '#9E9E9E', minWidth: 60 }}>
-                                휴가 종류
-                              </Typography>
-                              <Typography sx={{ fontSize: '13px', fontWeight: 500 }}>
-                                {leave.leave_type}
-                                {leave.half_day_slot && leave.half_day_slot === 'AM' && ' (오전반차)'}
-                                {leave.half_day_slot && leave.half_day_slot === 'PM' && ' (오후반차)'}
-                                {leave.half_day_slot && leave.half_day_slot === 'ALL' && ' (종일연차)'}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography sx={{ fontSize: '12px', color: '#9E9E9E', minWidth: 60 }}>
-                                기간
-                              </Typography>
-                              <Typography sx={{ fontSize: '13px', fontWeight: 500 }}>
-                                {formatServerDateDots(leave.start_date)} ~ {formatServerDateDots(leave.end_date)}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography sx={{ fontSize: '12px', color: '#9E9E9E', minWidth: 60 }}>
-                                일수
-                              </Typography>
-                              <Typography sx={{ fontSize: '13px', fontWeight: 500 }}>
-                                {Math.floor(leave.workdays_count)}일
-                              </Typography>
-                            </Box>
-                            {leave.reason && (
-                              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mt: 0.5 }}>
-                                <Typography sx={{ fontSize: '12px', color: '#9E9E9E', minWidth: 60 }}>
-                                  사유
-                                </Typography>
-                                <Typography sx={{ fontSize: '13px', fontWeight: 500, flex: 1 }}>
-                                  {leave.reason}
-                                </Typography>
-                              </Box>
-                            )}
-                          </Box>
+                          <Typography
+                            sx={{
+                              fontSize: '13px',
+                              fontWeight: 500,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {department}
+                            {jobPosition ? ` · ${jobPosition}` : ''}
+                            {' | '}
+                            {leaveType}
+                            {leave.half_day_slot === 'AM' && ' (오전반차)'}
+                            {leave.half_day_slot === 'PM' && ' (오후반차)'}
+                            {leave.half_day_slot === 'ALL' && ' (종일연차)'}
+                            {' | '}
+                            {formatServerDateDots(startDate)} ~ {formatServerDateDots(endDate)}
+                            {workdays ? ` | ${workdays}일` : ''}
+                          </Typography>
+                          {leave.reason && (
+                            <Typography sx={{ fontSize: '12px', color: '#6C757D', mt: 0.75 }}>
+                              사유: {leave.reason}
+                            </Typography>
+                          )}
                         </CardContent>
                       </Card>
                     );
@@ -840,7 +824,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
             <IconButton
               onClick={() => setDetailModalOpen(false)}
               sx={{
-                color: 'text.secondary',
+                color: colorScheme.textColor,
                 '&:hover': {
                   bgcolor: 'action.hover',
                 },
@@ -925,7 +909,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
 
               {/* 신청자 정보 */}
               <Box>
-                <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1.5, color: colorScheme.textColor, fontWeight: 600 }}>
                   신청자 정보
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '12px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
@@ -946,7 +930,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
                     <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
                       {selectedDetailLeave.name}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: colorScheme.textColor }}>
                       {selectedDetailLeave.department} | {selectedDetailLeave.job_position}
                     </Typography>
                   </Box>
@@ -955,7 +939,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
 
               {/* 휴가 기간 */}
               <Box>
-                <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1.5, color: colorScheme.textColor, fontWeight: 600 }}>
                   휴가 기간
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: 2, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '12px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
@@ -966,8 +950,8 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 4 }}>
-                    <AccessTimeIcon sx={{ color: 'text.secondary', fontSize: 16 }} />
-                    <Typography variant="body2" color="text.secondary">
+                    <AccessTimeIcon sx={{ color: colorScheme.textColor, fontSize: 16 }} />
+                    <Typography variant="body2" sx={{ color: colorScheme.textColor }}>
                       신청일: {dayjs(selectedDetailLeave.requested_date).format('YYYY년 MM월 DD일 HH:mm')}
                     </Typography>
                   </Box>
@@ -977,11 +961,11 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
               {/* 사유 */}
               {selectedDetailLeave.reason && (
                 <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1.5, color: colorScheme.textColor, fontWeight: 600 }}>
                     사유
                   </Typography>
                   <Box sx={{ p: 2, bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA', borderRadius: '12px', border: `1px solid ${colorScheme.textFieldBorderColor}` }}>
-                    <RenderReasonWithCancelHighlight reason={selectedDetailLeave.reason} />
+                    <RenderReasonWithCancelHighlight reason={selectedDetailLeave.reason} color={colorScheme.textColor} />
                   </Box>
                 </Box>
               )}
@@ -989,7 +973,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
               {/* 결재 정보 */}
               {selectedDetailLeave.approval_line && selectedDetailLeave.approval_line.length > 0 && (
                 <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1.5, color: colorScheme.textColor, fontWeight: 600 }}>
                     결재 정보
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -1029,7 +1013,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
                           <Typography variant="subtitle2" fontWeight={600}>
                             {approver.name}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant="body2" sx={{ color: colorScheme.textColor }}>
                             {approver.department} · {approver.position}
                           </Typography>
                         </Box>
@@ -1052,7 +1036,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
               {/* 첨부파일 */}
               {selectedDetailLeave.attachments && selectedDetailLeave.attachments.length > 0 && (
                 <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1.5, color: colorScheme.textColor, fontWeight: 600 }}>
                     첨부파일
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1086,7 +1070,7 @@ const AdminLeaveApprovalModals: React.FC<AdminLeaveApprovalModalsProps> = ({
                           <Typography variant="body2" fontWeight={600}>
                             {file.name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{ color: colorScheme.textColor }}>
                             {(file.size / 1024).toFixed(1)} KB
                           </Typography>
                         </Box>

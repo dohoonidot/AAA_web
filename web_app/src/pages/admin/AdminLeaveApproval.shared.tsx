@@ -33,15 +33,16 @@ export const parseReasonWithCancelReason = (reason: string) => {
 /**
  * 취소사유 UI 컴포넌트
  */
-export const RenderReasonWithCancelHighlight: React.FC<{ reason: string; maxLines?: number }> = ({ reason, maxLines }) => {
+export const RenderReasonWithCancelHighlight: React.FC<{ reason: string; maxLines?: number; color?: string }> = ({ reason, maxLines, color }) => {
   const parsed = parseReasonWithCancelReason(reason);
+  const textColor = color || 'text.secondary';
 
   if (!parsed.hasCancelReason) {
     // 일반 사유만 표시
     return (
       <Typography
         variant="body2"
-        color="text.secondary"
+        color={textColor}
         sx={{
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -60,7 +61,7 @@ export const RenderReasonWithCancelHighlight: React.FC<{ reason: string; maxLine
   return (
     <Typography
       variant="body2"
-      color="text.secondary"
+      color={textColor}
       sx={{
         overflow: 'hidden',
         textOverflow: 'ellipsis',

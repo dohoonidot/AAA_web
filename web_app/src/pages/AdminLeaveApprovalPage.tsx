@@ -188,6 +188,10 @@ const AdminLeaveApprovalPage: React.FC = () => {
   } = actions;
 
   const stats = getStats();
+  const handleStatusCardClick = (status: 'REQUESTED' | 'APPROVED' | 'REJECTED') => {
+    handleStatusFilter(status);
+    setCurrentTab('all');
+  };
 
   if (loading) {
     return (
@@ -1078,24 +1082,55 @@ const AdminLeaveApprovalPage: React.FC = () => {
                       </Box>
                     )}
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                      {getLeavesForDate(selectedDate).map((leave: any, index: number) => (
-                        <Box
-                          key={index}
-                          sx={{
-                            p: 1,
-                            borderRadius: '6px',
-                            bgcolor: colorScheme.surfaceColor,
-                            border: '1px solid #E9ECEF',
-                          }}
-                        >
-                          <Typography variant="caption" sx={{ fontWeight: 600, display: 'block' }}>
-                            {leave.name} ({leave.department})
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {leave.leave_type}
-                          </Typography>
-                        </Box>
-                      ))}
+                      {getLeavesForDate(selectedDate).map((leave: any, index: number) => {
+                        const department = leave.department;
+                        const jobPosition = leave.job_position ?? leave.jobPosition;
+                        const leaveType = leave.leave_type ?? leave.leaveType;
+                        const startDate = leave.start_date ?? leave.startDate;
+                        const endDate = leave.end_date ?? leave.endDate;
+                        const workdays = Math.floor(leave.workdays_count ?? leave.workdaysCount ?? 0);
+
+                        return (
+                          <Box
+                            key={index}
+                            sx={{
+                              p: 1,
+                              borderRadius: '6px',
+                              bgcolor: colorScheme.surfaceColor,
+                              border: '1px solid #E9ECEF',
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: 'block',
+                              }}
+                            >
+                              {leave.name}
+                              {' · '}
+                              {department}
+                              {jobPosition ? ` · ${jobPosition}` : ''}
+                              {' | '}
+                              {leaveType}
+                              {leave.half_day_slot === 'AM' && ' (오전반차)'}
+                              {leave.half_day_slot === 'PM' && ' (오후반차)'}
+                              {leave.half_day_slot === 'ALL' && ' (종일연차)'}
+                              {' | '}
+                              {formatServerDateMD(startDate)} ~ {formatServerDateMD(endDate)}
+                              {workdays ? ` | ${workdays}일` : ''}
+                            </Typography>
+                            {leave.reason && (
+                              <Typography variant="caption" sx={{ mt: 0.5, color: '#6C757D', display: 'block' }}>
+                                사유: {leave.reason}
+                              </Typography>
+                            )}
+                          </Box>
+                        );
+                      })}
                     </Box>
                   </Box>
                 )}
@@ -1440,7 +1475,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
               {/* 달력 (60%) - 높이 조정 */}
               <Box sx={{ flex: 6, minHeight: 0, display: 'flex' }}>
                 <Card sx={{ borderRadius: '16px', width: '100%', display: 'flex', flexDirection: 'column', bgcolor: colorScheme.surfaceColor }}>
-                  <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                  <CardContent sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     {/* 달력 헤더 */}
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, pb: 0.5, borderBottom: '1px solid #F1F3F5', flexShrink: 0 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1628,7 +1663,7 @@ const AdminLeaveApprovalPage: React.FC = () => {
                       {dayjs(selectedDate).format('YYYY.MM.DD')} 휴가 내역
                     </Typography>
 
-                    <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0, pr: 0.5 }}>
+                    <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0, pr: 0.5 }}>
                       {selectedHolidayName && (
                         <Box
                           sx={{
@@ -1666,45 +1701,57 @@ const AdminLeaveApprovalPage: React.FC = () => {
                         </Box>
                       ) : (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          {getSelectedDateDetails().map((leave: any, index: number) => (
-                            <Card
-                              key={index}
-                              sx={{
-                                p: 1,
-                                bgcolor: colorScheme.surfaceColor,
-                                border: `1px solid ${colorScheme.textFieldBorderColor}`,
-                                borderRadius: '6px',
-                              }}
-                            >
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                                <PersonIcon sx={{ fontSize: 16, color: '#9C88D4' }} />
-                                <Typography variant="body2" fontWeight={600}>
-                                  {leave.name}
-                                </Typography>
-                              </Box>
-                              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-                                {leave.department} · {leave.job_position}
-                              </Typography>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Chip
-                                  label={`${leave.leave_type}${leave.half_day_slot === 'AM' ? ' (오전반차)' :
-                                      leave.half_day_slot === 'PM' ? ' (오후반차)' :
-                                        leave.half_day_slot === 'ALL' ? ' (종일연차)' : ''
-                                    }`}
-                                  size="small"
-                                  sx={{
-                                    fontSize: '10px',
-                                    height: '20px',
-                                    bgcolor: '#20C99722',
-                                    color: '#20C997',
-                                  }}
-                                />
-                                <Typography variant="caption" color="text.secondary">
-                                  {formatServerDateMD(leave.start_date)} ~ {formatServerDateMD(leave.end_date)}
-                                </Typography>
-                              </Box>
-                            </Card>
-                          ))}
+                          {getSelectedDateDetails().map((leave: any, index: number) => {
+                            const department = leave.department;
+                            const jobPosition = leave.job_position ?? leave.jobPosition;
+                            const leaveType = leave.leave_type ?? leave.leaveType;
+                            const startDate = leave.start_date ?? leave.startDate;
+                            const endDate = leave.end_date ?? leave.endDate;
+                            const workdays = Math.floor(leave.workdays_count ?? leave.workdaysCount ?? 0);
+
+                            return (
+                              <Card
+                                key={index}
+                                sx={{
+                                  p: 1,
+                                  bgcolor: colorScheme.surfaceColor,
+                                  border: `1px solid ${colorScheme.textFieldBorderColor}`,
+                                  borderRadius: '6px',
+                                }}
+                              >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, overflow: 'hidden' }}>
+                                  <PersonIcon sx={{ fontSize: 16, color: '#9C88D4', flexShrink: 0 }} />
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      fontWeight: 600,
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                    }}
+                                  >
+                                    {leave.name}
+                                    {' · '}
+                                    {department}
+                                    {jobPosition ? ` · ${jobPosition}` : ''}
+                                    {' | '}
+                                    {leaveType}
+                                    {leave.half_day_slot === 'AM' && ' (오전반차)'}
+                                    {leave.half_day_slot === 'PM' && ' (오후반차)'}
+                                    {leave.half_day_slot === 'ALL' && ' (종일연차)'}
+                                    {' | '}
+                                    {formatServerDateMD(startDate)} ~ {formatServerDateMD(endDate)}
+                                    {workdays ? ` | ${workdays}일` : ''}
+                                  </Typography>
+                                </Box>
+                                {leave.reason && (
+                                  <Typography variant="caption" sx={{ mt: 0.5, color: '#6C757D', display: 'block' }}>
+                                    사유: {leave.reason}
+                                  </Typography>
+                                )}
+                              </Card>
+                            );
+                          })}
                         </Box>
                       )}
                     </Box>

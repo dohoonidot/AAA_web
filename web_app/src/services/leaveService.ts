@@ -555,10 +555,16 @@ class LeaveService {
 
     logger.dev('관리자 부서별 달력 API 요청 (snake_case):', snakeCaseRequest);
 
-    const response = await api.post<AdminDeptCalendarResponse>('/leave/admin/management/deptCalendar', snakeCaseRequest);
+    const response = await api.post<any>('/leave/admin/management/deptCalendar', snakeCaseRequest);
 
-    logger.dev('관리자 부서별 달력 응답:', response.data);
-    return response.data;
+    const data = response.data || {};
+    const monthlyLeaves = data.monthly_leaves ?? data.monthlyLeaves ?? [];
+
+    logger.dev('관리자 부서별 달력 응답:', data);
+    return {
+      ...data,
+      monthlyLeaves,
+    };
   }
 
   /**

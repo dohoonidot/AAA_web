@@ -194,7 +194,10 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
 
     if (statusFilter) {
       if (statusFilter === 'REQUESTED') {
-        list = list.filter((leave) => leave.status && leave.status.toUpperCase().includes('REQUESTED'));
+        list = list.filter((leave) => {
+          const status = leave.status?.toUpperCase() || '';
+          return status.includes('REQUESTED') || status === 'CANCEL_REQUESTED' || leave.isCancel === 1;
+        });
       } else {
         list = list.filter((leave) => leave.status === statusFilter);
       }
@@ -263,8 +266,8 @@ export const useAdminLeaveApprovalState = (options: { isMobile: boolean }) => {
 
   const getLeavesForDate = (date: Date) => {
     return calendarLeaves.filter((leave: any) => {
-      const startLocal = toLocalDate(leave.start_date);
-      const endLocal = toLocalDate(leave.end_date);
+      const startLocal = toLocalDate(leave.start_date ?? leave.startDate);
+      const endLocal = toLocalDate(leave.end_date ?? leave.endDate);
       if (!startLocal || !endLocal) return false;
       const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
