@@ -431,24 +431,6 @@ export default function ElectronicApprovalDraftPanel() {
                   >
                     순차결재
                   </Button>
-                  <Button
-                    variant="contained"
-                    startIcon={<SaveIcon sx={{ fontSize: 16 }} />}
-                    onClick={handleSaveApprovalLine}
-                    sx={{
-                      flex: 1,
-                      minWidth: 0,
-                      bgcolor: '#6B7280',
-                      borderRadius: '10px',
-                      py: 1.3,
-                      fontWeight: 600,
-                      fontSize: 'clamp(11px, 1.1vw, 13px)',
-                      whiteSpace: 'nowrap',
-                      px: 1.25,
-                    }}
-                  >
-                    결재라인 저장
-                  </Button>
                 </Box>
                 <Box
                   sx={{
@@ -829,7 +811,7 @@ export default function ElectronicApprovalDraftPanel() {
                 mb: 1.5,
               }}
             >
-              결재라인 저장
+              전자결재용 결재라인 저장
             </Button>
             <Box sx={{ display: 'flex', gap: 1.5 }}>
               <Button

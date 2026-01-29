@@ -683,7 +683,7 @@ export default function LeaveRequestDraftPanel() {
               },
             }}
           >
-            결재라인 저장
+            휴가 상신용 결재라인 저장
           </Button>
 
           {/* 휴가 상신 버튼 */}

@@ -713,7 +713,7 @@ export default function LeaveRequestModal({
               },
             }}
           >
-            결재라인 저장
+            휴가 상신용 결재라인 저장
           </Button>
 
           {/* 휴가 신청 버튼 */}
