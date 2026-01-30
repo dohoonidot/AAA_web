@@ -27,11 +27,14 @@ export const useReferenceSelectionModalState = ({
   const loadDepartmentMembers = useCallback(async (department: string) => {
     try {
       const members = await departmentService.getDepartmentMembers(department);
+      console.log('[ReferenceSelectionModal] getDepartmentMembers response:', members);
       const ccPersons: any[] = members.map((member) => ({
         name: member.name,
         department: member.department || department,
         userId: member.userId || member.user_id || member.name,
         email: member.email || member.user_email || member.mail || member.email_address,
+        user_id: member.user_id,
+        job_position: member.job_position,
       }));
 
       setDepartmentMembers((prev) => {

@@ -294,7 +294,27 @@ export default function ReferenceSelectionModal({
                                     <Typography sx={{ fontSize: '14px', fontWeight: 500, color: isDark ? '#E5E7EB' : '#111827' }}>
                                       {member.name}
                                     </Typography>
-                                    {member.email && (
+                                    {member.job_position && (
+                                      <Typography
+                                        sx={{
+                                          fontSize: '11px',
+                                          fontWeight: 600,
+                                          color: isDark ? '#93C5FD' : '#2563EB',
+                                          bgcolor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.12)',
+                                          borderRadius: '999px',
+                                          px: 0.8,
+                                          py: 0.1,
+                                        }}
+                                      >
+                                        {member.job_position}
+                                      </Typography>
+                                    )}
+                                    {member.user_id && (
+                                      <Typography sx={{ fontSize: '12px', color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                        {member.user_id}
+                                      </Typography>
+                                    )}
+                                    {!member.user_id && member.email && (
                                       <Typography sx={{ fontSize: '12px', color: isDark ? '#9CA3AF' : '#6B7280' }}>
                                         {member.email}
                                       </Typography>

@@ -68,6 +68,8 @@ export interface CcPerson {
   department: string;
   userId?: string; // 참조자 ID (선택적)
   email?: string;
+  user_id?: string;
+  job_position?: string;
 }
 
 // 순차결재 승인선 타입 (Flutter와 동일)
