@@ -167,19 +167,19 @@ export default function ReferenceSelectionModal({
               {selectedReferences.map((ref, idx) => (
                 <Chip
                   key={idx}
-                  label={`${ref.name}(${ref.department})`}
+                  label={`${ref.name} ${ref.department}`}
                   onDelete={() => removeReference(ref)}
-                  deleteIcon={<CloseIcon sx={{ fontSize: 12 }} />}
+                  deleteIcon={<CloseIcon sx={{ fontSize: 14 }} />}
                   size="small"
                   sx={{
                     bgcolor: '#20C997',
                     color: 'white',
-                    fontSize: '10px',
-                    height: 20,
+                    fontSize: '11px',
+                    height: 22,
                     '& .MuiChip-deleteIcon': {
                       color: 'white',
-                      opacity: 0.85,
-                      marginRight: '-4px',
+                      opacity: 1,
+                      marginRight: '-2px',
                     },
                   }}
                 />
