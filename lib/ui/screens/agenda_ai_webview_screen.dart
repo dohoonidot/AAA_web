@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:webview_windows/webview_windows.dart';
 
-/// 휴가 총괄 관리 WebView 화면
-class VacationManagementWebViewScreen extends StatefulWidget {
-  final String webUrl;
+/// AgendaAI 웹뷰 화면
+class AgendaAIWebViewScreen extends StatefulWidget {
+  const AgendaAIWebViewScreen({super.key});
 
-  const VacationManagementWebViewScreen({
-    super.key,
-    required this.webUrl,
-  });
+  static const String webUrl = 'https://meetingai.co.kr/';
 
   @override
-  State<VacationManagementWebViewScreen> createState() =>
-      _VacationManagementWebViewScreenState();
+  State<AgendaAIWebViewScreen> createState() => _AgendaAIWebViewScreenState();
 }
 
-class _VacationManagementWebViewScreenState
-    extends State<VacationManagementWebViewScreen> {
+class _AgendaAIWebViewScreenState extends State<AgendaAIWebViewScreen> {
   final _controller = WebviewController();
   bool isLoading = true;
   String? errorMessage;
@@ -37,6 +32,9 @@ class _VacationManagementWebViewScreenState
     try {
       await _controller.initialize();
 
+      // 캐시 클리어
+      await _controller.clearCache();
+
       _controller.url.listen((url) {
         // URL 변경 시 처리
       });
@@ -47,7 +45,7 @@ class _VacationManagementWebViewScreenState
         });
       });
 
-      await _controller.loadUrl(widget.webUrl);
+      await _controller.loadUrl(AgendaAIWebViewScreen.webUrl);
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -66,29 +64,33 @@ class _VacationManagementWebViewScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
-    final appBarBg = isDarkTheme
-        ? const Color(0xFF2D2D2D)
-        : Colors.white;
-    final appBarFg = isDarkTheme
-        ? Colors.white
-        : const Color(0xFF1A1D1F);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          '휴가 총괄 관리',
-          style: TextStyle(color: appBarFg),
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.black87,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: '뒤로가기',
         ),
-        backgroundColor: appBarBg,
-        foregroundColor: appBarFg,
-        iconTheme: IconThemeData(color: appBarFg, size: 24),
+        title: const Text(
+          'AgendaAI',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        backgroundColor: const Color(0xFFF5F5F5),
         elevation: 1,
-        shadowColor: isDarkTheme ? Colors.black26 : Colors.black12,
+        shadowColor: Colors.black26,
         surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, color: appBarFg),
+            icon: const Icon(
+              Icons.refresh,
+              color: Colors.black87,
+            ),
             onPressed: _reload,
             tooltip: '새로고침',
           ),
@@ -108,23 +110,19 @@ class _VacationManagementWebViewScreenState
                 if (isLoading)
                   Positioned.fill(
                     child: Container(
-                      color: isDarkTheme
-                          ? const Color(0xFF1A1A1A)
-                          : Colors.white,
-                      child: Center(
+                      color: Colors.white,
+                      child: const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const CircularProgressIndicator(
+                            CircularProgressIndicator(
                               color: Color(0xFF4A6CF7),
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             Text(
-                              '휴가 관리 페이지를 불러오는 중...',
+                              'AgendaAI 페이지를 불러오는 중...',
                               style: TextStyle(
-                                color: isDarkTheme
-                                    ? Colors.grey[400]
-                                    : const Color(0xFF6C757D),
+                                color: Color(0xFF6C757D),
                                 fontSize: 16,
                               ),
                             ),

@@ -6,6 +6,77 @@ import { useLeaveRequestDraftStore } from './store/leaveRequestDraftStore';
 import { useSseNotifications } from './hooks/useSseNotifications';
 import type { NotificationEnvelope } from './types/notification';
 
+type RealtimeToast = {
+  message: string;
+  severity: 'success' | 'error' | 'warning' | 'info';
+};
+
+const extractPayloadMessage = (payload: unknown): string => {
+  if (!payload) return '';
+  if (typeof payload === 'string') return payload;
+  if (typeof payload !== 'object') return '';
+
+  const p = payload as Record<string, unknown>;
+  const messageFields = ['message', 'content', 'body', 'text', 'description', 'subject', 'title'];
+  for (const field of messageFields) {
+    const value = p[field];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  if (typeof p.name === 'string' && p.name.trim()) {
+    return `${p.name}님의 알림`;
+  }
+
+  return '';
+};
+
+const buildRealtimeToast = (envelope: NotificationEnvelope): RealtimeToast => {
+  const payload = envelope.payload as Record<string, unknown> | undefined;
+  const payloadMessage = extractPayloadMessage(payload) || envelope.payload_text || '새로운 알림이 도착했습니다';
+
+  switch (envelope.event) {
+    case 'birthday': {
+      const name = typeof payload?.name === 'string' ? payload?.name : undefined;
+      return {
+        message: name ? `${name}님의 생일을 축하합니다! 🎉` : '생일 축하합니다! 🎂',
+        severity: 'info',
+      };
+    }
+    case 'leave_approval':
+      return { message: '새로운 휴가 승인 요청이 있습니다', severity: 'info' };
+    case 'leave_alert':
+      return { message: payloadMessage || '휴가 관련 알림이 있습니다', severity: 'info' };
+    case 'leave_cc':
+      return { message: '휴가 참조 알림이 도착했습니다', severity: 'info' };
+    case 'leave_draft':
+      return { message: '휴가가 부여되었습니다. 휴가를 신청해주세요.', severity: 'success' };
+    case 'eapproval_approval':
+      return { message: '새로운 결재 문서가 도착했습니다', severity: 'info' };
+    case 'eapproval_alert': {
+      const status = payload?.status;
+      const statusText =
+        status === 'APPROVED' ? '승인' : status === 'REJECTED' ? '반려' : '처리';
+      return {
+        message: `전자결재가 ${statusText}되었습니다.`,
+        severity: status === 'APPROVED' ? 'success' : status === 'REJECTED' ? 'warning' : 'info',
+      };
+    }
+    case 'eapproval_cc':
+      return { message: '전자결재 참조 문서가 도착했습니다', severity: 'info' };
+    case 'contest_detail':
+      return { message: '새로운 공모전 알림이 도착했습니다', severity: 'info' };
+    case 'gift':
+    case 'gift_arrival':
+      return { message: '선물이 도착했습니다', severity: 'success' };
+    case 'alert':
+    case 'notification':
+    default:
+      return { message: payloadMessage, severity: 'info' };
+  }
+};
+
 export const useAppContentState = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -101,31 +172,7 @@ export const useAppContentState = () => {
       payload_grant_days: (envelope.payload as any)?.grant_days,
     });
 
-    if (envelope.event === 'birthday') {
-      const payload = envelope.payload as any;
-      setNotification({
-        message: payload?.name ? `${payload.name}님의 생일을 축하합니다! 🎉` : '생일 축하합니다! 🎂',
-        severity: 'info',
-      });
-    } else if (envelope.event === 'leave_approval') {
-      setNotification({
-        message: '새로운 휴가 승인 요청이 있습니다',
-        severity: 'info',
-      });
-    } else if (envelope.event === 'eapproval_approval') {
-      setNotification({
-        message: '새로운 결재 문서가 도착했습니다',
-        severity: 'info',
-      });
-    } else if (envelope.event === 'eapproval_alert') {
-      const payload = envelope.payload as any;
-      const status = payload?.status;
-      const statusText = status === 'APPROVED' ? '승인' : status === 'REJECTED' ? '반려' : '처리';
-      setNotification({
-        message: `전자결재가 ${statusText}되었습니다.`,
-        severity: status === 'APPROVED' ? 'success' : status === 'REJECTED' ? 'warning' : 'info',
-      });
-    } else if (envelope.event === 'leave_draft') {
+    if (envelope.event === 'leave_draft') {
       const payload = envelope.payload as any;
       console.log('📋 [App] 휴가 초안 메시지 수신 (leave_draft):', payload);
 
@@ -172,11 +219,11 @@ export const useAppContentState = () => {
         leaveStatus,
         useNextYearLeave: payload?.is_next_year === 1,
       });
+    }
 
-      setNotification({
-        message: '휴가가 부여되었습니다. 휴가를 신청해주세요.',
-        severity: 'success',
-      });
+    const toast = buildRealtimeToast(envelope);
+    if (toast.message) {
+      setNotification(toast);
     }
 
     const isGiftEvent =
@@ -218,6 +265,19 @@ export const useAppContentState = () => {
   useEffect(() => {
     setSseEnabled(isLoggedIn);
   }, [isLoggedIn, setSseEnabled]);
+
+  useEffect(() => {
+    if (!notification) return;
+
+    const handleDismiss = () => {
+      setNotification(null);
+    };
+
+    window.addEventListener('click', handleDismiss);
+    return () => {
+      window.removeEventListener('click', handleDismiss);
+    };
+  }, [notification]);
 
   const handleGiftArrivalConfirm = () => {
     setGiftArrivalPopup({ open: false, data: null });
