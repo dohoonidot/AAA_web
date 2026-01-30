@@ -95,14 +95,21 @@ export const useNotificationPanelState = () => {
       const hours = Math.floor(diff / 3600000);
       const days = Math.floor(diff / 86400000);
 
-      if (minutes < 1) return '방금 전';
-      if (minutes < 60) return `${minutes}분 전`;
-      if (hours < 24) return `${hours}시간 전`;
-      if (days < 7) return `${days}일 전`;
+      let relative = '';
+      if (minutes < 1) relative = '방금 전';
+      else if (minutes < 60) relative = `${minutes}분 전`;
+      else if (hours < 24) relative = `${hours}시간 전`;
+      else if (days < 7) relative = `${days}일 전`;
 
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-      return `${month}월 ${day}일`;
+      const absolute = date.toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      return relative ? `${absolute} · ${relative}` : absolute;
     } catch (error) {
       return '';
     }

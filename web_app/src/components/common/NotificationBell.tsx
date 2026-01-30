@@ -337,6 +337,7 @@ export function NotificationBell({
                               color="text.secondary"
                               component="span"
                             >
+                              {formatAbsoluteDateTime(notification.send_time)} ·{' '}
                               {formatDateTime(notification.send_time)}
                             </Typography>
                           </>
