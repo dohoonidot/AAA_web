@@ -31,6 +31,7 @@ export const useReferenceSelectionModalState = ({
         name: member.name,
         department: member.department || department,
         userId: member.userId || member.user_id || member.name,
+        email: member.email || member.user_email || member.mail || member.email_address,
       }));
 
       setDepartmentMembers((prev) => {
@@ -101,6 +102,12 @@ export const useReferenceSelectionModalState = ({
     }
   };
 
+  const removeReference = (person: CcPerson) => {
+    setSelectedReferences((prev) =>
+      prev.filter((ref) => !(ref.name === person.name && ref.department === person.department))
+    );
+  };
+
   const isDepartmentFullySelected = (department: string): boolean => {
     const members = departmentMembers.get(department) || [];
     if (members.length === 0) return false;
@@ -162,6 +169,7 @@ export const useReferenceSelectionModalState = ({
       toggleDepartmentExpansion,
       isPersonSelected,
       togglePerson,
+      removeReference,
       isDepartmentFullySelected,
       toggleDepartment,
       getFilteredMembers,

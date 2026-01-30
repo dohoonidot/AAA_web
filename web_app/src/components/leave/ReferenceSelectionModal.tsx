@@ -69,6 +69,7 @@ export default function ReferenceSelectionModal({
     toggleDepartmentExpansion,
     isPersonSelected,
     togglePerson,
+    removeReference,
     isDepartmentFullySelected,
     toggleDepartment,
     getFilteredMembers,
@@ -163,31 +164,26 @@ export default function ReferenceSelectionModal({
               선택된 참조자 ({selectedReferences.length}명)
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {selectedReferences.slice(0, 5).map((ref, idx) => (
+              {selectedReferences.map((ref, idx) => (
                 <Chip
                   key={idx}
                   label={`${ref.name}(${ref.department})`}
+                  onDelete={() => removeReference(ref)}
+                  deleteIcon={<CloseIcon sx={{ fontSize: 12 }} />}
                   size="small"
                   sx={{
                     bgcolor: '#20C997',
                     color: 'white',
                     fontSize: '10px',
                     height: 20,
+                    '& .MuiChip-deleteIcon': {
+                      color: 'white',
+                      opacity: 0.85,
+                      marginRight: '-4px',
+                    },
                   }}
                 />
               ))}
-              {selectedReferences.length > 5 && (
-                <Chip
-                  label={`+${selectedReferences.length - 5}명 더`}
-                  size="small"
-                  sx={{
-                    bgcolor: isDark ? 'rgba(32, 201, 151, 0.25)' : 'rgba(32, 201, 151, 0.2)',
-                    color: '#20C997',
-                    fontSize: '10px',
-                    height: 20,
-                  }}
-                />
-              )}
             </Box>
           </Box>
         )}
@@ -294,9 +290,16 @@ export default function ReferenceSelectionModal({
                               </ListItemIcon>
                               <ListItemText
                                 primary={
-                                  <Typography sx={{ fontSize: '14px', fontWeight: 500, color: isDark ? '#E5E7EB' : '#111827' }}>
-                                    {member.name}
-                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                    <Typography sx={{ fontSize: '14px', fontWeight: 500, color: isDark ? '#E5E7EB' : '#111827' }}>
+                                      {member.name}
+                                    </Typography>
+                                    {member.email && (
+                                      <Typography sx={{ fontSize: '12px', color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                        {member.email}
+                                      </Typography>
+                                    )}
+                                  </Box>
                                 }
                               />
                             </ListItemButton>
